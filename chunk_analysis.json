@@ -1,0 +1,488 @@
+{
+  "account-qYStzJY4.js": {
+    "badge": "Account",
+    "title": "Your Account",
+    "subtitle": "Login, plan, watchlist and portfolio — the personal layer on top of the terminal.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 2808
+  },
+  "alerts-xnqeu9Mu.js": {
+    "badge": "Account",
+    "title": "Alerts",
+    "subtitle": "Push the terminal to you: levels, funding extremes and macro releases delivered where you actually look.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1384
+  },
+  "altcoins-C1GhJe6z.js": {
+    "badge": "Crypto Engines",
+    "title": "🪙 Altcoin Engine",
+    "subtitle": "Har coin ka same framework — market data, derivatives, on-chain aur tokenomics.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 2241
+  },
+  "assistant-C0lto2qF.js": {
+    "badge": "Intelligence",
+    "title": "AI Trading Assistant",
+    "subtitle": "One clear call per market — LONG, SHORT or WAIT. No entry without a stop, no stop without a target.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 3958
+  },
+  "btc-engine-saaAmoHc.js": {
+    "badge": "Crypto Engines",
+    "title": "₿ Bitcoin Market Engine",
+    "subtitle": "Live price structure, timeframe alignment aur technical read — ek hi screen par.",
+    "usesTV": true,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 2779
+  },
+  "calendar-DHcsYeUw.js": {
+    "badge": "Macro Economy",
+    "title": "Economic Calendar",
+    "subtitle": "Event risk for the week ahead, ranked by how much it can move the regime.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 868
+  },
+  "central-banks-CyNZcbjE.js": {
+    "badge": "Policy & Money",
+    "title": "Global Central Banks",
+    "subtitle": "Currencies are relative trades. What matters is who is cutting faster — and the BoJ hiking is the global carry risk.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 863
+  },
+  "confluence-DtfuyNbH.js": {
+    "badge": "Confluence",
+    "title": "Confluence Engine",
+    "subtitle": "Nothing is traded off one signal. Each pillar is scored 0–100, weighted, then blended into a single global macro bias.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1556
+  },
+  "ConfluencePanel-B8TD7ZQi.js": {
+    "badge": null,
+    "title": null,
+    "subtitle": null,
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 6156
+  },
+  "correlations-Cf_0ID2z.js": {
+    "badge": "Tools",
+    "title": "Charts & Correlations",
+    "subtitle": "Five 'different' longs with 0.8 correlation is one big position. Check the matrix before you size up.",
+    "usesTV": true,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1643
+  },
+  "crowd-B91qmnm_.js": {
+    "badge": "Retail segment",
+    "title": "Crowd Positioning — Long vs Short",
+    "subtitle": "Crowd sabse zyada kya kar raha hai — long, short ya wait. Retail long/short ratio, call/put ratio aur contrarian read ek jagah.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 3304
+  },
+  "crypto-brain-CtJr_29E.js": {
+    "badge": "Crypto Engines",
+    "title": "🤖 AI Crypto Brain",
+    "subtitle": "Saare engines ka ek final verdict — BTC regime score.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 4454
+  },
+  "crypto-calendar-tcIoxlaf.js": {
+    "badge": "Crypto Engines",
+    "title": "🗓️ Crypto Economic Calendar",
+    "subtitle": "Macro, crypto, institutional aur regulation — event risk ek jagah.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1161
+  },
+  "crypto-ooSCcTIk.js": {
+    "badge": "Crypto",
+    "title": "Crypto Market",
+    "subtitle": "Majors, market structure and the liquidity backdrop that decides whether alts can run.",
+    "usesTV": true,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 3172
+  },
+  "daily-report-3CvJr8oD.js": {
+    "badge": "Daily report · ${new Date().toLocaleDateString(",
+    "title": "Daily Market Report",
+    "subtitle": "Aaj ka poora market brief — kya bullish hai, kya bearish, aur har market me long / short / wait ka clear plan.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 4052
+  },
+  "defi-Bbie2zbE.js": {
+    "badge": "Crypto Engines",
+    "title": "🧬 DeFi & Ecosystem Engine",
+    "subtitle": "Kahan real usage badh raha hai — TVL, fees, revenue aur developer activity.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1691
+  },
+  "derivatives-9MLuafom.js": {
+    "badge": "Crypto",
+    "title": "Derivatives & Positioning",
+    "subtitle": "Leverage tells you where the pain is. Crowded longs make dips violent; crowded shorts fuel squeezes.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1380
+  },
+  "derivatives-engine-LSClorOi.js": {
+    "badge": "Crypto Engines",
+    "title": "🎲 Derivatives Engine",
+    "subtitle": "Leverage kahan build ho raha hai — OI, basis, funding aur liquidations.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1834
+  },
+  "economic-events-Bjt6XZQ4.js": {
+    "badge": "Live Calendar",
+    "title": "📅 News Events — CPI · PPI · FOMC · NFP",
+    "subtitle": "Kaun si news aane wali hai, Actual / Forecast / Previous ke saath. Countdown har second chalta hai, data har minute update.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1163
+  },
+  "etf-Ce1rjCWK.js": {
+    "badge": "Crypto Engines",
+    "title": "🏛️ ETF & Institutional Engine",
+    "subtitle": "Institutional demand ka sabse saaf gauge — spot ETF flows aur corporate treasuries.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 2073
+  },
+  "eth-engine-B9Ozi6vz.js": {
+    "badge": "Crypto Engines",
+    "title": "Ξ Ethereum & Dominance Engine",
+    "subtitle": "ETH/BTC trend hi altcoin cycle ka sabse saaf signal hai.",
+    "usesTV": true,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 2019
+  },
+  "fed-9ZLnMnA_.js": {
+    "badge": "Policy & Money",
+    "title": "Federal Reserve",
+    "subtitle": "Policy rate, balance sheet and communication. Together they decide the price and quantity of dollars.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 566
+  },
+  "forex-CvAkHmwV.js": {
+    "badge": "Forex",
+    "title": "Forex & The Dollar",
+    "subtitle": "The dollar sets the tone for every other asset. Strong USD drains liquidity; weak USD fuels risk.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 2228
+  },
+  "gdp-W6t-d2yh.js": {
+    "badge": "Economy",
+    "title": "GDP & Growth",
+    "subtitle": "Growth is one of the two axes of the regime matrix. Direction matters far more than the level.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 471
+  },
+  "geopolitics-Cb6Hqahi.js": {
+    "badge": "World",
+    "title": "Geopolitical Risk",
+    "subtitle": "Geopolitics only matters to a portfolio through a transmission channel — energy, shipping, chips or the dollar.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1067
+  },
+  "global-intel-CBLibw9I.js": {
+    "badge": "Global Intelligence",
+    "title": "🌍 Global Macro · Rates · FX · Commodities · News",
+    "subtitle": "Sirf macro / socio-economic / geopolitical research — koi trade signal nahi. Har data ke saath source.",
+    "usesTV": true,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 3623
+  },
+  "gold-D0qD6Kyd.js": {
+    "badge": "🥇 Gold command centre",
+    "title": "Live Gold Market — AI Gold Brain",
+    "subtitle": "XAU/USD spot aur futures se lekar dollar, real yields, Fed, macro surprises, central banks, ETF flows, CFTC positioning, geopolitics, India premium aur technicals — sab ek premium terminal me.",
+    "usesTV": true,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 33032
+  },
+  "inflation-D7bcu0RX.js": {
+    "badge": "Economy",
+    "title": "Inflation Dashboard",
+    "subtitle": "Inflation sets the policy path, and the policy path sets liquidity. This is the most important page on the terminal.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 493
+  },
+  "journal-DBc0EvmH.js": {
+    "badge": "Journal",
+    "title": "Trading Journal",
+    "subtitle": "The journal is where discipline becomes data. Fix the repeated mistake and the equity curve fixes itself.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 2441
+  },
+  "labour-CQ810NhY.js": {
+    "badge": "Economy",
+    "title": "Labour Market",
+    "subtitle": "Hiring slows first, layoffs come later. Claims are the single best real-time recession tell.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 475
+  },
+  "liquidation-map-DYF_2Z95.js": {
+    "badge": "Crypto Engines",
+    "title": "${t} Liquidation Clusters",
+    "subtitle": "Price kahan magnet ki tarah kheenchega — leveraged clusters ka map.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 2307
+  },
+  "liquidity-Bi-u00bS.js": {
+    "badge": "Policy & Money",
+    "title": "Banking & Liquidity",
+    "subtitle": "Follow the plumbing: reserves, the Treasury account and repo spreads tell you when risk assets have fuel.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 498
+  },
+  "macro-By3RpBDt.js": {
+    "badge": "Macro Economy",
+    "title": "Inflation, Growth & Policy",
+    "subtitle": "Every card answers three questions: what printed, versus what was expected, and what it means for risk assets.",
+    "usesTV": true,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1031
+  },
+  "macro-engine-BBcVKbdJ.js": {
+    "badge": "Crypto Engines",
+    "title": "🌐 Macro Engine",
+    "subtitle": "Crypto ko risk asset ki tarah padho — macro surprises, Fed policy aur liquidity hi BTC ka bada driver hai.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1585
+  },
+  "narratives-ClQyKSJO.js": {
+    "badge": "Crypto Engines",
+    "title": "🧠 Narrative Engine",
+    "subtitle": "Paisa kis kahani ke peeche ja raha hai — narrative scores 0–100.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1763
+  },
+  "news-PSoo3Fsa.js": {
+    "badge": "Intelligence",
+    "title": "AI News & Market Impact",
+    "subtitle": "Live headlines (CoinDesk, Cointelegraph, Google News) — har 5 minute update, har khabar par market impact tag.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1538
+  },
+  "onchain-CQ6wOCVv.js": {
+    "badge": "Crypto",
+    "title": "On-Chain Analysis",
+    "subtitle": "What holders are actually doing beneath the price: supply moving off exchanges, whale accumulation and cycle valuation.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1087
+  },
+  "onchain-engine-CMMPtwOJ.js": {
+    "badge": "Crypto Engines",
+    "title": "⛓️ On-Chain Engine",
+    "subtitle": "Network health, holder behaviour, valuation aur exchange flows — price ke neeche ka sach.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1418
+  },
+  "options-fKMw8Bez.js": {
+    "badge": "Crypto Engines",
+    "title": "⚖️ Options Engine",
+    "subtitle": "Volatility pricing, skew aur strike concentration — options market ka positioning.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1088
+  },
+  "overview-Bh1NOsGz.js": {
+    "badge": "Dashboard",
+    "title": "Live Market Overview",
+    "subtitle": "Every market that matters on one screen: crypto majors, metals, the dollar, US yields, equity indices and volatility.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1497
+  },
+  "put-call-pWSXCZtB.js": {
+    "badge": "World",
+    "title": "Put/Call Ratio",
+    "subtitle": "Below the 20-day average means speculative call demand. Sustained spikes above 1.0 usually mark tradeable lows.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 853
+  },
+  "regime-DtoTdShN.js": {
+    "badge": "Confluence",
+    "title": "Market-Regime Matrix",
+    "subtitle": "Growth on one axis, inflation on the other. Knowing the quadrant tells you which trades have the wind behind them.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1275
+  },
+  "reports-CK95JlRG.js": {
+    "badge": "Journal",
+    "title": "Journal Reports",
+    "subtitle": "Six months of data, three questions: which month, which setup, which session actually pays you.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 3152
+  },
+  "risk-B98e1KFW.js": {
+    "badge": "Risk",
+    "title": "AI Risk Console",
+    "subtitle": "Risk first, entry second. The console sizes every trade and blocks the ones that break your rules.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 3104
+  },
+  "scanner-D7cJZm7p.js": {
+    "badge": "Confluence",
+    "title": "Bull / Bear Scanner",
+    "subtitle": "A market only earns a BULL or BEAR tag when trend, momentum and macro fit agree. Everything else is MIXED — stand aside.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1054
+  },
+  "sentiment---8U4SQs.js": {
+    "badge": "World",
+    "title": "Market Sentiment",
+    "subtitle": "Use sentiment as a contrarian overlay only at extremes. In the middle of the range it tells you nothing.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 483
+  },
+  "smart-money-VebbJ3q2.js": {
+    "badge": "Crypto Engines",
+    "title": "🕵️ Sentiment & Smart Money",
+    "subtitle": "Sentiment secondary signal hai — smart money flows primary.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1235
+  },
+  "socioeconomic-D4o3NAaO.js": {
+    "badge": "World",
+    "title": "Socioeconomic Data",
+    "subtitle": "Micro social economics feed macro outcomes. Thin savings and rising delinquencies cap how long a consumer expansion can run.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 501
+  },
+  "stablecoin-engine-Dypggqla.js": {
+    "badge": "Crypto Engines",
+    "title": "💵 Stablecoin & Flow Engine",
+    "subtitle": "Crypto ka dry powder — stablecoin supply aur exchange flows.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 2267
+  },
+  "stocks-BF_0jWiT.js": {
+    "badge": "Stock Market",
+    "title": "Equities & Volatility",
+    "subtitle": "Index level tells you the trend; VIX and sector rotation tell you whether it is healthy.",
+    "usesTV": true,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 1860
+  },
+  "TradingViewWidget-D4_mPerT.js": {
+    "badge": null,
+    "title": null,
+    "subtitle": null,
+    "usesTV": true,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1192
+  },
+  "us-economy-hEkw8Ccb.js": {
+    "badge": "Economy",
+    "title": "US Economic Data",
+    "subtitle": "The activity side of the ledger. Surveys lead, hard data confirms — divergences are where the opportunity is.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 486
+  },
+  "whales-608MIYdX.js": {
+    "badge": "Crypto Engines",
+    "title": "🐋 Whale Engine",
+    "subtitle": "Bade wallets kya kar rahe hain — accumulation ya distribution.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": false,
+    "size": 1418
+  },
+  "yields-DAYmmsZO.js": {
+    "badge": "Policy & Money",
+    "title": "Yield Curve & Bonds",
+    "subtitle": "Shape matters more than level. Bull steepening into an easing cycle is a very different trade to bear steepening.",
+    "usesTV": false,
+    "usesSvg": false,
+    "usesTable": true,
+    "size": 820
+  }
+}

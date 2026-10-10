@@ -1,0 +1,15 @@
+# =============================================================================
+# ISHANT MACRO AI TERMINAL (ISHANTMACRO.AI) - ROBOTS.TXT
+# Optimized for Googlebot, Bingbot, DuckDuckGo, and Major Search Engines
+# =============================================================================
+
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://ishantmacro.ai/sitemap.xml
+Sitemap: https://ishantmacrodata.vercel.app/sitemap.xml

@@ -1,0 +1,502 @@
+/* ==========================================================================
+   IITIAN TRADERS MACRO PANEL — EXACT THEME SYSTEM
+   Directly cloned from https://iitianmacro.ai/terminal
+   Exact White/Light Theme & Dark Terminal Theme
+   ========================================================================== */
+
+:root, html[data-theme=light], body:not(.dark) {
+  /* ── EXACT IITIANMACRO LIGHT/WHITE THEME TOKENS ── */
+  --bg: #eef1f7;
+  --bg2: #e8ecf5;
+  --panel: #ffffff;
+  --panel2: #ffffff;
+  --glass: #ffffffd1;
+  --line: #dde3ef;
+  --line2: #c9d2e5;
+  --rowline: #edf1f8;
+  --barbg: #e3e9f4;
+  --thumb: #c3cde0;
+  --topbar: #ffffffe6;
+  --grad1: #dbe4f5;
+  --skel1: #e9eef7;
+  --skel2: #f6f9fd;
+  --lockbg: #ffffff9e;
+  --gridc: #e4eaf5;
+  --tickc: #7c88a3;
+  --legc: #5a6980;
+  
+  --txt: #182238;
+  --txt2: #4a5670;
+  --txt3: #8a94ab;
+  
+  --grn: #158744;
+  --grnbg: #1587441a;
+  --red: #d31d4d;
+  --redbg: #d31d4d17;
+  --amb: #b96e08;
+  --ambbg: #b96e081a;
+  --blu: #0b74b8;
+  --blubg: #0b74b81a;
+  --pur: #6d4fd8;
+  --purbg: #6d4fd81c;
+  --gold: #a16207;
+  --cy: #0f766e;
+  
+  --r: 12px;
+  --mono: "Consolas", "JetBrains Mono", "SF Mono", monospace;
+  --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  
+  --s0: #ffffff;
+  --s1: #f2f5fb;
+  --s2: #f7f9fd;
+  --s3: #e9eef8;
+}
+
+html[data-theme=dark], body.dark {
+  /* ── EXACT IITIANMACRO DARK THEME TOKENS ── */
+  --bg: #07090f;
+  --bg2: #0a0e17;
+  --panel: #0d1220;
+  --panel2: #111830;
+  --glass: #1118309e;
+  --line: #1c2540;
+  --line2: #27314f;
+  --rowline: #131b33;
+  --barbg: #1a2444;
+  --thumb: #232d4d;
+  --topbar: #090d18d9;
+  --grad1: #101a3a;
+  --skel1: #0e1529;
+  --skel2: #16203c;
+  --lockbg: #07090f8c;
+  --gridc: #182142;
+  --tickc: #5f6b8a;
+  --legc: #9aa6c0;
+  
+  --txt: #e8ecf5;
+  --txt2: #9aa6c0;
+  --txt3: #5f6b8a;
+  
+  --grn: #22c55e;
+  --grnbg: #22c55e1f;
+  --red: #f43f5e;
+  --redbg: #f43f5e1f;
+  --amb: #f59e0b;
+  --ambbg: #f59e0b1f;
+  --blu: #38bdf8;
+  --blubg: #38bdf81f;
+  --pur: #a78bfa;
+  --purbg: #a78bfa24;
+  --gold: #fbbf24;
+  --cy: #2dd4bf;
+  
+  --s0: #090d18;
+  --s1: #0c1225;
+  --s2: #0b1122;
+  --s3: #121a34;
+}
+
+/* ────────────────── 1. GLOBAL CANVAS ────────────────── */
+html, body {
+  background: radial-gradient(1200px 600px at 80% -10%, var(--grad1) 0%, var(--bg) 55%), var(--bg) !important;
+  color: var(--txt) !important;
+  font-family: var(--sans) !important;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+a {
+  color: var(--blu);
+  text-decoration: none;
+}
+
+/* ────────────────── 2. TICKER BAR (#tickerWrap) ────────────────── */
+#tickerWrap {
+  z-index: 900;
+  background: var(--s0);
+  border-bottom: 1px solid var(--line);
+  height: 38px;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  user-select: none;
+}
+
+#tickerWrap:hover .tk-track {
+  animation-play-state: paused;
+}
+
+.tk-track {
+  align-items: center;
+  width: max-content;
+  height: 38px;
+  animation: 70s linear infinite tkscroll;
+  display: flex;
+}
+
+@keyframes tkscroll {
+  0% { transform: translate(0); }
+  100% { transform: translate(-50%); }
+}
+
+.tk-item {
+  border-right: 1px solid var(--line);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--mono);
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 12.5px;
+  display: flex;
+  transition: background 0.15s ease;
+}
+
+.tk-item:hover {
+  background: var(--s3);
+}
+
+.tk-sym {
+  color: var(--txt2);
+  letter-spacing: .4px;
+  font-weight: 600;
+}
+
+.tk-px {
+  color: var(--txt);
+  font-weight: 700;
+}
+
+.text-grn {
+  color: var(--grn) !important;
+  font-weight: 600;
+}
+
+.text-red {
+  color: var(--red) !important;
+  font-weight: 600;
+}
+
+/* ────────────────── 3. TOPBAR (#topbar) ────────────────── */
+#topbar {
+  z-index: 880;
+  background: var(--topbar);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 14px;
+  display: flex;
+  position: sticky;
+  top: 38px;
+  left: 0;
+  right: 0;
+}
+
+#brand {
+  cursor: pointer;
+  align-items: center;
+  gap: 9px;
+  min-width: max-content;
+  display: flex;
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+}
+
+#brand .logo {
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+  font-weight: 900;
+  font-family: var(--mono);
+  background: linear-gradient(135deg, #f59e0b, #ef4444 55%, #a78bfa);
+  border-radius: 8px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+}
+
+#brand .bt {
+  letter-spacing: .3px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--txt);
+}
+
+#brand .bt small {
+  color: var(--txt3);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 9.5px;
+  font-weight: 600;
+  display: block;
+}
+
+#searchBox {
+  flex: 1;
+  max-width: 520px;
+  position: relative;
+}
+
+#searchInput {
+  background: var(--s1);
+  border: 1px solid var(--line2);
+  width: 100%;
+  color: var(--txt);
+  border-radius: 9px;
+  outline: none;
+  padding: 8px 12px 8px 34px;
+  font-size: 13px;
+  font-family: var(--sans);
+  transition: border-color 0.15s ease;
+}
+
+#searchInput:focus {
+  border-color: var(--blu);
+}
+
+#searchBox .si {
+  color: var(--txt3);
+  position: absolute;
+  top: 8px;
+  left: 11px;
+  font-size: 14px;
+}
+
+.tb-right {
+  align-items: center;
+  gap: 8px;
+  min-width: max-content;
+  margin-left: auto;
+  display: flex;
+}
+
+.tb-btn {
+  background: var(--s1);
+  border: 1px solid var(--line2);
+  color: var(--txt2);
+  cursor: pointer;
+  border-radius: 9px;
+  align-items: center;
+  gap: 6px;
+  padding: 6.5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  font-family: var(--sans);
+  transition: all 0.15s ease;
+}
+
+.tb-btn:hover {
+  color: var(--txt);
+  border-color: var(--blu);
+  background: var(--s2);
+}
+
+.tb-btn.acc {
+  color: #fff;
+  background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(29, 78, 216, 0.35);
+}
+
+.tb-btn.acc:hover {
+  background: linear-gradient(135deg, #2563eb, #8b5cf6);
+  transform: translateY(-1px);
+}
+
+#clock {
+  font-family: var(--mono);
+  color: var(--txt3);
+  font-size: 11.5px;
+}
+
+/* ────────────────── 4. SIDEBAR (#sidebar) ────────────────── */
+#sidebar {
+  background: var(--s0);
+  border-right: 1px solid var(--line);
+  width: 220px;
+  padding: 8px 6px 90px;
+  overflow-y: auto;
+  user-select: none;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.nav-cat {
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 12px 10px 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  font-family: var(--sans);
+}
+
+.nav-item {
+  color: var(--txt2);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  border-radius: 8px;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 1.5px;
+  padding: 7px 10px;
+  font-size: 12.8px;
+  font-weight: 600;
+  display: flex;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  font-family: var(--sans);
+  transition: all 0.15s ease;
+}
+
+.nav-item:hover {
+  background: var(--s3);
+  color: var(--txt);
+}
+
+.nav-item.on {
+  color: var(--txt);
+  border-left: 2px solid var(--blu);
+  background: linear-gradient(90deg, #0b74b81a, transparent);
+  font-weight: 700;
+}
+
+body.dark .nav-item.on {
+  color: #fff;
+  border-left: 2px solid var(--blu);
+  background: linear-gradient(90deg, #38bdf81f, transparent);
+}
+
+.nav-item .ni {
+  text-align: center;
+  opacity: .85;
+  width: 17px;
+  font-size: 13px;
+}
+
+/* ────────────────── 5. CARDS & PANELS ────────────────── */
+.card, .royal-card, .terminal-panel, .panel {
+  background: var(--panel) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+  padding: 14px;
+  position: relative;
+  box-shadow: 0 4px 18px #172b630f !important;
+  color: var(--txt) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.dark .card, body.dark .royal-card, body.dark .terminal-panel, body.dark .panel {
+  background: var(--glass) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.card:hover, .royal-card:hover, .terminal-panel:hover, .panel:hover {
+  border-color: var(--line2) !important;
+}
+
+.card h3 {
+  color: var(--txt2);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+}
+
+/* ────────────────── 6. BADGES, CHIPS & DUO BARS ────────────────── */
+.chip, [data-slot="chip"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.duo {
+  background: var(--barbg);
+  border-radius: 5px;
+  height: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.duo .dz {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+/* ────────────────── 7. TABLE STYLES (dt) ────────────────── */
+table.dt {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+}
+
+table.dt th {
+  text-align: left;
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: .9px;
+  border-bottom: 1px solid var(--line2);
+  white-space: nowrap;
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+table.dt td {
+  border-bottom: 1px solid var(--rowline);
+  vertical-align: middle;
+  padding: 8px 10px;
+}
+
+table.dt tr:hover td {
+  background: #38bdf808;
+}
+
+/* ────────────────── 8. SCROLLBAR ────────────────── */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--thumb);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9aa6c0;
+}

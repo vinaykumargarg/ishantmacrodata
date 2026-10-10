@@ -1,0 +1,303 @@
+/* ==========================================================================
+   NEXVORA AI / ISHANT TERMINAL — HIGH-DEFINITION THEME ENGINE
+   Obsidian Dark (All Black / Pure Midnight) & Crisp Light (Pure White)
+   ========================================================================== */
+
+/* ────────────────── 1. TYPOGRAPHY & CORE ENGINE ────────────────── */
+:root {
+  --font-sans: 'Plus Jakarta Sans', 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: var(--font-sans) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+.font-mono, .num, .label-xs, pre, code, [class*="font-mono"] {
+  font-family: var(--font-mono) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ────────────────── 2. PURE OBSIDIAN DARK THEME (#030509 / ALL BLACK) ────────────────── */
+html.dark,
+html[data-theme='dark'],
+.dark {
+  /* Canvas & Foundations */
+  --background: #04060c;
+  --foreground: #f8fafc;
+  
+  /* Cards & Panels (Strictly Pure Dark Obsidian, ZERO White Bleed) */
+  --card: #080d1a;
+  --card-foreground: #f8fafc;
+  --panel: #080d1a;
+  --panel-foreground: #f8fafc;
+  --popover: #080d1a;
+  --popover-foreground: #f8fafc;
+  
+  /* Electric Vibrant Accents */
+  --primary: #38bdf8;
+  --primary-foreground: #020817;
+  --brand: #38bdf8;
+  
+  /* Neutrals & Muted */
+  --secondary: #0f1728;
+  --secondary-foreground: #e2e8f0;
+  --muted: #0f1728;
+  --muted-foreground: #94a3b8;
+  --accent: #141f36;
+  --accent-foreground: #f8fafc;
+  
+  /* Borders & Inputs */
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #38bdf8;
+  
+  /* Financial Directional Colors (Vibrant Neon Glow) */
+  --bull: #10b981;
+  --bear: #f43f5e;
+  --gold: #f59e0b;
+  --neutral: #94a3b8;
+  
+  /* Gradients & Shadows */
+  --gradient-brand: linear-gradient(135deg, #38bdf8, #818cf8 55%, #c084fc);
+  --gradient-panel: linear-gradient(165deg, #0b1122 0%, #060913 100%);
+  --shadow-panel: 0 4px 24px -2px rgba(0, 0, 0, 0.85);
+  --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.25);
+}
+
+/* ────────────────── 3. CRISP WHITE LIGHT THEME (#FFFFFF / PURE WHITE) ────────────────── */
+html.light,
+html[data-theme='light'],
+:root:not(.dark) {
+  /* Canvas & Foundations */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  
+  /* Cards & Panels (Pure Crisp White) */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --panel: #ffffff;
+  --panel-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  
+  /* Clean Institutional Blue Primary */
+  --primary: #0284c7;
+  --primary-foreground: #ffffff;
+  --brand: #0284c7;
+  
+  /* Neutrals & Muted */
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e2e8f0;
+  --accent-foreground: #0f172a;
+  
+  /* Borders & Inputs */
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #0284c7;
+  
+  /* Financial Directional Colors */
+  --bull: #059669;
+  --bear: #e11d48;
+  --gold: #d97706;
+  --neutral: #64748b;
+  
+  /* Gradients & Shadows */
+  --gradient-brand: linear-gradient(135deg, #0284c7, #6366f1 55%, #a855f7);
+  --gradient-panel: linear-gradient(165deg, #ffffff 0%, #f8fafc 100%);
+  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 25px -10px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 0 15px rgba(2, 132, 199, 0.15);
+}
+
+/* ────────────────── 4. MANDATORY DARK MODE OVERRIDES (FIX ALL WHITE BOXES) ────────────────── */
+html.dark body,
+body.dark,
+html[data-theme='dark'] body {
+  background-color: #04060c !important;
+  color: #f8fafc !important;
+  background-image: radial-gradient(1000px 600px at 15% -10%, rgba(56, 189, 248, 0.04), transparent 70%),
+                    radial-gradient(800px 500px at 85% 0%, rgba(245, 158, 11, 0.03), transparent 70%) !important;
+}
+
+/* Any panel or card element in dark mode must NEVER be white */
+html.dark .panel,
+.dark .panel,
+html.dark .bg-card,
+.dark .bg-card,
+html.dark [class*="bg-card"],
+.dark [class*="bg-card"],
+html[data-theme='dark'] .panel,
+html[data-theme='dark'] .bg-card {
+  background-color: #080d1a !important;
+  background-image: linear-gradient(165deg, #0b1122 0%, #060913 100%) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+}
+
+html.dark .bg-secondary,
+.dark .bg-secondary,
+html.dark [class*="bg-secondary"],
+.dark [class*="bg-secondary"] {
+  background-color: #0f1728 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Ensure active primary buttons are electric cyan with dark readable text, not bright blinding white */
+html.dark .bg-primary,
+.dark .bg-primary {
+  background-color: #38bdf8 !important;
+  color: #020817 !important;
+}
+
+html.dark .border-border,
+.dark .border-border {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea,
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #0b1120 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+/* ────────────────── 5. MANDATORY LIGHT MODE OVERRIDES (CRISP WHITE) ────────────────── */
+html.light body,
+:root:not(.dark) body,
+html[data-theme='light'] body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  background-image: radial-gradient(1000px 600px at 15% -10%, rgba(2, 132, 199, 0.03), transparent 70%),
+                    radial-gradient(800px 500px at 85% 0%, rgba(217, 119, 6, 0.03), transparent 70%) !important;
+}
+
+html.light .panel,
+:root:not(.dark) .panel,
+html.light .bg-card,
+:root:not(.dark) .bg-card,
+html[data-theme='light'] .panel,
+html[data-theme='light'] .bg-card {
+  background-color: #ffffff !important;
+  background-image: linear-gradient(165deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 20px -8px rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .bg-secondary,
+:root:not(.dark) .bg-secondary {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+html.light .bg-primary,
+:root:not(.dark) .bg-primary {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+html.light .border-border,
+:root:not(.dark) .border-border {
+  border-color: #e2e8f0 !important;
+}
+
+html.light input,
+html.light select,
+html.light textarea,
+:root:not(.dark) input,
+:root:not(.dark) select,
+:root:not(.dark) textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* ────────────────── 6. RICH FINANCIAL COLOR SYSTEM ────────────────── */
+.text-bull {
+  color: var(--bull) !important;
+}
+
+.text-bear {
+  color: var(--bear) !important;
+}
+
+.text-gold {
+  color: var(--gold) !important;
+}
+
+.text-primary {
+  color: var(--primary) !important;
+}
+
+/* Background tints with clean contrast */
+.bg-bull\/10 {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+}
+.bg-bull\/15 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+.bg-bear\/10 {
+  background-color: rgba(244, 63, 94, 0.1) !important;
+}
+.bg-bear\/15 {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+}
+.bg-gold\/10 {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+.bg-gold\/15 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+/* Glow & Accent Rings */
+.shadow-glow {
+  box-shadow: var(--shadow-glow) !important;
+}
+
+/* Trading View Widget and iframe styling */
+html.dark iframe,
+.dark iframe {
+  border-radius: 8px;
+  background-color: #080d1a !important;
+}
+
+/* Scrollbar polish */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
