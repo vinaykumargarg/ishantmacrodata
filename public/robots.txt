@@ -11,5 +11,6 @@ User-agent: *
 Allow: /
 
 # Sitemaps
+Sitemap: https://vinaykumargarg.github.io/ishantmacrodata/sitemap.xml
 Sitemap: https://ishantmacro.ai/sitemap.xml
 Sitemap: https://ishantmacrodata.vercel.app/sitemap.xml
