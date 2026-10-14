@@ -556,6 +556,41 @@ export const LiquiditySweepIntelligenceView: React.FC = () => {
         </div>
       </div>
 
+      {/* ── NEW INSTITUTIONAL SCANNERS PROMPT BANNER ── */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/20 text-primary font-bold">
+            🚀
+          </span>
+          <span className="font-semibold text-foreground">
+            New Institutional Modules Live:
+          </span>
+          <span className="text-muted-foreground hidden sm:inline">
+            Delta Exchange 4H Swing Scanner, USA Stock Scanner & Event Impact Engine.
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <a
+            href="#delta-swing-scanner"
+            className="flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-foreground hover:bg-primary/90 transition-all"
+          >
+            ⚡ Delta 4H Swing Scanner
+          </a>
+          <a
+            href="#usa-swing-scanner"
+            className="flex items-center gap-1 rounded-lg bg-card border border-border px-2.5 py-1 text-[11px] font-bold text-foreground hover:border-primary/50 transition-all"
+          >
+            🇺🇸 USA Stocks (4H & 1-6M)
+          </a>
+          <a
+            href="#event-impact-engine"
+            className="flex items-center gap-1 rounded-lg bg-card border border-border px-2.5 py-1 text-[11px] font-bold text-foreground hover:border-primary/50 transition-all"
+          >
+            🌍 Event Impact Engine
+          </a>
+        </div>
+      </div>
+
       {/* ────────────────────────────────────────────────────────── */}
       {/* 2. LIVE PRICE & QUICK METRIC CALLOUT STRIP                 */}
       {/* ────────────────────────────────────────────────────────── */}

@@ -8,6 +8,34 @@ export interface NavCategory {
 
 export const NAV_CATEGORIES: NavCategory[] = [
   {
+    title: 'Delta 4H Swing Scanner ⭐',
+    icon: '⚡',
+    items: [
+      { id: 'delta-swing-scanner', label: 'Delta 4H All-Coin Scanner ⭐ (SMC & Profile)', icon: '⚡' },
+      { id: 'delta-swing-top5', label: 'Top 5 Alpha Swings (Delta)', icon: '🔥' },
+      { id: 'delta-wealth-1-3m', label: 'Delta 1-3M Investment Outlook', icon: '💎' }
+    ]
+  },
+  {
+    title: 'USA Stock Swing & Invest ⭐',
+    icon: '🇺🇸',
+    items: [
+      { id: 'usa-swing-scanner', label: 'USA Stocks 4H Swing Scanner ⭐ (S&P/Nasdaq)', icon: '📈' },
+      { id: 'usa-earnings-guard', label: 'Earnings Risk Guard (<14D Warning)', icon: '🛡️' },
+      { id: 'usa-portfolio-builder', label: 'US 1-6M Portfolio Builder', icon: '💼' }
+    ]
+  },
+  {
+    title: 'Market News & Event Impact ⭐',
+    icon: '🌍',
+    items: [
+      { id: 'event-impact-engine', label: 'Live Event Impact Engine ⭐ (Live Scenarios)', icon: '🌍' },
+      { id: 'macro-scenarios-matrix', label: '3-Scenario Matrix (CPI/FOMC/NFP)', icon: '📊' },
+      { id: 'gold-btc-transmission', label: 'Gold & Bitcoin Transmission Models', icon: '🥇' },
+      { id: 'voice-query-assistant', label: 'AI Voice Macro Assistant 🎙️ (Hindi/Eng)', icon: '🎙️' }
+    ]
+  },
+  {
     title: 'AI Decision & Live Chart',
     icon: '⚡',
     items: [

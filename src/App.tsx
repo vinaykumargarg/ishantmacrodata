@@ -33,6 +33,9 @@ import { JarvisFloatingWidget } from './components/JarvisFloatingWidget';
 import BtcUsdtRelationshipEngine from './components/BtcUsdtRelationshipEngine';
 import { LiquiditySweepIntelligenceView } from './components/LiquiditySweepIntelligenceView';
 import { TelegramAiAlertsView } from './components/TelegramAiAlertsView';
+import DeltaSwingScannerView from './components/DeltaSwingScannerView';
+import UsaStockScannerView from './components/UsaStockScannerView';
+import EventImpactEngineView from './components/EventImpactEngineView';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthModal } from './components/AuthModal';
 import { AuthPageView } from './components/AuthPageView';
@@ -215,6 +218,9 @@ function TerminalApp() {
         onNavigateJarvis={() => setActiveTab('jarvis-voice-ai')}
         onNavigateBtcUsdt={() => setActiveTab('btc-usdt-momentum')}
         onNavigateLiquiditySweep={() => setActiveTab('liquidity-sweep-map')}
+        onNavigateDeltaSwing={() => setActiveTab('delta-swing-scanner')}
+        onNavigateUsaSwing={() => setActiveTab('usa-swing-scanner')}
+        onNavigateEventImpact={() => setActiveTab('event-impact-engine')}
       />
 
       {/* 3. Main Workspace Row: Left Sidebar + Right Viewport */}
@@ -247,6 +253,9 @@ function TerminalApp() {
 
           {/* RENDER ACTIVE TAB */}
           <ErrorBoundary key={activeTab} onReset={() => setActiveTab('market-chart-analyse')}>
+          {(activeTab === 'delta-swing-scanner' || activeTab === 'delta-scanner' || activeTab === 'delta-4h' || activeTab === 'delta-swing' || activeTab === 'delta-swing-top5' || activeTab === 'delta-wealth-1-3m') && <DeltaSwingScannerView onNavigate={setActiveTab} />}
+          {(activeTab === 'usa-swing-scanner' || activeTab === 'usa-stocks-scanner' || activeTab === 'us-swing' || activeTab === 'usa-stock-scanner' || activeTab === 'usa-earnings-guard' || activeTab === 'usa-portfolio-builder') && <UsaStockScannerView onNavigate={setActiveTab} />}
+          {(activeTab === 'event-impact-engine' || activeTab === 'news-impact' || activeTab === 'event-impact' || activeTab === 'macro-news-engine' || activeTab === 'macro-scenarios-matrix' || activeTab === 'gold-btc-transmission' || activeTab === 'voice-query-assistant') && <EventImpactEngineView onNavigate={setActiveTab} />}
           {activeTab === 'global-score' && <GlobalMarketScoreView onNavigate={setActiveTab} liveTickers={liveTickers} />}
           {activeTab === 'auth' && <AuthPageView onNavigateToTerminal={() => setActiveTab('ultra-ai')} />}
           {activeTab === 'stock-ai' && <StockAiView />}

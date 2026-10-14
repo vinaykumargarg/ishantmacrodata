@@ -12,6 +12,9 @@ interface HeaderProps {
   onNavigateJarvis?: () => void;
   onNavigateBtcUsdt?: () => void;
   onNavigateLiquiditySweep?: () => void;
+  onNavigateDeltaSwing?: () => void;
+  onNavigateUsaSwing?: () => void;
+  onNavigateEventImpact?: () => void;
   onSearch?: (query: string) => void;
 }
 
@@ -23,6 +26,9 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateJarvis,
   onNavigateBtcUsdt,
   onNavigateLiquiditySweep,
+  onNavigateDeltaSwing,
+  onNavigateUsaSwing,
+  onNavigateEventImpact,
   onSearch,
   onOpenAccount
 }) => {
@@ -97,6 +103,42 @@ export const Header: React.FC<HeaderProps> = ({
           Live · 30s
         </span>
         <span className="flex size-2 animate-pulse-dot rounded-full bg-bull sm:hidden"></span>
+
+        {/* Delta 4H Swing Scanner Launcher */}
+        {onNavigateDeltaSwing && (
+          <button
+            onClick={onNavigateDeltaSwing}
+            className="rounded-md border border-amber-500/50 bg-gradient-to-r from-amber-500/20 to-orange-500/20 px-2.5 py-1.5 text-xs font-bold text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ring-1 ring-amber-500/30"
+            title="Open Delta Exchange All-Coin 4H Swing Scanner"
+          >
+            <span>⚡</span>
+            <span className="hidden xl:inline">Delta 4H Swing</span>
+          </button>
+        )}
+
+        {/* USA Stock Scanner Launcher */}
+        {onNavigateUsaSwing && (
+          <button
+            onClick={onNavigateUsaSwing}
+            className="rounded-md border border-blue-500/50 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 px-2.5 py-1.5 text-xs font-bold text-blue-400 hover:from-blue-500/30 hover:to-indigo-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ring-1 ring-blue-500/30"
+            title="Open USA Stocks 4H Swing & Investment Scanner"
+          >
+            <span>🇺🇸</span>
+            <span className="hidden xl:inline">USA Stocks</span>
+          </button>
+        )}
+
+        {/* Event Impact Engine Launcher */}
+        {onNavigateEventImpact && (
+          <button
+            onClick={onNavigateEventImpact}
+            className="rounded-md border border-purple-500/50 bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-2.5 py-1.5 text-xs font-bold text-purple-400 hover:from-purple-500/30 hover:to-pink-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ring-1 ring-purple-500/30"
+            title="Open Market News & Event Impact Engine"
+          >
+            <span>🌍</span>
+            <span className="hidden xl:inline">Event Impact</span>
+          </button>
+        )}
 
         {/* Liquidity Sweep Pro Launcher */}
         {onNavigateLiquiditySweep && (
