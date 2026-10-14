@@ -12,6 +12,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/delta/, ''),
         secure: false,
+      },
+      '/api/telegram': {
+        target: 'http://127.0.0.1:5055',
+        changeOrigin: true,
+        secure: false,
       }
     }
   }

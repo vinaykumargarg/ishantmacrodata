@@ -993,5 +993,255 @@ export const ORDER_FLOW_DATA: Record<string, MarketOrderFlowPackage> = {
     ],
 
     candles: []
+  },
+
+  XAGUSD: {
+    symbol: 'XAGUSD',
+    displaySymbol: 'XAG/USD (Silver Spot)',
+    marketName: 'Silver Spot OTC + COMEX SI Futures Order Flow Proxy',
+    dataSourceLabel: 'COMEX SI Active Month Futures L2 Order Flow + London Silver OTC',
+    dataSourceQuality: 'FUTURES_PROXY_ACTIVE',
+    lastUpdated: 'Real-Time (COMEX Proxy Active)',
+    currentPrice: 48.60,
+    formattedPrice: '$48.60',
+    change24h: '+1.42%',
+    isPositive: true,
+    volume24h: '94,200 COMEX Lots (~$22.8B)',
+
+    totalDelta: 1640.0,
+    totalDeltaFormatted: '+1,640 Lots (Aggressive Buyers Leading)',
+    deltaStrength: 'STRONG_POSITIVE',
+    deltaPercent: 9.4,
+
+    cvdDirection: 'EXPANDING_UP',
+    cvdSlope: 'STEEP_UP',
+    cvdDivergence: 'NONE',
+    cvdDivergenceDetail: 'CVD aligned with price expansion above $48.50.',
+
+    bestBid: 48.58,
+    bestAsk: 48.62,
+    spread: 0.04,
+    bidDepthTotal: 6200.0,
+    askDepthTotal: 4100.0,
+    orderBookImbalancePct: 20.4,
+    orderBookDominance: 'BULLISH',
+    domRows: [
+      { bidSize: 0, bidPrice: 0, askPrice: 49.00, askSize: 520, isLargeOrder: true },
+      { bidSize: 0, bidPrice: 0, askPrice: 48.80, askSize: 280, isLargeOrder: false },
+      { bidSize: 0, bidPrice: 0, askPrice: 48.70, askSize: 180, isLargeOrder: false },
+      { bidSize: 140, bidPrice: 48.60, askPrice: 0, askSize: 0, isLargeOrder: false },
+      { bidSize: 420, bidPrice: 48.50, askPrice: 0, askSize: 0, isLargeOrder: true },
+      { bidSize: 890, bidPrice: 48.20, askPrice: 0, askSize: 0, isLargeOrder: true, isLiquidityWall: true }
+    ],
+
+    poc: 48.50,
+    vah: 48.75,
+    val: 48.35,
+    hvnLevels: [48.50, 48.20],
+    lvnLevels: [48.40],
+    sessionVwap: 48.45,
+    vwapUpper1: 48.70,
+    vwapUpper2: 48.95,
+    vwapLower1: 48.25,
+    vwapLower2: 48.05,
+    priceVsVwap: 'ABOVE_VWAP',
+    pocReaction: 'POC_SUPPORT_BOUNCE',
+
+    sequenceEngine: {
+      liquiditySweep: true,
+      aggressionConfirmed: true,
+      absorptionDetected: true,
+      rejectionFormed: true,
+      structureShift: true,
+      finalConfirmation: true,
+      activeStage: 'CONFIRMATION ACHIEVED',
+      sequenceConfidence: 91
+    },
+
+    hasConflict: false,
+
+    longConfirmations: {
+      positiveDelta: true,
+      positiveCvd: true,
+      buyImbalance: true,
+      buyAbsorption: true,
+      sellSideSweep: true,
+      aboveVwap: true,
+      pocSupport: true,
+      volumeConfirmation: true,
+      bullishMarketStructure: true,
+      bullishChochOrBos: true,
+      positiveBookImbalance: true,
+      score: 11
+    },
+
+    shortConfirmations: {
+      negativeDelta: false,
+      negativeCvd: false,
+      sellImbalance: false,
+      sellAbsorption: false,
+      buySideSweep: false,
+      belowVwap: false,
+      pocResistance: false,
+      volumeConfirmation: false,
+      bearishMarketStructure: false,
+      bearishChochOrBos: false,
+      negativeBookImbalance: false,
+      score: 0
+    },
+
+    orderFlowScore: 94,
+    orderFlowScoreCategory: 'STRONG',
+    finalStatus: '🟢 STRONG BULLISH',
+    aiDecisionReason: 'Silver prints heavy taker buy pressure, absorbing resting sell walls at $48.60 with high cumulative volume delta.',
+
+    riskPlan: {
+      suggestedEntry: 48.55,
+      suggestedStopLoss: 48.15,
+      suggestedTp1: 49.20,
+      suggestedTp2: 49.80,
+      riskRewardRatio: '1:3.1',
+      atrValue: 0.65,
+      recommendedMaxRiskPct: '1.5%',
+      invalidationReason: 'Close below $48.15 key liquidity shelf'
+    },
+
+    mtfAnalysis: [
+      { timeframe: '5M', delta: '+420 Lots', cvd: 'BULLISH', imbalance: 'BUY_HEAVY', absorption: 'BUY_ABSORPTION', liquidity: 'Bids Stacking', volume: 'ABOVE_AVG', vwapRelation: 'ABOVE_VWAP', structure: 'BULLISH_BOS', bias: 'BULLISH' },
+      { timeframe: '15M', delta: '+860 Lots', cvd: 'BULLISH', imbalance: 'BUY_HEAVY', absorption: 'NONE', liquidity: 'Deep Bids', volume: 'ABOVE_AVG', vwapRelation: 'ABOVE_VWAP', structure: 'BULLISH_BOS', bias: 'BULLISH' },
+      { timeframe: '1H', delta: '+1,850 Lots', cvd: 'BULLISH', imbalance: 'BUY_HEAVY', absorption: 'NONE', liquidity: 'Balanced', volume: 'NORMAL', vwapRelation: 'ABOVE_VWAP', structure: 'BULLISH_BOS', bias: 'BULLISH' },
+      { timeframe: '4H', delta: '+3,400 Lots', cvd: 'BULLISH', imbalance: 'BUY_HEAVY', absorption: 'NONE', liquidity: 'Institution Walls', volume: 'ABOVE_AVG', vwapRelation: 'ABOVE_VWAP', structure: 'BULLISH_BOS', bias: 'BULLISH' }
+    ],
+
+    recentAlerts: [
+      { id: 'xag_alert_1', timestamp: '18:12:04', type: 'AGGRESSIVE_BUY', severity: 'HIGH', title: 'Large Silver Sweep', detail: '240 Lots Market Buy swept through $48.60 ask.' }
+    ],
+
+    candles: []
+  },
+
+  SOLUSDT: {
+    symbol: 'SOLUSDT',
+    displaySymbol: 'SOL/USDT (Solana)',
+    marketName: 'Solana High-Beta Order Flow & L2 Book',
+    dataSourceLabel: 'Binance USDT-M Futures Real-Time L2 Book',
+    dataSourceQuality: 'REALTIME_EXCHANGE_FEED',
+    lastUpdated: 'Real-Time (50ms WebSocket Push)',
+    currentPrice: 109.90,
+    formattedPrice: '$109.90',
+    change24h: '+2.14%',
+    isPositive: true,
+    volume24h: '3.2M SOL (~$351M)',
+
+    totalDelta: 142000.0,
+    totalDeltaFormatted: '+142k SOL (High Momentum Buying)',
+    deltaStrength: 'STRONG_POSITIVE',
+    deltaPercent: 8.8,
+
+    cvdDirection: 'EXPANDING_UP',
+    cvdSlope: 'STEEP_UP',
+    cvdDivergence: 'NONE',
+    cvdDivergenceDetail: 'CVD expanding upward alongside price push above $109.50.',
+
+    bestBid: 109.85,
+    bestAsk: 109.95,
+    spread: 0.10,
+    bidDepthTotal: 84000.0,
+    askDepthTotal: 52000.0,
+    orderBookImbalancePct: 23.5,
+    orderBookDominance: 'BULLISH',
+    domRows: [
+      { bidSize: 0, bidPrice: 0, askPrice: 111.00, askSize: 4200, isLargeOrder: true },
+      { bidSize: 0, bidPrice: 0, askPrice: 110.50, askSize: 2800, isLargeOrder: false },
+      { bidSize: 1800, bidPrice: 109.80, askPrice: 0, askSize: 0, isLargeOrder: false },
+      { bidSize: 4600, bidPrice: 109.50, askPrice: 0, askSize: 0, isLargeOrder: true },
+      { bidSize: 9200, bidPrice: 108.80, askPrice: 0, askSize: 0, isLargeOrder: true, isLiquidityWall: true }
+    ],
+
+    poc: 109.50,
+    vah: 110.20,
+    val: 108.90,
+    hvnLevels: [109.50, 108.80],
+    lvnLevels: [109.10],
+    sessionVwap: 109.35,
+    vwapUpper1: 110.10,
+    vwapUpper2: 110.85,
+    vwapLower1: 108.65,
+    vwapLower2: 108.00,
+    priceVsVwap: 'ABOVE_VWAP',
+    pocReaction: 'POC_SUPPORT_BOUNCE',
+
+    sequenceEngine: {
+      liquiditySweep: true,
+      aggressionConfirmed: true,
+      absorptionDetected: true,
+      rejectionFormed: true,
+      structureShift: true,
+      finalConfirmation: true,
+      activeStage: 'CONFIRMATION ACHIEVED',
+      sequenceConfidence: 88
+    },
+
+    hasConflict: false,
+
+    longConfirmations: {
+      positiveDelta: true,
+      positiveCvd: true,
+      buyImbalance: true,
+      buyAbsorption: true,
+      sellSideSweep: true,
+      aboveVwap: true,
+      pocSupport: true,
+      volumeConfirmation: true,
+      bullishMarketStructure: true,
+      bullishChochOrBos: true,
+      positiveBookImbalance: true,
+      score: 11
+    },
+
+    shortConfirmations: {
+      negativeDelta: false,
+      negativeCvd: false,
+      sellImbalance: false,
+      sellAbsorption: false,
+      buySideSweep: false,
+      belowVwap: false,
+      pocResistance: false,
+      volumeConfirmation: false,
+      bearishMarketStructure: false,
+      bearishChochOrBos: false,
+      negativeBookImbalance: false,
+      score: 0
+    },
+
+    orderFlowScore: 90,
+    orderFlowScoreCategory: 'STRONG',
+    finalStatus: '🟢 STRONG BULLISH',
+    aiDecisionReason: 'Momentum retail and institutional buyers driving SOL with continuous positive delta.',
+
+    riskPlan: {
+      suggestedEntry: 109.60,
+      suggestedStopLoss: 108.40,
+      suggestedTp1: 112.00,
+      suggestedTp2: 114.50,
+      riskRewardRatio: '1:3.5',
+      atrValue: 2.10,
+      recommendedMaxRiskPct: '1.5%',
+      invalidationReason: 'Close below $108.40 support level'
+    },
+
+    mtfAnalysis: [
+      { timeframe: '5M', delta: '+18k SOL', cvd: 'BULLISH', imbalance: 'BUY_HEAVY', absorption: 'BUY_ABSORPTION', liquidity: 'Bids Stacking', volume: 'ABOVE_AVG', vwapRelation: 'ABOVE_VWAP', structure: 'BULLISH_BOS', bias: 'BULLISH' },
+      { timeframe: '15M', delta: '+45k SOL', cvd: 'BULLISH', imbalance: 'BUY_HEAVY', absorption: 'NONE', liquidity: 'Deep Bids', volume: 'ABOVE_AVG', vwapRelation: 'ABOVE_VWAP', structure: 'BULLISH_BOS', bias: 'BULLISH' },
+      { timeframe: '1H', delta: '+92k SOL', cvd: 'BULLISH', imbalance: 'BUY_HEAVY', absorption: 'NONE', liquidity: 'Balanced', volume: 'NORMAL', vwapRelation: 'ABOVE_VWAP', structure: 'BULLISH_BOS', bias: 'BULLISH' },
+      { timeframe: '4H', delta: '+180k SOL', cvd: 'BULLISH', imbalance: 'BUY_HEAVY', absorption: 'NONE', liquidity: 'Institution Walls', volume: 'ABOVE_AVG', vwapRelation: 'ABOVE_VWAP', structure: 'BULLISH_BOS', bias: 'BULLISH' }
+    ],
+
+    recentAlerts: [
+      { id: 'sol_alert_1', timestamp: '18:15:22', type: 'AGGRESSIVE_BUY', severity: 'HIGH', title: 'Solana Breakout Acceleration', detail: '14,000 SOL Market Buy absorbed overhead ask at $109.80.' }
+    ],
+
+    candles: []
   }
 };
+

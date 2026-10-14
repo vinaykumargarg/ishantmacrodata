@@ -15,6 +15,7 @@ import {
   PORTFOLIO_STRESS_TESTS
 } from '../data/deltaMacroNews';
 import TradingViewWidget from './TradingViewWidget';
+import CryptoWealthIntelligenceTerminalView from './CryptoWealthIntelligenceTerminalView';
 import {
   TrendingUp,
   TrendingDown,
@@ -50,7 +51,7 @@ export default function DeltaIntelligenceEngineView() {
   const [selectedCoinSymbol, setSelectedCoinSymbol] = useState<string>('BTC');
   const [selectedHorizon, setSelectedHorizon] = useState<InvestmentHorizon>('30D');
   const [activeMainTab, setActiveMainTab] = useState<
-    'SCREENER' | 'COIN_RESEARCH' | 'RANKINGS' | 'PORTFOLIO' | 'MACRO_NEWS' | 'SYSTEM'
+    'SCREENER' | 'COIN_RESEARCH' | 'RANKINGS' | 'PORTFOLIO' | 'MACRO_NEWS' | 'SYSTEM' | 'LONG_TERM_WEALTH'
   >('COIN_RESEARCH');
   const [activeResearchSubTab, setActiveResearchSubTab] = useState<
     | 'OVERVIEW'
@@ -477,6 +478,21 @@ export default function DeltaIntelligenceEngineView() {
         </button>
 
         <button
+          onClick={() => setActiveMainTab('LONG_TERM_WEALTH')}
+          className={`px-4 py-2.5 border-b-2 flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
+            activeMainTab === 'LONG_TERM_WEALTH'
+              ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
+              : 'border-transparent text-cyan-400/80 hover:text-cyan-300'
+          }`}
+        >
+          <span>💎</span>
+          <span>Crypto Long-Term Wealth Intelligence (1-4M+)</span>
+          <span className="rounded bg-cyan-500/20 px-1.5 py-0.2 text-[10px] font-bold text-cyan-300 border border-cyan-500/30">
+            NEW
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveMainTab('SYSTEM')}
           className={`px-4 py-2.5 border-b-2 flex items-center gap-2 whitespace-nowrap cursor-pointer transition-colors ${
             activeMainTab === 'SYSTEM'
@@ -488,6 +504,13 @@ export default function DeltaIntelligenceEngineView() {
           <span>Delta API Health & Integration</span>
         </button>
       </div>
+
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/* 2.5 CRYPTO LONG-TERM WEALTH INTELLIGENCE TAB                               */}
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {activeMainTab === 'LONG_TERM_WEALTH' && (
+        <CryptoWealthIntelligenceTerminalView />
+      )}
 
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {/* 3. COIN DEEP-DIVE TERMINAL VIEW (PRIMARY TAB)                              */}

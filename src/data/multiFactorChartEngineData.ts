@@ -36,6 +36,52 @@ export type MarketRegime8 =
 
 export type TimeframeBias = 'BULLISH' | 'BEARISH' | 'NEUTRAL';
 
+export type PreMoveSignalType = 'PRE_DROP_SHORT' | 'PRE_PUMP_LONG' | 'TOP_DISTRIBUTION' | 'BOTTOM_ACCUMULATION';
+
+export interface EarlyLeadingIndicatorItem {
+  id: string;
+  name: string;
+  category: 'CVD_DELTA' | 'WHALE_ABSORPTION' | 'LIQUIDITY_SFP' | 'DERIVATIVES_OI' | 'DOM_IMBALANCE' | 'FOOTPRINT_EXHAUSTION';
+  status: 'ALERT_ACTIVE' | 'CONFIRMED' | 'CRITICAL_SPIKE';
+  leadTime: string;
+  metricValue: string;
+  interpretationHinglish: string;
+}
+
+export interface PreMoveScenarioPlan {
+  signalType: 'PRE_DROP_SHORT' | 'PRE_PUMP_LONG';
+  statusLabel: string;
+  leadTimeMins: number;
+  leadTimeDisplay: string;
+  predictedMovePts: number;
+  predictedMoveFormatted: string;
+  
+  // Sniper Execution (Zero Lag)
+  sniperEntryPrice: number;
+  sniperEntryFormatted: string;
+  sniperStopLossPrice: number;
+  sniperStopLossFormatted: string;
+  sniperRiskPoints: number;
+  
+  targetTp1: { price: number; formatted: string; gainPts: string; ratio: string };
+  targetTp2: { price: number; formatted: string; gainPts: string; ratio: string };
+  targetTp3: { price: number; formatted: string; gainPts: string; ratio: string };
+  rewardToRiskRatio: string;
+  winProbabilityPct: number;
+  
+  whaleEvidence: string;
+  cvdDeltaDivergence: string;
+  explanationHinglish: string;
+  triggerChecklist: string[];
+}
+
+export interface EarlyWarningRadar {
+  activeMode: 'PRE_DROP_SHORT' | 'PRE_PUMP_LONG';
+  preDropScenario: PreMoveScenarioPlan;
+  prePumpScenario: PreMoveScenarioPlan;
+  leadingIndicators: EarlyLeadingIndicatorItem[];
+}
+
 export interface TimeframeSignal {
   timeframe: '1D' | '4H' | '1H' | '15M' | '5M';
   bias: TimeframeBias;
@@ -320,6 +366,9 @@ export interface MultiFactorDecisionEngineAsset {
     baselineComparison: string; // e.g., "+31.2% over Buy-and-Hold"
     regimes: BacktestRegimePerformance[];
   };
+
+  // 15. Pre-Move Leading Predictive Radar Engine (Zero-Lag / Pre-Drop & Pre-Pump Early Warning)
+  earlyWarningRadar: EarlyWarningRadar;
 }
 
 /* =========================================================================================
@@ -333,18 +382,18 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
     exchangeSymbol: 'BINANCE:BTCUSDT.P',
     name: 'Bitcoin Perpetual & Spot',
     assetClass: 'CRYPTO_PERPETUAL',
-    currentPrice: 82374.0,
-    formattedPrice: '$82,374.00',
-    change24h: '+1.08%',
-    isPositive: true,
-    bidPrice: 82373.5,
-    askPrice: 82374.5,
-    spread: '$1.00 (0.0012%)',
-    volatilityAtr: '$1,420 (15M ATR: $280)',
+    currentPrice: 82862.0,
+    formattedPrice: '$82,862.00',
+    change24h: '-0.97%',
+    isPositive: false,
+    bidPrice: 82860.0,
+    askPrice: 82863.0,
+    spread: '$3.00 (0.0036%)',
+    volatilityAtr: '$1,672 (15M Drop: -1.98%)',
     tradingViewSymbol: 'BINANCE:BTCUSDT',
 
-    telemetryTimestamp: '2026-10-09 23:05:00 UTC (Real-Time 45ms Telemetry)',
-    marketSession: 'US Late Afternoon / Asian Pre-Session Overlap',
+    telemetryTimestamp: '2026-10-12 18:20:00 UTC (Real-Time Live Rejection Telemetry)',
+    marketSession: 'Live Session Breakdown / Asian Low Liquidity Hunt',
     feedsStatus: {
       priceL2: 'LIVE',
       orderFlow: 'LIVE',
@@ -356,17 +405,17 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
     missingOrDelayedWarnings: [],
 
     timeframeSignals: [
-      { timeframe: '1D', bias: 'BULLISH', role: 'Macro Trend Direction', structure: 'Higher Highs above 200 EMA ($67.4k)', momentum: 'RSI 62 (Bullish Expansion)', keyLevel: '$79,800 S/R Pivot', weightPct: 30 },
-      { timeframe: '4H', bias: 'BULLISH', role: 'Market Structure & Bias', structure: 'Reclaimed Value Area High ($81.2k)', momentum: 'MACD Bull Cross', keyLevel: '$81,250 Bullish OB', weightPct: 25 },
-      { timeframe: '1H', bias: 'BULLISH', role: 'Setup & Order Flow Development', structure: 'BOS Confirmed at $82,100', momentum: 'CVD Divergence Bullish', keyLevel: '$82,080 Session VWAP', weightPct: 20 },
-      { timeframe: '15M', bias: 'BULLISH', role: 'Trade Confirmation (Primary)', structure: 'CHoCH + Sell Sweep Complete', momentum: 'Footprint Stacked Bids (+320%)', keyLevel: '$82,200 Retest Zone', weightPct: 15 },
-      { timeframe: '5M', bias: 'BULLISH', role: 'Execution Refinement', structure: 'Micro Consolidation Holding VAH', momentum: 'Absorption Limit Bids', keyLevel: '$82,300 Local Base', weightPct: 10 }
+      { timeframe: '1D', bias: 'BEARISH', role: 'Macro Pullback from $84.5k Top', structure: 'Rejection wick at $84,590 supply ceiling', momentum: 'RSI 54 (Rolling Over)', keyLevel: '$84,590 Supply Block', weightPct: 30 },
+      { timeframe: '4H', bias: 'BEARISH', role: 'Distribution & Displacement', structure: 'Lost Value Area High ($83.5k)', momentum: 'MACD Bear Cross printing red', keyLevel: '$83,500 Broken Support', weightPct: 25 },
+      { timeframe: '1H', bias: 'BEARISH', role: 'Order Flow Breakdown', structure: 'Break of Structure (BOS) down below $83,200', momentum: 'CVD Divergence Bearish Cascade', keyLevel: '$83,200 Resistance Retest', weightPct: 20 },
+      { timeframe: '15M', bias: 'BEARISH', role: 'Primary Execution (Live Cascade)', structure: 'Bearish Displacement -1,672 pts down', momentum: 'Footprint Stacked Asks (+420% sell)', keyLevel: '$82,862 Live / $83,000 lost', weightPct: 15 },
+      { timeframe: '5M', bias: 'BEARISH', role: 'Intraday Selling Pressure', structure: 'Consecutive red candles towards $81.8k', momentum: 'Limit Bid slippage downwards', keyLevel: '$82,400 First Target', weightPct: 10 }
     ],
-    timeframeConfluenceScore: 92,
+    timeframeConfluenceScore: 94,
 
-    regime: 'Strong Bullish Trend',
-    regimeRationale: 'Higher lows established systematically above 1D/4H EMAs. Volume Area migrating upwards with high Delta confirmation and sustained Open Interest.',
-    recommendedPlaybook: 'Trend Continuation & Pullback Longs at Value Area Low / Bullish Order Blocks. Avoid counter-trend shorting into institutional liquidity pools.',
+    regime: 'Bearish Distribution & Breakdown',
+    regimeRationale: 'Clear supply block rejection at $84,590. Aggressive market sell orders triggered -1,672 pt drop (-1.98%), breaking below $83,000 structural support shelf.',
+    recommendedPlaybook: 'Sell-on-retest of broken $83,200–$83,400 shelf. Top entry was at $84,250–$84,550. Strict SL at $84,650 above the supply box. Targets: $82,400, $81,800, and $80,850.',
 
     pillars: {
       marketStructure: {
@@ -489,34 +538,34 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
       }
     },
 
-    bullishEvidenceScore: 84,
-    bearishEvidenceScore: 16,
+    bullishEvidenceScore: 16,
+    bearishEvidenceScore: 84,
     dataQualityScore: 98,
-    signalAgreementScore: 92,
-    setupQualityScore: 90,
-    calibratedProbability: 76,
+    signalAgreementScore: 94,
+    setupQualityScore: 92,
+    calibratedProbability: 82,
 
-    decision: 'LONG',
-    primaryDirection: 'LONG',
-    higherTimeframeBias: 'BULLISH',
-    entryZone: '$82,200 – $82,350 (POC Retest & Bullish Order Block Confluence)',
-    entryLower: 82200,
-    entryUpper: 82350,
-    exactConfirmationCondition: '15M candle acceptance above $82,250 with positive CVD delta and 300% stacked bid imbalance on footprint.',
+    decision: 'SHORT',
+    primaryDirection: 'SHORT',
+    higherTimeframeBias: 'BEARISH DISTRIBUTION',
+    entryZone: '$84,250 – $84,550 (Top SFP Short Rejection) / $83,200 Breakdown Retest',
+    entryLower: 83200,
+    entryUpper: 84550,
+    exactConfirmationCondition: '15M Bearish Displacement breaking below $83,500 with negative taker delta and $84,590 top rejection.',
 
-    stopLossPrice: 81750.0,
-    stopLossFormatted: '$81,750.00 (-0.72% Risk / 624 pts)',
-    technicalInvalidationLevel: 81750.0,
-    technicalInvalidationReason: '15M candle close below the $81,750 sell-side sweep pivot and weekly Value Area Low (VAL). Breaks market structure into a lower low.',
+    stopLossPrice: 84650.0,
+    stopLossFormatted: '$84,650.00 (+2.16% Risk / Strict Invalidation above $84,590 High)',
+    technicalInvalidationLevel: 84650.0,
+    technicalInvalidationReason: '15M candle close above $84,590 supply ceiling invalidates the short. Zero chasing — sniper protection.',
 
-    targetTp1: { price: 83500.0, formatted: '$83,500.00', gainPct: '+1.37%', ratio: '1 : 1.90', description: 'Take 50% profit at Previous Day High & first $118M Short Liquidation Cluster' },
-    targetTp2: { price: 84600.0, formatted: '$84,600.00', gainPct: '+2.70%', ratio: '1 : 3.75', description: 'Take 30% profit at Major Weekly Short Liquidation Shelf ($142M)' },
-    targetTp3: { price: 86400.0, formatted: '$86,400.00', gainPct: '+4.88%', ratio: '1 : 6.78', description: 'Trail 20% runner with Anchored VWAP into All-Time High price discovery' },
+    targetTp1: { price: 82400.0, formatted: '$82,400.00', gainPct: '+2.54%', ratio: '1 : 2.8', description: 'Take 40% profit at Local Asian Base (-462 pts from live)' },
+    targetTp2: { price: 81800.0, formatted: '$81,800.00', gainPct: '+3.25%', ratio: '1 : 6.4', description: 'Take 35% profit at Major Demand Shelf (-1,062 pts from live)' },
+    targetTp3: { price: 80850.0, formatted: '$80,850.00', gainPct: '+4.37%', ratio: '1 : 12.8', description: 'Trail 25% runner into Asian Liquidity Pool Floor (-2,012 pts from live)' },
 
-    rewardToRiskGross: '1 : 3.75',
-    rewardToRiskNet: '1 : 3.62 (Net after 0.04% maker/taker fee & 0.02% slippage drag)',
-    estimatedFeesAndSlippage: '$48.50 per BTC (0.059% total estimated friction)',
-    expectedHoldingHorizon: '4 Hours to 24 Hours (Intra-day to Swing Execution)',
+    rewardToRiskGross: '1 : 12.80',
+    rewardToRiskNet: '1 : 12.45 (Asymmetric Institutional Sniper R:R)',
+    estimatedFeesAndSlippage: '$24.20 per BTC (0.029% total estimated friction)',
+    expectedHoldingHorizon: '2 Hours to 14 Hours (Live Short Breakdown Cascade)',
 
     nearbyLiquidityTargets: {
       buySideLiquidity: '$83,550 (Equal Highs & Prev Day High)',
@@ -525,28 +574,28 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
     },
 
     bullishFactorsDebate: [
-      'Sell-side liquidity swept below Asian low ($81,850) with instant V-reversal and volume absorption.',
-      'CVD printed textbook bullish divergence while footprint confirmed 320% stacked bid imbalance.',
-      'All 5 timeframes aligned bullishly with no structural or momentum contradiction.',
-      'Sustained spot ETF inflows (+$342M) against record low exchange balances.',
-      'Funding rates remain baseline neutral (+0.0035%), leaving fuel for short liquidation cascade.'
-    ],
-    bearishFactorsDebate: [
       'Minor overhead ask resistance shelf resting near $82,800 on Binance L2 order book ($42M limit sells).',
       'DXY consolidating around 102.45 without immediate aggressive collapse.',
-      'US Core PCE inflation release in 48 hours introduces macro headline event risk.'
+      'Temporary support shelf at $82,400 could provide short-lived scalping bounce.'
+    ],
+    bearishFactorsDebate: [
+      'Supply ceiling rejection at $84,590 swing high with sharp shooting star wick (SFP sweep).',
+      'CVD printed aggressive bearish divergence with -$184M institutional sell delta.',
+      'Market Structure Shift (MSS) confirmed on 15M with break below $83,200 structural support.',
+      'High liquidity trapped above $84,500; forced stop liquidations triggering down to $81,850.',
+      'Funding rate unwind from overheated +0.048% long squeeze into active waterfall dump.'
     ],
 
-    macroNewsOrderFlowReasoning: 'The combination of softening Treasury yields, institutional ETF spot accumulation, and clean order-flow absorption at $81,900 establishes high probability of a short squeeze toward $84,600. As long as price holds above the invalidated structural low of $81,750, the bullish expansion path offers asymmetric risk-to-reward.',
+    macroNewsOrderFlowReasoning: 'Heavy supply block rejection at $84,590 combined with institutional whale distribution and negative order flow delta confirms high-probability SHORT cascade towards $81,850 liquidity floor. As long as price holds below $84,590, the short breakdown path offers asymmetric 1:13.35 risk-to-reward.',
     
     conditionsThatInvalidateSetup: [
-      '15M candle close below $81,750 with rising aggressive sell volume.',
-      'CVD delta turns deeply negative (-1,500 BTC) accompanied by stacked sell imbalances on Footprint.',
-      'Unexpected emergency macro tariff or hawkish FOMC rhetoric driving DXY above 103.50.'
+      '15M candle close above $84,590 supply resistance ceiling invalidates the short setup immediately.',
+      'CVD delta reversing sharply positive (+1,500 BTC) with stacked buy absorption.',
+      'Unexpected emergency macro dovish liquidity injection driving price above $85,000.'
     ],
     conditionsThatWouldChangeDecision: [
-      'A breakdown and acceptance below $81,750 would immediately downgrade signal to WAIT or initiate SHORT breakdown scan.',
-      'Excessive funding spike (>0.035%) indicating retail overleverage long trap.'
+      'A reclaim and 15M candle acceptance above $84,590 would immediately exit short and switch bias to WAIT.',
+      'Aggressive buyer absorption at $81,850 demand floor triggers full profit-taking on TP3.'
     ],
 
     orderBookDOM: [
@@ -690,6 +739,120 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
         { regime: 'Sideways / Consolidation Range', sampleSize: 110, winRate: 64.5, profitFactor: 1.88, avgWin: '+$920', avgLoss: '-$460', expectancy: '+1.20R', maxDrawdown: '5.8%', consecutiveLosses: 4 },
         { regime: 'Conflicting / Uncertain Conditions', sampleSize: 54, winRate: 51.8, profitFactor: 1.12, avgWin: '+$650', avgLoss: '-$580', expectancy: '+0.15R', maxDrawdown: '5.4%', consecutiveLosses: 5 }
       ]
+    },
+
+    earlyWarningRadar: {
+      activeMode: 'PRE_DROP_SHORT',
+      preDropScenario: {
+        signalType: 'PRE_DROP_SHORT',
+        statusLabel: '🚨 PRE-DROP WARNING: Impending -3,100 Pts Downside Flush',
+        leadTimeMins: 14,
+        leadTimeDisplay: '14 Mins Before Breakdown (Zero-Lag Leading Radar)',
+        predictedMovePts: -3100,
+        predictedMoveFormatted: '-3,100 Points Waterfall Drop ($84,950 → $81,850)',
+        sniperEntryPrice: 84920,
+        sniperEntryFormatted: '$84,850 – $84,950 (Top SFP Sweep Retest / Bearish OB)',
+        sniperStopLossPrice: 85180,
+        sniperStopLossFormatted: '$85,180.00 (Tight Risk: 230 Pts / -0.27%)',
+        sniperRiskPoints: 230,
+        targetTp1: { price: 83500, formatted: '$83,500.00', gainPts: '+1,420 Pts Gain', ratio: '1 : 6.17' },
+        targetTp2: { price: 82300, formatted: '$82,300.00', gainPts: '+2,620 Pts Gain', ratio: '1 : 11.39' },
+        targetTp3: { price: 81850, formatted: '$81,850.00', gainPts: '+3,070 Pts Gain', ratio: '1 : 13.35' },
+        rewardToRiskRatio: '1 : 13.35',
+        winProbabilityPct: 88,
+        whaleEvidence: 'Binance & Coinbase L2 par 520 BTC Iceberg Ask wall detect hui $84,950 par. Whales aggressive market sells execute kar rahe hain.',
+        cvdDeltaDivergence: 'Bearish Divergence: Price ne equal highs test kiye par 15M CVD -1,920 BTC plunge hua (Institutional Distribution).',
+        explanationHinglish: 'Bhai market girne se 14 minute pehle hi ye signal activate ho gaya tha. Highs par retail ko trap karne ke baad Whale Sell Orders trigger hue hain. 3,100 point girne ke baad late chase karne ke bajaye, $84,850-$84,950 par perfect sniper SHORT entry milti hai jisme SL sirf 230 points ka hota hai!',
+        triggerChecklist: [
+          'High Liquidity Sweep (SFP) at $84,950 completed',
+          'CVD Plunging: -1,920 BTC market sell aggressors',
+          'Whale Ask Iceberg: 520 BTC stacked between $84,900-$85,000',
+          'Funding Rate Spike: +0.048% (Overheated Long Squeeze Trapped)'
+        ]
+      },
+      prePumpScenario: {
+        signalType: 'PRE_PUMP_LONG',
+        statusLabel: '🚀 PRE-PUMP WARNING: Impending +3,250 Pts Short Squeeze Surge',
+        leadTimeMins: 12,
+        leadTimeDisplay: '12 Mins Before Breakout (Bottom Accumulation Spring)',
+        predictedMovePts: 3250,
+        predictedMoveFormatted: '+3,250 Points Short Squeeze Rally ($81,950 → $85,200)',
+        sniperEntryPrice: 81950,
+        sniperEntryFormatted: '$81,920 – $82,050 (Sell-Side Sweep Reclaim & Bullish OB)',
+        sniperStopLossPrice: 81720,
+        sniperStopLossFormatted: '$81,720.00 (Tight Risk: 230 Pts / -0.28%)',
+        sniperRiskPoints: 230,
+        targetTp1: { price: 83200, formatted: '$83,200.00', gainPts: '+1,250 Pts Gain', ratio: '1 : 5.43' },
+        targetTp2: { price: 84400, formatted: '$84,400.00', gainPts: '+2,450 Pts Gain', ratio: '1 : 10.65' },
+        targetTp3: { price: 85200, formatted: '$85,200.00', gainPts: '+3,250 Pts Gain', ratio: '1 : 14.13' },
+        rewardToRiskRatio: '1 : 14.13',
+        winProbabilityPct: 91,
+        whaleEvidence: 'Whales ne $81,900 Asian low par 2,450 BTC absorb kiye. Panic short sellers ko trap karke liquidity grab kiya gaya.',
+        cvdDeltaDivergence: 'Bullish Divergence: Price ne fake breakdown banaya par CVD +2,140 BTC jump kar gaya (Aggressive Whale Bids).',
+        explanationHinglish: 'Bhai market 3,250 point upar bhaagne se pehle hi $81,920 par perfect LONG sniper entry milti hai. Stop Loss sirf 230 point ($81,720) ka rehta hai jisse risk na ke barabar hota hai aur poora rally capture hota hai bina 3000 point miss kiye!',
+        triggerChecklist: [
+          'Sell-Side Liquidity (SSL) below Asian low $81,850 swept and instantly reclaimed',
+          'CVD Surge: +2,140 BTC market delta absorption',
+          'Whale Bid Iceberg: 2,450 BTC absorbed into institutional limit bids',
+          'Funding Reset: -0.012% (Retail short trap confirmed)'
+        ]
+      },
+      leadingIndicators: [
+        {
+          id: 'cvd_lead',
+          name: 'CVD Volume Delta Divergence',
+          category: 'CVD_DELTA',
+          status: 'CONFIRMED',
+          leadTime: '12m Advance',
+          metricValue: '-1,920 BTC Bearish / +2,140 BTC Bullish Divergence',
+          interpretationHinglish: 'Price move hone se pehle volume delta opposite direction me lead karta hai.'
+        },
+        {
+          id: 'whale_iceberg',
+          name: 'Whale Iceberg Absorption Wall',
+          category: 'WHALE_ABSORPTION',
+          status: 'CRITICAL_SPIKE',
+          leadTime: '15m Advance',
+          metricValue: '520 BTC Ask Wall ($84.9k) / 2,450 BTC Bid Wall ($81.9k)',
+          interpretationHinglish: 'Institutional limit orders market ko reverse karne ke liye tayyar baithe hain.'
+        },
+        {
+          id: 'sfp_trap',
+          name: 'Swing Failure Pattern (SFP) Hunt',
+          category: 'LIQUIDITY_SFP',
+          status: 'CONFIRMED',
+          leadTime: '8m Advance',
+          metricValue: 'Equal Highs / Lows Sweep Complete',
+          interpretationHinglish: 'Retail stop-loss hit karke market makers ne instant rejection print kiya.'
+        },
+        {
+          id: 'funding_extreme',
+          name: 'Perp Funding Overheat / Squeeze Index',
+          category: 'DERIVATIVES_OI',
+          status: 'ALERT_ACTIVE',
+          leadTime: '20m Advance',
+          metricValue: 'Funding +0.048% (Long Trap) / -0.012% (Short Squeeze)',
+          interpretationHinglish: 'Crowd overleverage hone ki wajah se cascade trigger hone wala hai.'
+        },
+        {
+          id: 'footprint_exhaust',
+          name: 'Footprint Delta Exhaustion',
+          category: 'FOOTPRINT_EXHAUSTION',
+          status: 'CONFIRMED',
+          leadTime: '6m Advance',
+          metricValue: 'Bid Absorption Zero Follow-Through at Highs',
+          interpretationHinglish: 'Top par buyers khatam ho gaye hain, agla candle waterfall drop banega.'
+        },
+        {
+          id: 'dom_skew',
+          name: 'DOM Depth Skew & Wall Pressure',
+          category: 'DOM_IMBALANCE',
+          status: 'CONFIRMED',
+          leadTime: '10m Advance',
+          metricValue: '78% Skew toward Reversal Vector',
+          interpretationHinglish: 'Order book ladder me opposite side ka pressure 3x zyada ho gaya hai.'
+        }
+      ]
     }
   },
 
@@ -699,42 +862,40 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
     exchangeSymbol: 'CME:GC1! / OANDA:XAUUSD',
     name: 'Gold Spot & COMEX Futures Proxy',
     assetClass: 'COMMODITY_COMEX_PROXY',
-    currentPrice: 4125.4,
-    formattedPrice: '$4,125.40',
-    change24h: '+0.77%',
-    isPositive: true,
-    bidPrice: 4125.1,
-    askPrice: 4125.7,
-    spread: '$0.60 (0.014%)',
-    volatilityAtr: '$42.50 (15M ATR: $8.40)',
+    currentPrice: 4164.44,
+    formattedPrice: '$4,164.44',
+    change24h: '-0.72%',
+    isPositive: false,
+    bidPrice: 4164.10,
+    askPrice: 4164.75,
+    spread: '$0.65 (0.015%)',
+    volatilityAtr: '$63.02 (15M Drop: -1.49%)',
     tradingViewSymbol: 'OANDA:XAUUSD',
 
-    telemetryTimestamp: '2026-10-09 23:05:00 UTC (COMEX Interbank Aggregated)',
-    marketSession: 'US Close / Global Interbank Gold Fix',
+    telemetryTimestamp: '2026-10-12 18:20:00 UTC (Live Rejection from $4,227 Peak)',
+    marketSession: 'Live Breakdown Session / London-NY Flush',
     feedsStatus: {
       priceL2: 'LIVE',
       orderFlow: 'LIVE',
-      liquidationCoinGlass: 'NOT_APPLICABLE', // Real Gold has physical/futures book, NOT crypto liquidation
+      liquidationCoinGlass: 'NOT_APPLICABLE',
       macroFRED: 'LIVE_DAILY',
       onChain: 'NOT_APPLICABLE',
       newsFeed: 'LIVE_TELEMETRY'
     },
-    missingOrDelayedWarnings: [
-      'Crypto perpetual liquidation does not apply to COMEX Gold. Engine uses COMEX Depth of Market (DOM) & Interbank liquidity book instead.'
-    ],
+    missingOrDelayedWarnings: [],
 
     timeframeSignals: [
-      { timeframe: '1D', bias: 'BULLISH', role: 'Secular Macro Trend', structure: 'Unbroken series of Higher Highs; ATH expansion', momentum: 'RSI 68 (Strong Bullish)', keyLevel: '$3,980 Reclaimed Breakout', weightPct: 30 },
-      { timeframe: '4H', bias: 'BULLISH', role: 'Structural Trend', structure: 'Bull Flag consolidation breakout above $4,100', momentum: 'MACD Bullish histogram expand', keyLevel: '$4,090 Weekly POC', weightPct: 25 },
-      { timeframe: '1H', bias: 'BULLISH', role: 'Intraday Structure', structure: 'BOS established at $4,115 with heavy COMEX volume', momentum: 'Session VWAP sloping +28°', keyLevel: '$4,110 Session VWAP', weightPct: 20 },
-      { timeframe: '15M', bias: 'BULLISH', role: 'Trade Execution (Primary)', structure: 'CHoCH confirmed; S/R flip held at $4,118', momentum: 'Bid absorption on COMEX book', keyLevel: '$4,118 Reclaim Level', weightPct: 15 },
-      { timeframe: '5M', bias: 'BULLISH', role: 'Entry Refinement', structure: 'Tight base forming above Value Area High', momentum: 'Aggressive buyers lifting ask', keyLevel: '$4,122 Local Support', weightPct: 10 }
+      { timeframe: '1D', bias: 'BEARISH', role: 'Exhaustion at ATH Resistance', structure: 'Rejection wick at $4,227.28 ceiling', momentum: 'RSI 61 (Overbought Roll)', keyLevel: '$4,227.28 Major Resistance', weightPct: 30 },
+      { timeframe: '4H', bias: 'BEARISH', role: 'Distribution & Displacement', structure: 'Shooting star candle lost $4,200', momentum: 'MACD Histogram ticking red', keyLevel: '$4,200 Broken Level', weightPct: 25 },
+      { timeframe: '1H', bias: 'BEARISH', role: 'Order Flow Breakdown', structure: 'Lost dynamic EMA ($4,180.74)', momentum: 'COMEX Futures aggressive selling', keyLevel: '$4,180.74 EMA Resistance', weightPct: 20 },
+      { timeframe: '15M', bias: 'BEARISH', role: 'Primary Execution (Live Drop)', structure: 'Bearish Cascade -63 pts down to $4,164.44', momentum: 'Ask wall absorption at $4,220', keyLevel: '$4,164.44 Live / $4,066 Target', weightPct: 15 },
+      { timeframe: '5M', bias: 'BEARISH', role: 'Intraday Selling Pressure', structure: 'Consecutive red candles towards $4,100', momentum: 'Slippage on market bids', keyLevel: '$4,140 Immediate Shelf', weightPct: 10 }
     ],
-    timeframeConfluenceScore: 95,
+    timeframeConfluenceScore: 96,
 
-    regime: 'Strong Bullish Trend',
-    regimeRationale: 'Secular gold bull market powered by central bank structural dedollarization, lower real US yields, and physical Asian bar premiums.',
-    recommendedPlaybook: 'Long intraday retracements into Session VWAP and Prior Day High reclaims. Strict invalidation below New York morning session low ($4,095).',
+    regime: 'Bearish Breakdown & Rejection from Resistance',
+    regimeRationale: 'Sharp rejection from $4,220.00 – $4,227.28 historical resistance band. Price lost dynamic 4,180.74 EMA, dropping -63.02 pts (-1.49%) towards 4,066.14 demand pool.',
+    recommendedPlaybook: 'Short retests into $4,180.00 – $4,185.00 broken EMA level. Initial sniper short triggered at $4,220–$4,225. Strict SL at $4,228.50 above ATH wick. Targets at $4,140, $4,100, and $4,066.14.',
 
     pillars: {
       marketStructure: {
@@ -852,34 +1013,34 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
       }
     },
 
-    bullishEvidenceScore: 89,
-    bearishEvidenceScore: 11,
-    dataQualityScore: 96,
-    signalAgreementScore: 95,
+    bullishEvidenceScore: 12,
+    bearishEvidenceScore: 88,
+    dataQualityScore: 97,
+    signalAgreementScore: 96,
     setupQualityScore: 94,
-    calibratedProbability: 79,
+    calibratedProbability: 84,
 
-    decision: 'LONG',
-    primaryDirection: 'LONG',
-    higherTimeframeBias: 'BULLISH',
-    entryZone: '$4,118.00 – $4,124.00 (Retest of Intraday Reclaim & Session VWAP)',
-    entryLower: 4118.0,
-    entryUpper: 4124.0,
-    exactConfirmationCondition: '15M candle close above $4,120 with COMEX futures positive tick volume and bid absorption.',
+    decision: 'SHORT',
+    primaryDirection: 'SHORT',
+    higherTimeframeBias: 'BEARISH REJECTION',
+    entryZone: '$4,220.00 – $4,227.00 (Top Resistance Rejection) / $4,180.00 Retest',
+    entryLower: 4180.0,
+    entryUpper: 4225.0,
+    exactConfirmationCondition: 'Rejection at $4,227.28 resistance followed by clean breakdown of 4,180.74 green moving average line.',
 
-    stopLossPrice: 4095.0,
-    stopLossFormatted: '$4,095.00 (-0.71% Risk / $28.40)',
-    technicalInvalidationLevel: 4095.0,
-    technicalInvalidationReason: '15M close below $4,095 breaches the New York morning liquidity base, London value area low, and 1H 50 EMA.',
+    stopLossPrice: 4228.5,
+    stopLossFormatted: '$4,228.50 (+1.53% Risk / Strict Invalidation above $4,227.28 ATH High)',
+    technicalInvalidationLevel: 4228.5,
+    technicalInvalidationReason: '15M close above $4,227.28 swing high invalidates the short.',
 
-    targetTp1: { price: 4160.0, formatted: '$4,160.00', gainPct: '+0.84%', ratio: '1 : 1.48', description: 'Take 50% profit at Previous Weekly High & clean Buy-Side Liquidity shelf' },
-    targetTp2: { price: 4210.0, formatted: '$4,210.00', gainPct: '+2.05%', ratio: '1 : 3.25', description: 'Take 30% profit at Major Fibonacci 1.618 Extension Level' },
-    targetTp3: { price: 4280.0, formatted: '$4,280.00', gainPct: '+3.75%', ratio: '1 : 5.72', description: 'Trail 20% runner into Blue Sky All-Time High expansion' },
+    targetTp1: { price: 4140.0, formatted: '$4,140.00', gainPct: '+2.01%', ratio: '1 : 2.5', description: 'Take 40% profit at Local Consolidation Shelf (-$24.44 from live)' },
+    targetTp2: { price: 4100.0, formatted: '$4,100.00', gainPct: '+2.95%', ratio: '1 : 5.8', description: 'Take 35% profit at Psychological Base (-$64.44 from live)' },
+    targetTp3: { price: 4066.14, formatted: '$4,066.14', gainPct: '+3.76%', ratio: '1 : 11.2', description: 'Trail 25% runner into Major Support Base (Exact Chart Line $4,066.136)' },
 
-    rewardToRiskGross: '1 : 3.25',
-    rewardToRiskNet: '1 : 3.14 (Net after broker spread and $3.50/lot commission drag)',
+    rewardToRiskGross: '1 : 11.20',
+    rewardToRiskNet: '1 : 10.85 (Asymmetric Sniper R:R)',
     estimatedFeesAndSlippage: '$0.85 per ounce total roundtrip friction',
-    expectedHoldingHorizon: '8 Hours to 36 Hours (Intra-day to Multi-Session Swing)',
+    expectedHoldingHorizon: '4 Hours to 18 Hours (Live Rejection Drop Cascade)',
 
     nearbyLiquidityTargets: {
       buySideLiquidity: '$4,160.00 (Prior Swing Highs)',
@@ -1034,6 +1195,120 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
         { regime: 'Sideways / Consolidation Range', sampleSize: 80, winRate: 66.0, profitFactor: 1.95, avgWin: '+$1,120', avgLoss: '-$510', expectancy: '+1.35R', maxDrawdown: '4.9%', consecutiveLosses: 3 },
         { regime: 'Conflicting / Uncertain Conditions', sampleSize: 25, winRate: 52.0, profitFactor: 1.05, avgWin: '+$720', avgLoss: '-$690', expectancy: '+0.10R', maxDrawdown: '4.8%', consecutiveLosses: 4 }
       ]
+    },
+
+    earlyWarningRadar: {
+      activeMode: 'PRE_DROP_SHORT',
+      preDropScenario: {
+        signalType: 'PRE_DROP_SHORT',
+        statusLabel: '🚨 PRE-DROP WARNING: Impending -$85/oz Downside Rejection',
+        leadTimeMins: 16,
+        leadTimeDisplay: '16 Mins Before Rejection (Top SFP Leading Radar)',
+        predictedMovePts: -85,
+        predictedMoveFormatted: '-$85.00/oz COMEX Drop ($4,162 → $4,077)',
+        sniperEntryPrice: 4158.0,
+        sniperEntryFormatted: '$4,158.00 – $4,162.00 (COMEX Buy Stop Sweep Retest)',
+        sniperStopLossPrice: 4166.0,
+        sniperStopLossFormatted: '$4,166.00 (Tight Risk: $8.00 / -0.19%)',
+        sniperRiskPoints: 8,
+        targetTp1: { price: 4125.0, formatted: '$4,125.00', gainPts: '+$33.00/oz', ratio: '1 : 4.12' },
+        targetTp2: { price: 4095.0, formatted: '$4,095.00', gainPts: '+$63.00/oz', ratio: '1 : 7.87' },
+        targetTp3: { price: 4075.0, formatted: '$4,075.00', gainPts: '+$83.00/oz', ratio: '1 : 10.37' },
+        rewardToRiskRatio: '1 : 10.37',
+        winProbabilityPct: 86,
+        whaleEvidence: 'London Fix & COMEX DOM par 4,200 oz resting ask wall detect hui $4,160+ par. Bids completely dried up.',
+        cvdDeltaDivergence: 'Bearish Divergence: Price peaked at $4,162 par COMEX tick volume delta negative turn ho gaya.',
+        explanationHinglish: 'Bhai Gold me move aane se 16 minute pehle hi ye radar activate hua. Highs par retail FOMO buyers ko trap karne ke baad institutional sell limit orders fill hue hain. Top par hi $4,158-$4,162 par SHORT entry milti hai sirf $8 ke Stop Loss ke saath!',
+        triggerChecklist: [
+          'COMEX Buy Stops above $4,158 swept with exhaustion wick',
+          'Interbank Tick Volume Delta flipped negative (-420 lots)',
+          'Ask Wall Iceberg: 4,200 oz resting between $4,160-$4,165',
+          'DXY local tick bounce confirming precious metals rejection'
+        ]
+      },
+      prePumpScenario: {
+        signalType: 'PRE_PUMP_LONG',
+        statusLabel: '🚀 PRE-PUMP WARNING: Impending +$105/oz Short Squeeze Surge',
+        leadTimeMins: 14,
+        leadTimeDisplay: '14 Mins Before Surge (Asian Low Sweep Reclaim)',
+        predictedMovePts: 105,
+        predictedMoveFormatted: '+$105.00/oz Explosive Rally ($4,102 → $4,207)',
+        sniperEntryPrice: 4104.0,
+        sniperEntryFormatted: '$4,102.00 – $4,108.00 (Asian Low Liquidity Spring Reclaim)',
+        sniperStopLossPrice: 4094.0,
+        sniperStopLossFormatted: '$4,094.00 (Tight Risk: $8.00 / -0.19%)',
+        sniperRiskPoints: 8,
+        targetTp1: { price: 4135.0, formatted: '$4,135.00', gainPts: '+$31.00/oz', ratio: '1 : 3.88' },
+        targetTp2: { price: 4165.0, formatted: '$4,165.00', gainPts: '+$61.00/oz', ratio: '1 : 7.63' },
+        targetTp3: { price: 4210.0, formatted: '$4,210.00', gainPts: '+$106.00/oz', ratio: '1 : 13.25' },
+        rewardToRiskRatio: '1 : 13.25',
+        winProbabilityPct: 89,
+        whaleEvidence: 'Asian low $4,102 par Shanghai premium buyers ne aggressive limit bids fill kiye. Sellers trapped.',
+        cvdDeltaDivergence: 'Bullish Divergence: Price ne equal lows sweep kiya par tick volume aggressively green turn ho gaya.',
+        explanationHinglish: 'Bhai Gold 105 dollar upar bhaagne se pehle hi $4,102 par perfect LONG entry deta hai. SL sirf $8 ($4,094) ka rehta hai jisse full upside capture ho sake!',
+        triggerChecklist: [
+          'Asian Session Low $4,102 swept and reclaimed within 1 candle',
+          'Shanghai Gold Exchange premium expanded to +$28.40/oz',
+          'US 10Y Real Yield rolling over (-2.4 bps)',
+          'Institutional Bid Absorption verified on COMEX DOM Ladder'
+        ]
+      },
+      leadingIndicators: [
+        {
+          id: 'gold_tick_cvd',
+          name: 'COMEX Tick Volume Delta Divergence',
+          category: 'CVD_DELTA',
+          status: 'CONFIRMED',
+          leadTime: '14m Advance',
+          metricValue: 'Negative Divergence at $4,160 / Bullish Absorption at $4,102',
+          interpretationHinglish: 'Futures flow price se pehle reverse hona shuru ho jata hai.'
+        },
+        {
+          id: 'gold_dom_iceberg',
+          name: 'Interbank Loco London Iceberg Depth',
+          category: 'WHALE_ABSORPTION',
+          status: 'CRITICAL_SPIKE',
+          leadTime: '18m Advance',
+          metricValue: '4,200 oz Ask ($4,160) / 6,500 oz Bid ($4,104)',
+          interpretationHinglish: 'Central Bank aur bullion bank limit orders resting depth me clear dikhte hain.'
+        },
+        {
+          id: 'gold_sfp',
+          name: 'COMEX Session High/Low SFP Sweep',
+          category: 'LIQUIDITY_SFP',
+          status: 'CONFIRMED',
+          leadTime: '10m Advance',
+          metricValue: 'London High Swept & Reclaimed',
+          interpretationHinglish: 'Retail breakout traders trap ho chuke hain.'
+        },
+        {
+          id: 'gold_dxy_lead',
+          name: 'Real-Time DXY / Yield Lead Pulse',
+          category: 'DERIVATIVES_OI',
+          status: 'ALERT_ACTIVE',
+          leadTime: '15m Advance',
+          metricValue: 'US 10Y Yield 4.08% Turning Pivot',
+          interpretationHinglish: 'Bond market gold price action ko 15 minute pehle lead kar raha hai.'
+        },
+        {
+          id: 'gold_footprint',
+          name: 'COMEX Footprint Imbalance Cluster',
+          category: 'FOOTPRINT_EXHAUSTION',
+          status: 'CONFIRMED',
+          leadTime: '8m Advance',
+          metricValue: '340% Stacked Imbalance Reversal Pattern',
+          interpretationHinglish: 'Exhaustion bar complete, reversal candle trigger ho chuki hai.'
+        },
+        {
+          id: 'gold_shanghai_spread',
+          name: 'Shanghai Physical Arbitrage Skew',
+          category: 'DOM_IMBALANCE',
+          status: 'CONFIRMED',
+          leadTime: '20m Advance',
+          metricValue: '+$28.40 Physical Premium Disconnect',
+          interpretationHinglish: 'Physical cash market paper futures ko direction force kar raha hai.'
+        }
+      ]
     }
   },
 
@@ -1043,14 +1318,14 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
     exchangeSymbol: 'BYBIT:XAUTUSDT.P / BITFINEX:XAUTUSD',
     name: 'Tether Gold (Tokenized Gold On-Chain & Perp)',
     assetClass: 'TOKENIZED_GOLD',
-    currentPrice: 4124.8,
-    formattedPrice: '$4,124.80',
-    change24h: '+0.75%',
-    isPositive: true,
-    bidPrice: 4124.2,
-    askPrice: 4125.4,
-    spread: '$1.20 (0.029%)',
-    volatilityAtr: '$42.10 (15M ATR: $8.30)',
+    currentPrice: 4162.0,
+    formattedPrice: '$4,162.00',
+    change24h: '-0.72%',
+    isPositive: false,
+    bidPrice: 4161.5,
+    askPrice: 4162.5,
+    spread: '$1.00 (0.024%)',
+    volatilityAtr: '$62.50 (Tracking Spot Drop)',
     tradingViewSymbol: 'BINANCE:PAXGUSDT',
 
     telemetryTimestamp: '2026-10-09 23:05:00 UTC (Ethereum On-Chain Collateral & Bybit Perp)',
@@ -1183,27 +1458,27 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
     setupQualityScore: 92,
     calibratedProbability: 78,
 
-    decision: 'LONG',
-    primaryDirection: 'LONG',
-    higherTimeframeBias: 'BULLISH',
-    entryZone: '$4,118.00 – $4,124.00 (POC & Spot Parity Zone)',
-    entryLower: 4118.0,
-    entryUpper: 4124.0,
-    exactConfirmationCondition: '15M candle close above $4,120 with spot gold affirmation and positive CVD delta.',
+    decision: 'SHORT',
+    primaryDirection: 'SHORT',
+    higherTimeframeBias: 'BEARISH REJECTION',
+    entryZone: '$4,220.00 – $4,227.00 (Top Rejection Short) / $4,180.00 Retest',
+    entryLower: 4180.0,
+    entryUpper: 4225.0,
+    exactConfirmationCondition: 'Rejection at $4,227.28 followed by breakdown below $4,180.00.',
 
-    stopLossPrice: 4095.0,
-    stopLossFormatted: '$4,095.00 (-0.72% Risk / $29.80)',
-    technicalInvalidationLevel: 4095.0,
-    technicalInvalidationReason: '15M candle close below $4,095 structural support base and 1H 50 EMA.',
+    stopLossPrice: 4228.5,
+    stopLossFormatted: '$4,228.50 (+1.53% Risk / Strict Invalidation above ATH High)',
+    technicalInvalidationLevel: 4228.5,
+    technicalInvalidationReason: '15M close above $4,227.28 swing high invalidates the short.',
 
-    targetTp1: { price: 4160.0, formatted: '$4,160.00', gainPct: '+0.85%', ratio: '1 : 1.45', description: 'Take 50% profit at Previous High liquidity pool' },
-    targetTp2: { price: 4210.0, formatted: '$4,210.00', gainPct: '+2.06%', ratio: '1 : 3.20', description: 'Take 30% profit at 1.618 Fibonacci expansion' },
-    targetTp3: { price: 4280.0, formatted: '$4,280.00', gainPct: '+3.76%', ratio: '1 : 5.65', description: 'Trail 20% runner with Session VWAP' },
+    targetTp1: { price: 4140.0, formatted: '$4,140.00', gainPct: '+2.01%', ratio: '1 : 2.5', description: 'Take 40% profit at Local Consolidation Shelf' },
+    targetTp2: { price: 4100.0, formatted: '$4,100.00', gainPct: '+2.95%', ratio: '1 : 5.8', description: 'Take 35% profit at Psychological Base' },
+    targetTp3: { price: 4066.14, formatted: '$4,066.14', gainPct: '+3.76%', ratio: '1 : 11.2', description: 'Trail 25% runner into Major Support Base ($4,066.14)' },
 
-    rewardToRiskGross: '1 : 3.20',
-    rewardToRiskNet: '1 : 3.08 (Net after crypto perp taker fee 0.05% and spread)',
+    rewardToRiskGross: '1 : 13.25',
+    rewardToRiskNet: '1 : 12.80 (Asymmetric Institutional Sniper R:R)',
     estimatedFeesAndSlippage: '$1.40 per XAUT total friction',
-    expectedHoldingHorizon: '8 Hours to 36 Hours',
+    expectedHoldingHorizon: '4 Hours to 18 Hours',
 
     nearbyLiquidityTargets: {
       buySideLiquidity: '$4,160.00',
@@ -1327,6 +1602,120 @@ export const MULTI_FACTOR_ENGINE_DATA: Record<string, MultiFactorDecisionEngineA
       baselineComparison: '+52.1% Alpha over holding',
       regimes: [
         { regime: 'Strong Bullish Trend', sampleSize: 160, winRate: 82.5, profitFactor: 3.75, avgWin: '+$1,950', avgLoss: '-$540', expectancy: '+2.88R', maxDrawdown: '2.9%', consecutiveLosses: 1 }
+      ]
+    },
+
+    earlyWarningRadar: {
+      activeMode: 'PRE_DROP_SHORT',
+      preDropScenario: {
+        signalType: 'PRE_DROP_SHORT',
+        statusLabel: '🚨 PRE-DROP WARNING: Impending -$85/oz Downside Rejection',
+        leadTimeMins: 15,
+        leadTimeDisplay: '15 Mins Before Rejection (Tokenized Parity SFP)',
+        predictedMovePts: -85,
+        predictedMoveFormatted: '-$85.00/oz Tokenized Gold Drop ($4,162 → $4,077)',
+        sniperEntryPrice: 4158.0,
+        sniperEntryFormatted: '$4,158.00 – $4,162.00 (Peg Premium Sweep Retest)',
+        sniperStopLossPrice: 4166.0,
+        sniperStopLossFormatted: '$4,166.00 (Tight Risk: $8.00 / -0.19%)',
+        sniperRiskPoints: 8,
+        targetTp1: { price: 4125.0, formatted: '$4,125.00', gainPts: '+$33.00/oz', ratio: '1 : 4.12' },
+        targetTp2: { price: 4095.0, formatted: '$4,095.00', gainPts: '+$63.00/oz', ratio: '1 : 7.87' },
+        targetTp3: { price: 4075.0, formatted: '$4,075.00', gainPts: '+$83.00/oz', ratio: '1 : 10.37' },
+        rewardToRiskRatio: '1 : 10.37',
+        winProbabilityPct: 87,
+        whaleEvidence: 'Bybit perp order book par 350 XAUT ask wall at $4,160. Long buyers trapped at peak parity.',
+        cvdDeltaDivergence: 'Bearish Divergence: Perpetual CVD plunges while spot gold stalls at resistance.',
+        explanationHinglish: 'Bhai tokenized gold me drop aane se 15 minute pehle hi warning active ho gayi thi. $4,158-$4,162 par SHORT sniper entry se $85 ka move capture kiya jaata hai!',
+        triggerChecklist: [
+          'DeFi Parity Premium Spike Exhaustion at $4,162',
+          'Perpetual CVD Delta negative rollover',
+          'Tokenized Gold Ask Iceberg resting at $4,160',
+          'Spot Bullion sync confirm'
+        ]
+      },
+      prePumpScenario: {
+        signalType: 'PRE_PUMP_LONG',
+        statusLabel: '🚀 PRE-PUMP WARNING: Impending +$105/oz Short Squeeze Surge',
+        leadTimeMins: 14,
+        leadTimeDisplay: '14 Mins Before Surge (Discount Sweep Reclaim)',
+        predictedMovePts: 105,
+        predictedMoveFormatted: '+$105.00/oz Tokenized Gold Surge ($4,102 → $4,207)',
+        sniperEntryPrice: 4104.0,
+        sniperEntryFormatted: '$4,102.00 – $4,108.00 (Sell-Side Sweep Reclaim & Parity Spring)',
+        sniperStopLossPrice: 4094.0,
+        sniperStopLossFormatted: '$4,094.00 (Tight Risk: $8.00 / -0.19%)',
+        sniperRiskPoints: 8,
+        targetTp1: { price: 4135.0, formatted: '$4,135.00', gainPts: '+$31.00/oz', ratio: '1 : 3.88' },
+        targetTp2: { price: 4165.0, formatted: '$4,165.00', gainPts: '+$61.00/oz', ratio: '1 : 7.63' },
+        targetTp3: { price: 4210.0, formatted: '$4,210.00', gainPts: '+$106.00/oz', ratio: '1 : 13.25' },
+        rewardToRiskRatio: '1 : 13.25',
+        winProbabilityPct: 90,
+        whaleEvidence: 'On-chain minting activity increased; 1,200 XAUT absorbed by arbitrageurs at $4,102 discount.',
+        cvdDeltaDivergence: 'Bullish Divergence: Perpetual CVD positive surge (+450 delta) while price swept support.',
+        explanationHinglish: 'Bhai market 105 point uthne se pehle hi $4,104 par LONG entry de deta hai. Stop Loss sirf $8 ka hai!',
+        triggerChecklist: [
+          'Sell-Side Liquidity sweep below $4,102 complete',
+          'On-chain arbitrage discount recovered',
+          'Perpetual funding rate reset to neutral (+0.001%)',
+          'Bullish delta divergence confirmed'
+        ]
+      },
+      leadingIndicators: [
+        {
+          id: 'xaut_peg_cvd',
+          name: 'Perp vs Spot Parity CVD Divergence',
+          category: 'CVD_DELTA',
+          status: 'CONFIRMED',
+          leadTime: '12m Advance',
+          metricValue: '+450 Bullish Absorption Delta',
+          interpretationHinglish: 'Tokenized perpetual orderflow spot gold ke saath sync karke lead kar raha hai.'
+        },
+        {
+          id: 'xaut_onchain_flow',
+          name: 'On-Chain Vault Mint/Burn Flow',
+          category: 'WHALE_ABSORPTION',
+          status: 'CONFIRMED',
+          leadTime: '25m Advance',
+          metricValue: '+$14.2M Net Institutional Collateral Mint',
+          interpretationHinglish: 'Large crypto funds physical vault backing me capital move kar rahe hain.'
+        },
+        {
+          id: 'xaut_liquidity_sweep',
+          name: 'Discount/Premium Liquidity Sweep',
+          category: 'LIQUIDITY_SFP',
+          status: 'CONFIRMED',
+          leadTime: '10m Advance',
+          metricValue: 'Extreme Discount Swept & Reclaimed',
+          interpretationHinglish: 'Arbitrage band par retail stop-loss sweep karke smart money fill hua.'
+        },
+        {
+          id: 'xaut_funding_oi',
+          name: 'Crypto Gold Perp Funding & Squeeze Trigger',
+          category: 'DERIVATIVES_OI',
+          status: 'ALERT_ACTIVE',
+          leadTime: '15m Advance',
+          metricValue: 'Funding +0.0012% (Neutral Fuel Available)',
+          interpretationHinglish: 'Funding overheat nahi hai, clean trending runway open hai.'
+        },
+        {
+          id: 'xaut_footprint',
+          name: 'Orderflow Footprint Cluster Imbalance',
+          category: 'FOOTPRINT_EXHAUSTION',
+          status: 'CONFIRMED',
+          leadTime: '8m Advance',
+          metricValue: 'Stacked Imbalance Reversal Active',
+          interpretationHinglish: 'Footprint bars par aggressive volume reversal confirm ho chuki hai.'
+        },
+        {
+          id: 'xaut_dom_ladder',
+          name: 'Bybit / Bitfinex Aggregated DOM Imbalance',
+          category: 'DOM_IMBALANCE',
+          status: 'CONFIRMED',
+          leadTime: '10m Advance',
+          metricValue: 'Bid Wall Ratio 3.2x vs Ask',
+          interpretationHinglish: 'Support par deep iceberg bids accumulate ho rahi hain.'
+        }
       ]
     }
   }

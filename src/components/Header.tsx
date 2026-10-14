@@ -9,6 +9,9 @@ interface HeaderProps {
   onOpenAccount: () => void;
   onNavigateHome: () => void;
   onNavigatePricing?: () => void;
+  onNavigateJarvis?: () => void;
+  onNavigateBtcUsdt?: () => void;
+  onNavigateLiquiditySweep?: () => void;
   onSearch?: (query: string) => void;
 }
 
@@ -17,6 +20,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
   onNavigateHome,
   onNavigatePricing,
+  onNavigateJarvis,
+  onNavigateBtcUsdt,
+  onNavigateLiquiditySweep,
   onSearch,
   onOpenAccount
 }) => {
@@ -49,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-card/80 px-3 py-2.5 backdrop-blur-md sm:px-4 sm:py-3">
-      {/* ── BRAND LOGO & TITLE (EXACT LOVABLE BRANDING) ── */}
+      {/* ── BRAND LOGO & TITLE (EXACT ORIGINAL BRANDING AS SHOWN IN SCREENSHOTS) ── */}
       <button
         onClick={onNavigateHome}
         className="flex min-w-0 items-center gap-2 bg-transparent border-none p-0 cursor-pointer text-left focus:outline-none"
@@ -78,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
         />
       </div>
 
-      {/* ── RIGHT CONTROLS (EXACT LOVABLE STATUS, CLOCK, THEME, LOGIN) ── */}
+      {/* ── RIGHT CONTROLS (EXACT ORIGINAL STATUS, CLOCK, THEME, LOGIN) ── */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
         {/* Monospace UTC clock */}
         <span className="label-xs hidden xl:inline text-muted-foreground num">
@@ -91,6 +97,42 @@ export const Header: React.FC<HeaderProps> = ({
           Live · 30s
         </span>
         <span className="flex size-2 animate-pulse-dot rounded-full bg-bull sm:hidden"></span>
+
+        {/* Liquidity Sweep Pro Launcher */}
+        {onNavigateLiquiditySweep && (
+          <button
+            onClick={onNavigateLiquiditySweep}
+            className="rounded-md border border-cyan-500/50 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 px-2.5 py-1.5 text-xs font-bold text-cyan-400 hover:from-cyan-500/30 hover:to-blue-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ring-1 ring-cyan-500/30"
+            title="Open Advanced Liquidity Sweep & Liquidation Map (Pro System)"
+          >
+            <span>🌊</span>
+            <span className="hidden lg:inline">Liquidity Sweep Pro</span>
+          </button>
+        )}
+
+        {/* BTC-USDT Momentum Predictor Launcher */}
+        {onNavigateBtcUsdt && (
+          <button
+            onClick={onNavigateBtcUsdt}
+            className="rounded-md border border-emerald-500/50 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 px-2.5 py-1.5 text-xs font-bold text-emerald-400 hover:from-emerald-500/30 hover:to-teal-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ring-1 ring-emerald-500/30"
+            title="Open Advanced BTC–USDT Relationship & Momentum Prediction Engine"
+          >
+            <span className="animate-spin-slow">🔄</span>
+            <span className="hidden md:inline">BTC–USDT Engine</span>
+          </button>
+        )}
+
+        {/* Jarvis Voice AI Launcher */}
+        {onNavigateJarvis && (
+          <button
+            onClick={onNavigateJarvis}
+            className="rounded-md border border-cyan-500/50 bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 px-2.5 py-1.5 text-xs font-bold text-cyan-400 hover:from-cyan-500/30 hover:to-indigo-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ring-1 ring-cyan-500/30"
+            title="Open JARVIS AI Market Voice Assistant"
+          >
+            <span className="animate-pulse">🎙️</span>
+            <span className="hidden sm:inline">Jarvis Voice AI</span>
+          </button>
+        )}
 
         {/* Upgrade / Pricing Button */}
         {onNavigatePricing && (

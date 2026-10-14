@@ -334,6 +334,10 @@ class DeltaExchangeService {
     return () => this.statusSubscribers.delete(callback);
   }
 
+  public subscribeStatus(callback: (status: ServiceConnectionStatus) => void): () => void {
+    return this.onStatus(callback);
+  }
+
   private notifyStatus(status: ServiceConnectionStatus) {
     this.statusSubscribers.forEach((cb) => cb(status));
   }

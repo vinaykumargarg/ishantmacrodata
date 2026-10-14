@@ -325,39 +325,45 @@ const UsdtDominanceChart: React.FC<{ u: UsdtDominance; btc: Candle[] }> = ({ u, 
 // Generates high-fidelity institutional market data for AI Chart
 function generateMarketData(asset: string, tf: string): AiChartData {
   const basePrices: Record<string, number> = {
-    BTC: 82350,
+    BTC: 82862,
     ETH: 2540,
-    GOLD: 4125,
-    SILVER: 32.4
+    GOLD: 4164.44,
+    SILVER: 48.7
   };
 
-  const basePrice = basePrices[asset] || 82350;
+  const basePrice = basePrices[asset] || 82862;
   const isCrypto = asset === 'BTC' || asset === 'ETH';
+  const isFalling = asset === 'BTC' || asset === 'GOLD';
 
-  // Seeded deterministic candles
+  // Seeded deterministic candles matching market movement
   const candles: Candle[] = [];
-  let curr = basePrice * 0.985;
+  let curr = basePrice * 1.015;
   const numCandles = 32;
   const now = Date.now();
   const stepMs = tf === '15m' ? 15 * 60000 : tf === '30m' ? 30 * 60000 : tf === '1h' ? 3600000 : tf === '4h' ? 14400000 : 86400000;
 
   for (let i = 0; i < numCandles; i++) {
     const t = now - (numCandles - i) * stepMs;
-    const delta = (Math.sin(i * 0.45) * 0.007 + (i / numCandles) * 0.015) * basePrice;
+    const dropFactor = isFalling ? (i / numCandles) * 0.025 : -(i / numCandles) * 0.02;
+    const delta = (Math.sin(i * 0.45) * 0.005 - dropFactor) * basePrice;
     const open = curr;
-    const close = basePrice * 0.98 + delta;
-    const high = Math.max(open, close) + Math.random() * (basePrice * 0.004);
-    const low = Math.min(open, close) - Math.random() * (basePrice * 0.004);
+    const close = basePrice * 1.01 + delta;
+    const high = Math.max(open, close) + Math.random() * (basePrice * 0.003);
+    const low = Math.min(open, close) - Math.random() * (basePrice * 0.003);
     curr = close;
     candles.push({ t, o: open, h: high, l: low, c: close });
   }
 
   const currentPrice = candles[candles.length - 1].c;
-  const signal: 'LONG' | 'SHORT' | 'WAIT' = 'LONG';
-  const confidence = 82;
+  const signal: 'LONG' | 'SHORT' | 'WAIT' = isFalling ? 'SHORT' : 'LONG';
+  const confidence = 86;
   const entry = currentPrice;
-  const stop = isCrypto ? currentPrice * 0.978 : currentPrice * 0.991;
-  const target = isCrypto ? currentPrice * 1.048 : currentPrice * 1.022;
+  const stop = signal === 'SHORT'
+    ? (isCrypto ? currentPrice * 1.022 : currentPrice * 1.008)
+    : (isCrypto ? currentPrice * 0.978 : currentPrice * 0.991);
+  const target = signal === 'SHORT'
+    ? (isCrypto ? currentPrice * 0.952 : currentPrice * 0.978)
+    : (isCrypto ? currentPrice * 1.048 : currentPrice * 1.022);
 
   const liqs: Liquidation[] = [
     { side: 'long', price: entry * 0.988, lev: 50, size: 0.85 },
@@ -369,105 +375,153 @@ function generateMarketData(asset: string, tf: string): AiChartData {
   ];
 
   const levels: PriceLevel[] = [
-    { kind: 'resistance', price: entry * 1.032 },
-    { kind: 'resistance', price: entry * 1.015 },
-    { kind: 'support', price: entry * 0.989 },
-    { kind: 'support', price: entry * 0.972 }
+    { kind: 'resistance', price: entry * 1.025 },
+    { kind: 'resistance', price: entry * 1.012 },
+    { kind: 'support', price: entry * 0.982 },
+    { kind: 'support', price: entry * 0.965 }
   ];
 
   const zones: LiquidityZone[] = [
-    { from: entry * 0.985, to: entry * 0.989, strength: 0.85 },
-    { from: entry * 1.018, to: entry * 1.024, strength: 0.72 }
+    { from: entry * 0.980, to: entry * 0.985, strength: 0.85 },
+    { from: entry * 1.012, to: entry * 1.020, strength: 0.75 }
   ];
 
-  const lanes: AiLane[] = [
-    {
-      key: 'TECH',
-      name: 'Technical Structure & Liquidity',
-      tone: 'bull',
-      score: 1.8,
-      notes: [
-        'Higher low print confirmed on 4H structure.',
-        'Bullish Fair Value Gap (FVG) retested and holding with expanding volume.',
-        'RSI momentum reset to 54.2 with bullish divergence building.'
+  const lanes: AiLane[] = isFalling
+    ? [
+        {
+          key: 'TECH',
+          name: 'Technical Structure & Liquidity',
+          tone: 'bear',
+          score: -1.8,
+          notes: [
+            'Resistance ceiling rejection with shooting star wick on 15M/1H.',
+            'Break of Structure (BOS) down below key support shelf.',
+            'RSI momentum rolling over with downward continuation.'
+          ]
+        },
+        {
+          key: 'MACRO',
+          name: 'Macro Liquidity & Yields',
+          tone: 'bear',
+          score: -1.2,
+          notes: [
+            'DXY firming up around 102.45 adding pressure on crypto & gold.',
+            'Upcoming US inflation print prompting institutional risk-off hedging.',
+            'US benchmark 10Y yields stabilizing above 4.08%.'
+          ]
+        },
+        {
+          key: 'FLOW',
+          name: 'Order Flow & Liquidations',
+          tone: 'bear',
+          score: -1.5,
+          notes: [
+            'Institutional market sell delta dominant (-$184M net delta).',
+            'Overhead limit asks absorbing retail breakout buyers.',
+            'Long liquidation cluster triggered towards downside liquidity targets.'
+          ]
+        },
+        {
+          key: 'NEWS',
+          name: 'Sentiment & Catalysts',
+          tone: 'neutral',
+          score: -0.3,
+          notes: [
+            'Institutional ETF momentum cooling at overhead supply zone.',
+            'Funding rates unwinding into healthy downside correction.'
+          ]
+        }
       ]
-    },
-    {
-      key: 'MACRO',
-      name: 'Macro Liquidity & Yields',
-      tone: 'bull',
-      score: 1.4,
-      notes: [
-        'US10Y yields cooling down towards 4.08% easing risk asset pressure.',
-        'Global M2 liquidity expansion positive (+3.4% 30d annualized).',
-        'DXY dollar index rejected at 102.80 resistance zone.'
-      ]
-    },
-    {
-      key: 'FLOW',
-      name: 'Order Flow & Liquidations',
-      tone: 'bull',
-      score: 1.1,
-      notes: [
-        'Massive short liquidation clusters stacked directly above current price.',
-        'Taker buy-to-sell ratio at 1.28 on Binance and Bybit perpetuals.',
-        'Aggregated Open Interest expanding steadily with positive spot delta.'
-      ]
-    },
-    {
-      key: 'NEWS',
-      name: 'Sentiment & Catalysts',
-      tone: 'neutral',
-      score: 0.3,
-      notes: [
-        'Institutional ETF net inflows positive +$412M across 3-day window.',
-        'Derivatives funding rate neutral-positive (+0.0084%), no retail overleveraging.'
-      ]
-    }
-  ];
+    : [
+        {
+          key: 'TECH',
+          name: 'Technical Structure & Liquidity',
+          tone: 'bull',
+          score: 1.8,
+          notes: [
+            'Higher low print confirmed on structure.',
+            'Fair Value Gap (FVG) retested and holding with volume.',
+            'RSI momentum resetting with bullish continuation.'
+          ]
+        },
+        {
+          key: 'MACRO',
+          name: 'Macro Liquidity & Yields',
+          tone: 'bull',
+          score: 1.4,
+          notes: [
+            'US10Y yields cooling down easing risk asset pressure.',
+            'Global M2 liquidity expansion positive.',
+            'DXY rejected at resistance zone.'
+          ]
+        },
+        {
+          key: 'FLOW',
+          name: 'Order Flow & Liquidations',
+          tone: 'bull',
+          score: 1.1,
+          notes: [
+            'Short liquidation clusters stacked above current price.',
+            'Taker buy-to-sell ratio favorable.',
+            'Open Interest expanding with positive spot delta.'
+          ]
+        },
+        {
+          key: 'NEWS',
+          name: 'Sentiment & Catalysts',
+          tone: 'neutral',
+          score: 0.3,
+          notes: [
+            'Institutional ETF net inflows positive.',
+            'Funding rates neutral, no retail overleverage.'
+          ]
+        }
+      ];
 
-  const totalScore = 4.6;
+  const totalScore = isFalling ? -4.8 : 4.6;
 
   const usdt: UsdtDominance = {
     now: 5.42,
-    projection: 'down',
-    btcProjection: 'up',
-    note: 'USDT Dominance breakdown confirm ho raha hai, crypto liquidity inflow strong hai.',
+    projection: isFalling ? 'up' : 'down',
+    btcProjection: isFalling ? 'down' : 'up',
+    note: isFalling
+      ? 'USDT Dominance bounce confirm ho raha hai, capital cash me move ho raha hai (SHORT favour).'
+      : 'USDT Dominance breakdown confirm ho raha hai, crypto liquidity inflow strong hai.',
     series: [
-      { d: 5.72 },
-      { d: 5.68 },
-      { d: 5.61 },
-      { d: 5.58 },
-      { d: 5.52 },
-      { d: 5.48 },
-      { d: 5.45 },
+      { d: 5.22 },
+      { d: 5.28 },
+      { d: 5.31 },
+      { d: 5.35 },
+      { d: 5.38 },
+      { d: 5.40 },
+      { d: 5.41 },
       { d: 5.42 }
     ]
   };
 
   const conf: ConfluenceData = {
-    decision: 'LONG',
-    longScore: 84,
-    shortScore: 16,
+    decision: signal,
+    longScore: signal === 'SHORT' ? 16 : 84,
+    shortScore: signal === 'SHORT' ? 84 : 16,
     quality: 'HIGH',
-    trend: 'Bullish Continuation',
+    trend: signal === 'SHORT' ? 'Bearish Distribution' : 'Bullish Continuation',
     setup: {
       entry: Math.round(entry),
       sl: Math.round(stop),
-      tp1: Math.round(entry + (entry - stop) * 1.5),
+      tp1: Math.round(signal === 'SHORT' ? entry - Math.abs(entry - stop) * 1.5 : entry + (entry - stop) * 1.5),
       tp2: Math.round(target),
-      tp3: Math.round(entry + (entry - stop) * 3.5),
+      tp3: Math.round(signal === 'SHORT' ? entry - Math.abs(entry - stop) * 3.5 : entry + (entry - stop) * 3.5),
       rr: 2.5,
       invalidation: Math.round(stop)
     },
     warnings: ['Monitor upcoming US CPI prints for sudden macro volatility spikes.'],
     factors: [
-      { name: 'Market Structure', weight: 20, bias: 0.85, note: 'Bullish structural continuation above Daily POC', available: true },
-      { name: 'Liquidity Sweeps', weight: 15, bias: 0.70, note: 'Previous Day Low swept with fast absorption', available: true },
-      { name: 'Liquidation Delta', weight: 15, bias: 0.80, note: '$240M shorts ripe for squeeze above entry', available: true },
-      { name: 'Open Interest Delta', weight: 10, bias: 0.40, note: 'Healthy expansion alongside spot CVD', available: true },
-      { name: 'Funding Rates', weight: 10, bias: 0.30, note: 'Perpetual funding steady at +0.0084%', available: true },
-      { name: 'Volume Profile', weight: 10, bias: 0.75, note: 'Price accepted above Value Area High', available: true },
+      { name: 'Market Structure', weight: 20, bias: signal === 'SHORT' ? -0.85 : 0.85, note: signal === 'SHORT' ? 'Rejection from supply resistance ceiling' : 'Bullish structural continuation above Daily POC', available: true },
+      { name: 'Liquidity Sweeps', weight: 15, bias: signal === 'SHORT' ? -0.75 : 0.70, note: signal === 'SHORT' ? 'High liquidity swept (SFP) trapping late buyers' : 'Previous Day Low swept with fast absorption', available: true },
+      { name: 'Liquidation Delta', weight: 15, bias: signal === 'SHORT' ? -0.80 : 0.80, note: signal === 'SHORT' ? 'Long stops ripe for liquidation cascade' : '$240M shorts ripe for squeeze above entry', available: true },
+      { name: 'Open Interest Delta', weight: 10, bias: signal === 'SHORT' ? -0.40 : 0.40, note: 'Funding reset with institutional delta positioning', available: true },
+      { name: 'Funding Rates', weight: 10, bias: signal === 'SHORT' ? -0.30 : 0.30, note: 'Overheated long funding unwinding rapidly', available: true },
+      { name: 'Volume Profile', weight: 10, bias: signal === 'SHORT' ? -0.75 : 0.75, note: signal === 'SHORT' ? 'Price lost Value Area High, rejecting ceiling' : 'Price accepted above Value Area High', available: true },
       { name: 'Momentum / RSI', weight: 10, bias: 0.60, note: 'Clean hidden bullish divergence on 1H', available: true },
       { name: 'Macro Liquidity', weight: 10, bias: 0.50, note: 'Fed rate cut expectations anchoring yields', available: true }
     ],

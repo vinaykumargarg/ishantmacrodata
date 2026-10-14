@@ -10,7 +10,8 @@ interface UltraInstitutionalDecisionEngineProps {
 
 export const UltraInstitutionalDecisionEngine: React.FC<UltraInstitutionalDecisionEngineProps> = ({ onNavigate }) => {
   const [selectedAsset, setSelectedAsset] = useState<'BTCUSDT' | 'XAUUSD' | 'XAUTUSD'>('BTCUSDT');
-  const [activeTab, setActiveTab] = useState<'DECISION' | 'STRUCTURE' | 'LIQUIDITY' | 'ORDER_FLOW' | 'VOLUME_DERIVATIVES' | 'MACRO' | 'RISK'>('DECISION');
+  const [activeTab, setActiveTab] = useState<'DECISION' | 'PRE_MOVE_RADAR' | 'STRUCTURE' | 'LIQUIDITY' | 'ORDER_FLOW' | 'VOLUME_DERIVATIVES' | 'MACRO' | 'RISK'>('DECISION');
+  const [preMoveRadarMode, setPreMoveRadarMode] = useState<'PRE_DROP_SHORT' | 'PRE_PUMP_LONG'>('PRE_DROP_SHORT');
 
   // Interactive Risk Calculator State
   const [userEquity, setUserEquity] = useState<number>(25000);
@@ -18,6 +19,11 @@ export const UltraInstitutionalDecisionEngine: React.FC<UltraInstitutionalDecisi
 
   const data: UltraInstitutionalTradeDecision =
     ULTRA_INSTITUTIONAL_DATA[selectedAsset] || ULTRA_INSTITUTIONAL_DATA['BTCUSDT'];
+
+  const activePreMove =
+    preMoveRadarMode === 'PRE_DROP_SHORT'
+      ? data.earlyWarningRadar?.preDropScenario
+      : data.earlyWarningRadar?.prePumpScenario;
 
   // Calculate position sizing
   const monetaryRiskLimit = (userEquity * riskPercent) / 100;
@@ -150,6 +156,20 @@ export const UltraInstitutionalDecisionEngine: React.FC<UltraInstitutionalDecisi
               🎯 Decision Matrix
             </button>
             <button
+              onClick={() => setActiveTab('PRE_MOVE_RADAR')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'PRE_MOVE_RADAR'
+                  ? 'bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400 text-slate-950 font-black shadow-[0_0_15px_rgba(245,158,11,0.5)]'
+                  : 'text-amber-300 hover:text-white'
+              }`}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+              </span>
+              <span>Pre-Move Radar</span>
+            </button>
+            <button
               onClick={() => setActiveTab('STRUCTURE')}
               className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
                 activeTab === 'STRUCTURE' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'
@@ -213,6 +233,125 @@ export const UltraInstitutionalDecisionEngine: React.FC<UltraInstitutionalDecisi
       {/* ────────────────── MAIN TAB CONTENT ────────────────── */}
       {activeTab === 'DECISION' && (
         <div className="space-y-4">
+          {/* 🚨 PRE-MOVE LEADING RADAR (EARLY WARNING & SNIPER ENTRY) */}
+          {activePreMove && (
+            <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-b from-[#180918]/95 via-[#100618]/95 to-[#080310] p-4 sm:p-5 space-y-3.5 shadow-[0_0_30px_rgba(244,63,94,0.25)] relative overflow-hidden backdrop-blur-xl">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-500/30 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-rose-300 font-mono flex items-center gap-1.5">
+                        <span>⚡</span>
+                        <span>PRE-MOVE LEADING RADAR</span>
+                      </span>
+                      <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-black font-mono border border-rose-500/40">
+                        ZERO-LAG (12-16M ADVANCE)
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-300 block font-sans mt-0.5">
+                      Market move hone se pehle prediction & sniper entry (Lagging indicator elimination)
+                    </span>
+                  </div>
+                </div>
+
+                <span className="text-[11px] font-mono font-bold text-amber-300 bg-[#0a1228] px-3 py-1 rounded-lg border border-amber-400/40">
+                  Lead Time: <b className="text-white">{activePreMove.leadTimeDisplay.split(' ')[0]} Mins Ahead</b>
+                </span>
+              </div>
+
+              {/* Mode Switcher */}
+              <div className="grid grid-cols-2 gap-2 bg-[#090310] p-1.5 rounded-xl border border-rose-500/30 font-mono text-xs">
+                <button
+                  onClick={() => setPreMoveRadarMode('PRE_DROP_SHORT')}
+                  className={`py-2 px-3 rounded-lg font-black transition-all flex items-center justify-center gap-1.5 ${
+                    preMoveRadarMode === 'PRE_DROP_SHORT'
+                      ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.6)] scale-[1.02]'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>🔴</span>
+                  <span>Girne Se Pehle (SHORT)</span>
+                </button>
+                <button
+                  onClick={() => setPreMoveRadarMode('PRE_PUMP_LONG')}
+                  className={`py-2 px-3 rounded-lg font-black transition-all flex items-center justify-center gap-1.5 ${
+                    preMoveRadarMode === 'PRE_PUMP_LONG'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.6)] scale-[1.02]'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>🟢</span>
+                  <span>Uthne Se Pehle (LONG)</span>
+                </button>
+              </div>
+
+              {/* Projected Cascade & Metrics Grid */}
+              <div className="space-y-3 font-mono">
+                <div className="p-3 rounded-xl bg-[#090c1f] border border-cyan-500/30 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-amber-300 font-black block uppercase">PREDICTED CASCADE MOVE</span>
+                    <span className={`text-sm font-black ${preMoveRadarMode === 'PRE_DROP_SHORT' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {activePreMove.predictedMoveFormatted}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-amber-300 font-black block uppercase">SNIPER R:R RATIO</span>
+                    <span className="text-sm font-black text-cyan-300">
+                      {activePreMove.rewardToRiskRatio}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-[#071329] border border-cyan-500/40">
+                    <span className="text-[9px] text-cyan-300 font-bold block uppercase">🎯 SNIPER ENTRY (TOP/BOTTOM)</span>
+                    <span className="text-white font-extrabold text-xs block mt-0.5">
+                      {activePreMove.sniperEntryFormatted}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/40">
+                    <span className="text-[9px] text-rose-300 font-bold block uppercase">🛡️ TIGHT SNIPER SL</span>
+                    <span className="text-rose-300 font-extrabold text-xs block mt-0.5">
+                      {activePreMove.sniperStopLossFormatted}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3 Targets Row */}
+                <div className="grid grid-cols-3 gap-2 text-[10px]">
+                  <div className="p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-center">
+                    <span className="text-[8px] text-emerald-400 font-bold block uppercase">TP1 (40%)</span>
+                    <span className="text-white font-black">{activePreMove.targetTp1.formatted}</span>
+                    <span className="text-emerald-300 text-[9px] block font-bold">{activePreMove.targetTp1.gainPts}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-center">
+                    <span className="text-[8px] text-emerald-400 font-bold block uppercase">TP2 (35%)</span>
+                    <span className="text-white font-black">{activePreMove.targetTp2.formatted}</span>
+                    <span className="text-emerald-300 text-[9px] block font-bold">{activePreMove.targetTp2.gainPts}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-center">
+                    <span className="text-[8px] text-emerald-400 font-bold block uppercase">TP3 (25%)</span>
+                    <span className="text-white font-black">{activePreMove.targetTp3.formatted}</span>
+                    <span className="text-emerald-300 text-[9px] block font-bold">{activePreMove.targetTp3.gainPts}</span>
+                  </div>
+                </div>
+
+                {/* Hinglish Explanation Box */}
+                <div className="p-3 rounded-xl bg-[#0e162c] border border-amber-400/35 text-[11px] font-sans text-slate-200 leading-relaxed shadow-inner">
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-amber-300 font-black mb-1">
+                    <span>💡</span>
+                    <span>INSTITUTIONAL PRE-MOVE LOGIC (HINDI/HINGLISH):</span>
+                  </div>
+                  {activePreMove.explanationHinglish}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 1. TOP METRICS STRIP: REGIME + MULTI-TIMEFRAME CONFLUENCE */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 font-mono">
             {/* Regime Card */}
@@ -395,6 +534,126 @@ export const UltraInstitutionalDecisionEngine: React.FC<UltraInstitutionalDecisi
             <p className="text-xs sm:text-sm font-sans text-slate-200 leading-relaxed font-medium">
               {data.explanationHindiHinglish}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB: PRE-MOVE LEADING RADAR ── */}
+      {activeTab === 'PRE_MOVE_RADAR' && activePreMove && (
+        <div className="space-y-4 font-mono text-xs">
+          <div className="p-5 rounded-2xl border border-rose-500/40 bg-gradient-to-r from-[#180918]/95 via-[#0e071a]/95 to-[#0b0412] relative overflow-hidden shadow-2xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rose-500/30 pb-3.5">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🚨</span>
+                <div>
+                  <h2 className="text-lg font-black text-white font-['Outfit',sans-serif] tracking-wide flex items-center gap-2">
+                    <span>{data.displaySymbol} · PRE-MOVE LEADING RADAR</span>
+                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-black border border-rose-500/40">
+                      ZERO-LAG PREDICTION
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-300 font-sans mt-0.5">
+                    Signal market ke 3,000 point move hone se 12–16 minute pehle activate hota hai (No lagging / No chasing).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-amber-300 bg-[#091228] px-3 py-1.5 rounded-lg border border-amber-400/40">
+                  Lead Time: <b className="text-white">{activePreMove.leadTimeDisplay}</b>
+                </span>
+              </div>
+            </div>
+
+            {/* Mode Switcher */}
+            <div className="grid grid-cols-2 gap-2.5 mt-4 p-1.5 bg-[#090310] rounded-xl border border-rose-500/30">
+              <button
+                onClick={() => setPreMoveRadarMode('PRE_DROP_SHORT')}
+                className={`py-2.5 px-3 rounded-lg font-black transition-all flex items-center justify-center gap-2 ${
+                  preMoveRadarMode === 'PRE_DROP_SHORT'
+                    ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.6)] scale-[1.02]'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>🔴</span>
+                <span>Pre-Drop Short Scanner (Girne Se Pehle Alert)</span>
+              </button>
+              <button
+                onClick={() => setPreMoveRadarMode('PRE_PUMP_LONG')}
+                className={`py-2.5 px-3 rounded-lg font-black transition-all flex items-center justify-center gap-2 ${
+                  preMoveRadarMode === 'PRE_PUMP_LONG'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.6)] scale-[1.02]'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>🟢</span>
+                <span>Pre-Pump Long Scanner (Uthne Se Pehle Alert)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Details Card */}
+          <div className="p-5 rounded-xl bg-gradient-to-b from-[#0c1836] to-[#081226] border border-cyan-500/30 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between">
+              <span className="text-amber-300 font-black text-sm uppercase flex items-center gap-2">
+                <span>⚡</span>
+                <span>{activePreMove.statusLabel}</span>
+              </span>
+              <span className="text-xs text-cyan-300 font-bold bg-[#071328] px-3 py-1 rounded border border-cyan-500/30">
+                Win Probability: {activePreMove.winProbabilityPct}%
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="p-3 rounded-xl bg-[#081329] border border-cyan-500/20">
+                <span className="text-[10px] text-amber-300 font-bold block uppercase">PREDICTED CASCADE</span>
+                <span className={`text-sm font-black block mt-0.5 ${preMoveRadarMode === 'PRE_DROP_SHORT' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {activePreMove.predictedMoveFormatted.split(' ')[0]}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-[#081329] border border-cyan-500/20">
+                <span className="text-[10px] text-amber-300 font-bold block uppercase">SNIPER ENTRY</span>
+                <span className="text-white font-black text-sm block mt-0.5">
+                  {activePreMove.sniperEntryFormatted.split(' ')[0]}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-[#081329] border border-cyan-500/20">
+                <span className="text-[10px] text-rose-300 font-bold block uppercase">SNIPER STOP LOSS</span>
+                <span className="text-rose-300 font-black text-sm block mt-0.5">
+                  {activePreMove.sniperStopLossFormatted.split(' ')[0]}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-[#081329] border border-cyan-500/20">
+                <span className="text-[10px] text-emerald-300 font-bold block uppercase">REWARD-TO-RISK</span>
+                <span className="text-emerald-300 font-black text-sm block mt-0.5">
+                  {activePreMove.rewardToRiskRatio}
+                </span>
+              </div>
+            </div>
+
+            {/* Hindi Explanation Box */}
+            <div className="p-4 rounded-xl bg-[#0e162c] border border-amber-400/35 text-xs font-sans text-slate-200 leading-relaxed shadow-inner">
+              <div className="flex items-center gap-1.5 font-mono text-xs text-amber-300 font-black mb-1.5">
+                <span>💡</span>
+                <span>INSTITUTIONAL PRE-MOVE LOGIC (HINDI/HINGLISH):</span>
+              </div>
+              {activePreMove.explanationHinglish}
+            </div>
+
+            {/* Checklist */}
+            <div className="space-y-2 pt-1">
+              <span className="text-xs text-cyan-300 font-black uppercase tracking-wider block">
+                INSTITUTIONAL TRIGGER CONDITIONS (CONFIRMED ZERO-LAG):
+              </span>
+              <div className="space-y-1.5">
+                {activePreMove.triggerChecklist.map((c, idx) => (
+                  <div key={idx} className="flex items-center gap-2.5 p-2 rounded-lg bg-[#071328] border border-cyan-500/15 text-xs text-slate-200">
+                    <span className="text-emerald-400 font-black">✓</span>
+                    <span>{c}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

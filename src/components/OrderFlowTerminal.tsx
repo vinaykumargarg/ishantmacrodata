@@ -56,26 +56,26 @@ export const OrderFlowTerminal: React.FC<OrderFlowTerminalProps> = ({ onNavigate
   const calculatedUnits = slDistance > 0 ? (calculatedRiskAmount / slDistance).toFixed(3) : '0';
 
   return (
-    <div className="space-y-4 font-sans text-slate-100 bg-[#050811] min-h-screen p-3 sm:p-5 rounded-2xl border border-slate-800 shadow-2xl">
+    <div className="space-y-4 font-['Outfit',sans-serif] text-slate-100 bg-gradient-to-b from-[#030610] via-[#060d1c] to-[#040814] min-h-screen p-3 sm:p-5 rounded-3xl border border-cyan-500/20 shadow-[0_20px_60px_rgba(0,0,0,0.9)]">
       {/* ────────────────── ULTRA AI V2 BANNER SWITCHER ────────────────── */}
-      <div className="rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 via-[#0c1426] to-cyan-950/50 p-3 sm:p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-xl shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+      <div className="rounded-2xl border border-indigo-500/40 bg-gradient-to-r from-indigo-950/70 via-[#0c162d] to-cyan-950/60 p-3.5 sm:p-4.5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 backdrop-blur-xl">
+        <div className="flex items-center gap-3.5">
+          <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-cyan-500 to-blue-600 flex items-center justify-center text-2xl shadow-[0_0_24px_rgba(99,102,241,0.5)] border border-cyan-400/40">
             🧠
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+              <span className="text-xs font-['JetBrains_Mono',monospace] font-bold text-cyan-400 uppercase tracking-wider">
                 UPGRADE AVAILABLE · MULTI-LAYER QUANT SYSTEM
               </span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-['JetBrains_Mono',monospace] bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/50 shadow-sm">
                 V2 ACTIVE
               </span>
             </div>
-            <h2 className="text-sm sm:text-base font-extrabold text-white font-sans">
+            <h2 className="text-sm sm:text-base font-black text-white tracking-wide">
               ULTRA-INSTITUTIONAL AI TRADE DECISION ENGINE — V2
             </h2>
-            <p className="text-xs text-slate-400 font-sans">
+            <p className="text-xs text-slate-400 font-medium">
               Full multi-timeframe confluence, 8 market regimes, order flow footprint & macro correlation for BTC, XAU & XAUT.
             </p>
           </div>
@@ -84,7 +84,7 @@ export const OrderFlowTerminal: React.FC<OrderFlowTerminalProps> = ({ onNavigate
         {onNavigate && (
           <button
             onClick={() => onNavigate('ultra-ai')}
-            className="shrink-0 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-extrabold font-mono px-4 py-2.5 text-xs shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all flex items-center justify-center gap-1.5"
+            className="shrink-0 rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-slate-950 font-black font-['JetBrains_Mono',monospace] px-4 py-2.5 text-xs shadow-[0_0_25px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-1.5 active:scale-95"
           >
             Launch Decision Engine V2 ➔
           </button>
@@ -92,91 +92,103 @@ export const OrderFlowTerminal: React.FC<OrderFlowTerminalProps> = ({ onNavigate
       </div>
 
       {/* ────────────────── TOP MASTER HEADER ────────────────── */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-cyan-500/20 pb-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-0.5 text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.2)]">
-              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/15 px-3 py-1 text-xs font-['JetBrains_Mono',monospace] font-bold uppercase tracking-wider text-cyan-400 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
+              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
               PROFESSIONAL ORDER FLOW ENGINE
             </span>
-            <span className="rounded-full border border-slate-800 bg-[#0d1424] px-2.5 py-0.5 text-[11px] font-mono text-slate-300">
+            <span className="rounded-full border border-slate-800 bg-[#0d1424] px-3 py-1 text-xs font-['JetBrains_Mono',monospace] text-slate-300">
               Primary TF: <b className="text-cyan-400">15 Minutes</b>
             </span>
-            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-mono text-emerald-400">
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-3 py-1 text-xs font-['JetBrains_Mono',monospace] text-emerald-400 font-bold shadow-[0_0_12px_rgba(16,185,129,0.2)]">
               ● {marketData.dataSourceQuality}
             </span>
           </div>
 
-          <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-sans flex items-center gap-3">
+          <h1 className="mt-2.5 text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
             <span>{marketData.displaySymbol}</span>
-            <span className="text-2xl font-mono font-bold text-white ml-1">{marketData.formattedPrice}</span>
-            <span className={`text-sm font-mono font-bold px-2 py-0.5 rounded ${marketData.isPositive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+            <span className="text-2xl sm:text-3xl font-['JetBrains_Mono',monospace] font-black text-white ml-1 tracking-tight">
+              {marketData.formattedPrice}
+            </span>
+            <span className={`text-sm font-['JetBrains_Mono',monospace] font-bold px-2.5 py-1 rounded-lg ${marketData.isPositive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'}`}>
               {marketData.change24h}
             </span>
           </h1>
 
-          <p className="mt-1 text-xs text-slate-400 max-w-3xl font-mono">
+          <p className="mt-1 text-xs text-slate-400 max-w-3xl font-['JetBrains_Mono',monospace]">
             Source: <b className="text-slate-200">{marketData.dataSourceLabel}</b> · {marketData.lastUpdated}
           </p>
         </div>
 
         {/* DECISION PILL */}
-        <div className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-slate-800 bg-[#0c1220] min-w-[260px] text-center shadow-lg">
-          <span className="text-[10px] font-mono uppercase text-slate-400 font-bold tracking-wider">
+        <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-[#0c162a] to-[#070e1c] min-w-[270px] text-center shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-md">
+          <span className="text-[10px] font-['JetBrains_Mono',monospace] uppercase text-cyan-400 font-bold tracking-widest">
             AI ORDER FLOW BIAS
           </span>
-          <div className="mt-1 text-lg font-black font-mono tracking-wider text-emerald-400">
+          <div className="mt-1 text-lg font-black font-['JetBrains_Mono',monospace] tracking-wider text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]">
             {marketData.finalStatus}
           </div>
-          <div className="mt-1 flex items-center gap-3 text-xs font-mono text-slate-400">
-            <span>Score: <b className="text-white">{marketData.orderFlowScore}/100</b></span>
+          <div className="mt-1 flex items-center gap-3 text-xs font-['JetBrains_Mono',monospace] text-slate-400">
+            <span>Score: <b className="text-white font-bold">{marketData.orderFlowScore}/100</b></span>
             <span>·</span>
-            <span>Long Conf: <b className="text-emerald-400">{marketData.longConfirmations.score}/11</b></span>
+            <span>Long Conf: <b className="text-emerald-400 font-bold">{marketData.longConfirmations.score}/11</b></span>
           </div>
         </div>
       </header>
 
       {/* ────────────────── DATA INTEGRITY & MARKET SELECTOR BAR ────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a0f1b] p-3 rounded-xl border border-slate-800/80 text-xs font-mono">
-        {/* Markets: BTC, ETH, XAUUSD, SOL */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#081020]/90 p-3 rounded-2xl border border-cyan-500/20 text-xs font-['JetBrains_Mono',monospace] backdrop-blur-md shadow-lg">
+        {/* Markets: BTC, ETH, XAUUSD, XAGUSD, SOL */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-slate-400 uppercase text-[11px] mr-1">MARKET:</span>
+          <span className="text-slate-400 uppercase text-[11px] font-bold mr-1">MARKET:</span>
           <button
             onClick={() => setSelectedMarket('BTCUSDT')}
-            className={`px-3 py-1.5 rounded-lg font-bold text-xs font-mono transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 ${
               selectedMarket === 'BTCUSDT'
-                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30 ring-1 ring-cyan-400'
-                : 'bg-[#121929] text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-[0_0_16px_rgba(6,182,212,0.4)] ring-1 ring-cyan-400'
+                : 'bg-[#10192e] text-slate-400 hover:text-white border border-slate-800 hover:bg-[#152340]'
             }`}
           >
             ₿ BTCUSDT (Bitcoin)
           </button>
           <button
             onClick={() => setSelectedMarket('ETHUSDT')}
-            className={`px-3 py-1.5 rounded-lg font-bold text-xs font-mono transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 ${
               selectedMarket === 'ETHUSDT'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 ring-1 ring-indigo-400'
-                : 'bg-[#121929] text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-[0_0_16px_rgba(99,102,241,0.4)] ring-1 ring-indigo-400'
+                : 'bg-[#10192e] text-slate-400 hover:text-white border border-slate-800 hover:bg-[#152340]'
             }`}
           >
             Ξ ETHUSDT (Ethereum)
           </button>
           <button
             onClick={() => setSelectedMarket('XAUUSD')}
-            className={`px-3 py-1.5 rounded-lg font-bold text-xs font-mono transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 ${
               selectedMarket === 'XAUUSD'
-                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-1 ring-amber-400'
-                : 'bg-[#121929] text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white shadow-[0_0_16px_rgba(245,158,11,0.4)] ring-1 ring-amber-400'
+                : 'bg-[#10192e] text-slate-400 hover:text-white border border-slate-800 hover:bg-[#152340]'
             }`}
           >
             🥇 XAUUSD (Gold COMEX)
           </button>
           <button
+            onClick={() => setSelectedMarket('XAGUSD')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 ${
+              selectedMarket === 'XAGUSD'
+                ? 'bg-gradient-to-r from-slate-400 to-slate-200 text-slate-950 shadow-[0_0_16px_rgba(203,213,225,0.4)] ring-1 ring-white font-extrabold'
+                : 'bg-[#10192e] text-slate-400 hover:text-white border border-slate-800 hover:bg-[#152340]'
+            }`}
+          >
+            🥈 XAGUSD (Silver Spot)
+          </button>
+          <button
             onClick={() => setSelectedMarket('SOLUSDT')}
-            className={`px-3 py-1.5 rounded-lg font-bold text-xs font-mono transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 ${
               selectedMarket === 'SOLUSDT'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 ring-1 ring-purple-400'
-                : 'bg-[#121929] text-slate-400 hover:text-white border border-slate-800'
+                ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_16px_rgba(168,85,247,0.4)] ring-1 ring-purple-400'
+                : 'bg-[#10192e] text-slate-400 hover:text-white border border-slate-800 hover:bg-[#152340]'
             }`}
           >
             ◎ SOLUSDT (Solana)
@@ -268,6 +280,19 @@ export const OrderFlowTerminal: React.FC<OrderFlowTerminalProps> = ({ onNavigate
           </div>
           <span className="bg-amber-900/60 text-amber-300 px-2 py-0.5 rounded text-[10px] font-bold">
             VERIFIED FUTURES FEED
+          </span>
+        </div>
+      )}
+      {selectedMarket === 'XAGUSD' && (
+        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/80 text-xs text-slate-200/90 font-mono flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span>🛡️</span>
+            <span>
+              <b>DATA INTEGRITY RULE:</b> Silver spot OTC footprint & depth are sourced from <b>COMEX SI Active Contract Futures Proxy</b> (~$48.60/oz). High-resolution Level 2 order flow.
+            </span>
+          </div>
+          <span className="bg-slate-800 text-cyan-300 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700">
+            COMEX SILVER L2 FEED
           </span>
         </div>
       )}
@@ -408,7 +433,13 @@ export const OrderFlowTerminal: React.FC<OrderFlowTerminalProps> = ({ onNavigate
               </div>
             ) : viewMode === 'TRADINGVIEW' ? (
               <TradingViewWidget
-                symbol={selectedMarket === 'BTCUSDT' ? 'BINANCE:BTCUSDT' : 'OANDA:XAUUSD'}
+                symbol={
+                  selectedMarket === 'BTCUSDT' ? 'BINANCE:BTCUSDT' :
+                  selectedMarket === 'ETHUSDT' ? 'BINANCE:ETHUSDT' :
+                  selectedMarket === 'SOLUSDT' ? 'BINANCE:SOLUSDT' :
+                  selectedMarket === 'XAGUSD' ? 'OANDA:XAGUSD' :
+                  'OANDA:XAUUSD'
+                }
                 interval={tvInterval}
                 height={480}
                 studies={['STD;EMA', 'STD;Bollinger_Bands', 'STD;Volume', 'STD;RSI']}

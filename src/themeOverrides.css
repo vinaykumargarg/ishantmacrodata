@@ -99,15 +99,15 @@ html[data-theme='light'],
   
   /* Neutrals & Muted */
   --secondary: #f1f5f9;
-  --secondary-foreground: #1e293b;
+  --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted-foreground: #475569;
   --accent: #e2e8f0;
-  --accent-foreground: #0f172a;
+  --accent-foreground: #090d16;
   
   /* Borders & Inputs */
-  --border: #e2e8f0;
-  --input: #cbd5e1;
+  --border: #cbd5e1;
+  --input: #94a3b8;
   --ring: #0284c7;
   
   /* Financial Directional Colors */
@@ -301,3 +301,91 @@ html.light ::-webkit-scrollbar-thumb {
 html.light ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.25);
 }
+
+/* ────────────────── PROMINENT VISIBLE SIDEBAR SCROLLBAR LINE ────────────────── */
+.sidebar-scroll-visible {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  scrollbar-gutter: stable !important;
+  scrollbar-width: auto !important;
+  scrollbar-color: #2563eb #e2e8f0;
+}
+
+.sidebar-scroll-visible::-webkit-scrollbar {
+  width: 10px !important;
+  display: block !important;
+}
+
+/* Light Theme: Distinct bold blue line and solid track */
+.sidebar-scroll-visible::-webkit-scrollbar-track,
+html.light .sidebar-scroll-visible::-webkit-scrollbar-track,
+[data-theme='light'] .sidebar-scroll-visible::-webkit-scrollbar-track {
+  background: #e2e8f0 !important;
+  border-left: 1px solid #cbd5e1 !important;
+  border-radius: 6px;
+}
+
+.sidebar-scroll-visible::-webkit-scrollbar-thumb,
+html.light .sidebar-scroll-visible::-webkit-scrollbar-thumb,
+[data-theme='light'] .sidebar-scroll-visible::-webkit-scrollbar-thumb {
+  background: #2563eb !important;
+  border-radius: 9999px !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+}
+
+.sidebar-scroll-visible::-webkit-scrollbar-thumb:hover,
+html.light .sidebar-scroll-visible::-webkit-scrollbar-thumb:hover,
+[data-theme='light'] .sidebar-scroll-visible::-webkit-scrollbar-thumb:hover {
+  background: #1d4ed8 !important;
+}
+
+/* Dark Theme: Distinct glowing cyan line and track */
+html.dark .sidebar-scroll-visible,
+[data-theme='dark'] .sidebar-scroll-visible {
+  scrollbar-color: #06b6d4 #0f172a !important;
+}
+
+html.dark .sidebar-scroll-visible::-webkit-scrollbar-track,
+[data-theme='dark'] .sidebar-scroll-visible::-webkit-scrollbar-track {
+  background: #0f172a !important;
+  border-left: 1px solid rgba(6, 182, 212, 0.3) !important;
+  border-radius: 6px;
+}
+
+html.dark .sidebar-scroll-visible::-webkit-scrollbar-thumb,
+[data-theme='dark'] .sidebar-scroll-visible::-webkit-scrollbar-thumb {
+  background: #06b6d4 !important;
+  border-radius: 9999px !important;
+  border: 2px solid #0f172a !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.8) !important;
+}
+
+html.dark .sidebar-scroll-visible::-webkit-scrollbar-thumb:hover,
+[data-theme='dark'] .sidebar-scroll-visible::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8 !important;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 1) !important;
+}
+
+/* ────────────────── DEEEPR.AI TERMINAL RESPONSIVE DUAL GRID ────────────────── */
+.deeepr-dual-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .deeepr-dual-grid {
+    grid-template-columns: minmax(0, 1fr) 390px;
+    align-items: start;
+  }
+}
+
+@media (min-width: 1280px) {
+  .deeepr-dual-grid {
+    grid-template-columns: minmax(0, 1fr) 420px;
+    align-items: start;
+  }
+}
+

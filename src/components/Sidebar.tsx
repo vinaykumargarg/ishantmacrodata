@@ -8,6 +8,23 @@ export interface NavCategory {
 
 export const NAV_CATEGORIES: NavCategory[] = [
   {
+    title: 'AI Decision & Live Chart',
+    icon: '⚡',
+    items: [
+      { id: 'telegram-alerts', label: 'Telegram AI Alerts 📲⭐ (Live Bot)', icon: '📲' },
+      { id: 'gold', label: 'Gold Macro Overview 🥇', icon: '🥇' },
+      { id: 'news', label: 'Financial News 📰', icon: '📰' },
+      { id: 'jarvis-voice-ai', label: 'Jarvis AI Market Voice Expert 🎙️⭐ (Hindi/Hinglish/Eng)', icon: '🎙️' },
+      { id: 'liquidity-sweep-map', label: 'Liquidity Sweep & Liquidation Map ⭐ (Pro)', icon: '🌊' },
+      { id: 'btc-usdt-momentum', label: 'BTC–USDT Momentum Prediction Engine ⭐ (Institutional)', icon: '🔄' },
+      { id: 'market-chart-analyse', label: 'Market Chart AI Analyzer ⭐ (A-to-Z Read)', icon: '🔬' },
+      { id: 'crypto-wealth-intelligence', label: 'Crypto Long-Term Wealth Intelligence ⭐ (Delta 1-4M+)', icon: '💎' },
+      { id: 'institutional-terminal', label: 'Institutional AI Terminal ⭐ (BTC + Gold)', icon: '🏛️' },
+      { id: 'deeepr-ai', label: 'DEEEPR.AI Copilot ⭐ (BTC / Gold)', icon: '🔮' },
+      { id: 'ai-chart', label: 'AI Sniper Chart (Long/Short) 🎯', icon: '📈' }
+    ]
+  },
+  {
     title: 'Stocks & Global',
     icon: '🏦',
     items: [
@@ -18,16 +35,16 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { id: 'stock-ai', label: 'AI Stocks (US + NIFTY 100)', icon: '📊' },
       { id: 'global-intel', label: 'Global Intelligence', icon: '🌍' },
       { id: 'ultra-ai', label: 'TradeAI Terminal ⭐', icon: '⚡' },
-      { id: 'order-flow', label: 'Order Flow & Bookmap AI ⭐ (BTC/ETH/Gold)', icon: '🌊' }
+      { id: 'order-flow', label: 'Order Flow & Bookmap AI ⭐ (BTC/ETH/Gold/Silver/SOL)', icon: '🌊' }
     ]
   },
   {
     title: 'Crypto Engines',
     icon: '🧬',
     items: [
+      { id: 'liquidation-heatmap', label: 'Liquidation Heatmap Bookmap ⭐ (BTC/Gold/ETH/SOL)', icon: '🔥' },
       { id: 'delta-intelligence', label: 'Delta India Multi-Coin Engine ⭐ (1-3M)', icon: '🏛️' },
       { id: 'crypto-ai', label: 'Crypto Trading AI ⭐ (BTC/ETH/SOL)', icon: '⚡' },
-      { id: 'ai-chart', label: 'AI Chart (Long/Short)', icon: '📈' },
       { id: 'crypto-brain', label: 'AI Crypto Brain', icon: '🤖' },
       { id: 'macro-engine', label: 'Macro Engine', icon: '🌐' },
       { id: 'economic-events', label: 'News Events (CPI/FOMC)', icon: '📅' },
@@ -134,7 +151,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     title: 'Intelligence',
     icon: '🤖',
     items: [
-      { id: 'assistant', label: 'AI Trading Assistant', icon: '🤖' },
+      { id: 'assistant', label: 'Jarvis Voice Assistant 🎙️', icon: '🤖' },
       { id: 'risk', label: 'AI Risk Console', icon: '🛡️' },
       { id: 'journal', label: 'Trading Journal', icon: '📖' },
       { id: 'reports', label: 'Journal Reports', icon: '🧾' }
@@ -145,7 +162,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     icon: '👤',
     items: [
       { id: 'pricing', label: 'Pricing & Plans (₹)', icon: '💎' },
-      { id: 'alerts', label: 'Alerts', icon: '🔔' },
+      { id: 'telegram-alerts', label: 'Telegram AI Alerts 📲', icon: '🔔' },
       { id: 'account', label: 'My Account', icon: '👤' }
     ]
   }
@@ -161,7 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
   return (
     <nav
       aria-label="Terminal navigation"
-      className="hidden w-64 shrink-0 overflow-y-auto border-r border-sidebar-border bg-sidebar/95 px-4 py-6 shadow-[var(--shadow-sidebar)] backdrop-blur-xl lg:block scrollbar-thin"
+      className="sidebar-scroll-visible hidden w-64 shrink-0 sticky top-[84px] h-[calc(100vh-84px)] border-r border-sidebar-border bg-sidebar/95 px-4 py-6 shadow-[var(--shadow-sidebar)] backdrop-blur-xl lg:block"
     >
       {NAV_CATEGORIES.map((cat) => (
         <div key={cat.title} className="mb-6">
@@ -206,3 +223,5 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
 };
 
 export default Sidebar;
+
+

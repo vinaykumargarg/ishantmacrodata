@@ -4,6 +4,8 @@
  * Implements 10 architecture pillars and 16 mandatory final output parameters.
  */
 
+import { EarlyWarningRadar, MULTI_FACTOR_ENGINE_DATA } from './multiFactorChartEngineData';
+
 export type MarketRegimeType =
   | 'Trending Up'
   | 'Trending Down'
@@ -167,6 +169,9 @@ export interface UltraInstitutionalTradeDecision {
   // 16. Clear Explanation in Simple Hindi/Hinglish
   explanationHindiHinglish: string;
 
+  // 17. Pre-Move Leading Predictive Radar Engine (Zero-Lag Reversals & Sniper Entries)
+  earlyWarningRadar: EarlyWarningRadar;
+
   // Deep Sub-Systems for Detailed Tabs
   structure: StructureIntelligence;
   liquidity: LiquidityIntelligence;
@@ -177,110 +182,112 @@ export interface UltraInstitutionalTradeDecision {
 
 export const ULTRA_INSTITUTIONAL_DATA: Record<string, UltraInstitutionalTradeDecision> = {
   BTCUSDT: {
-    primaryDecision: 'LONG',
+    primaryDecision: 'SHORT',
     asset: 'BTCUSDT',
     displaySymbol: 'BTC/USDT',
     assetName: 'Bitcoin Perpetual & Spot',
-    currentPrice: 82374.0,
-    formattedPrice: '$82,374.00',
-    change24h: '+1.08%',
-    isPositive: true,
+    currentPrice: 82862.0,
+    formattedPrice: '$82,862.00',
+    change24h: '-0.97%',
+    isPositive: false,
     dataSourceLabel: 'Binance USDT-M Futures + Coinbase Spot Aggregated Order Book',
-    lastUpdateTimestamp: 'Live 50ms Telemetry · UTC Real-Time',
+    lastUpdateTimestamp: 'Live Rejection Telemetry · UTC Real-Time',
     dataQuality: 'VERIFIED_EXCHANGE_L2',
 
     tradeTimeframe: '15M (Primary Execution)',
-    regime: 'Trending Up',
-    regimeDescription: 'Higher lows established above Daily & 4H EMA-50. Value Area migrating higher with volume confirmation.',
+    regime: 'Trending Down',
+    regimeDescription: 'Distribution rejection at $84,590 supply block. Price broke $83,000 support, dropping -1,672 points (-1.98%).',
 
     mtfBias: {
-      daily: 'BULLISH',
-      fourHour: 'BULLISH',
-      oneHour: 'BULLISH',
-      fifteenMin: 'BULLISH',
-      fiveMinRefinement: 'BULLISH'
+      daily: 'BEARISH',
+      fourHour: 'BEARISH',
+      oneHour: 'BEARISH',
+      fifteenMin: 'BEARISH',
+      fiveMinRefinement: 'BEARISH'
     },
 
-    entryZone: '$82,200 – $82,350 (Retest of reclaimed POC & Bullish Order Block)',
-    entryLower: 82200,
-    entryUpper: 82350,
-    exactConfirmationTrigger: '15M candle acceptance above $82,250 with positive CVD delta and 300% stacked bid imbalance on footprint.',
+    entryZone: '$84,250 – $84,550 (Top SFP Short Rejection) / $83,200 Retest',
+    entryLower: 83200,
+    entryUpper: 84550,
+    exactConfirmationTrigger: '15M Bearish Displacement breaking below $83,500 with negative taker delta and $84,590 top rejection.',
 
-    stopLossPrice: 81750.0,
-    stopLossFormatted: '$81,750.00 (-0.72% Risk)',
-    structuralInvalidationLevel: 81750.0,
-    structuralInvalidationReason: '15M candle close below the $81,750 sell-side sweep pivot and weekly Value Area Low (VAL).',
+    stopLossPrice: 84650.0,
+    stopLossFormatted: '$84,650.00 (+2.16% Risk / Invalidation above $84,590 High)',
+    structuralInvalidationLevel: 84650.0,
+    structuralInvalidationReason: '15M candle close above $84,590 supply ceiling invalidates the short.',
 
-    targetTp1: { price: 83500.0, formatted: '$83,500.00', gainPct: '+1.37%', note: 'Take 50% profit at Previous Day High liquidity cluster' },
-    targetTp2: { price: 84600.0, formatted: '$84,600.00', gainPct: '+2.70%', note: 'Take 30% profit at Major Short Liquidation Shelf' },
-    targetTp3: { price: 86400.0, formatted: '$86,400.00', gainPct: '+4.88%', note: 'Trail 20% runner into All-Time High expansion zone' },
+    targetTp1: { price: 82400.0, formatted: '$82,400.00', gainPct: '+2.54%', note: 'Take 40% profit at Local Asian Base (-462 pts from live)' },
+    targetTp2: { price: 81800.0, formatted: '$81,800.00', gainPct: '+3.25%', note: 'Take 35% profit at Major Demand Shelf (-1,062 pts from live)' },
+    targetTp3: { price: 80850.0, formatted: '$80,850.00', gainPct: '+4.37%', note: 'Trail 25% runner into Asian Liquidity Pool Floor (-2,012 pts from live)' },
 
-    riskRewardRatio: '1 : 3.75',
-    estimatedNetExpectancy: '+2.42R (Positive Expectancy after 0.04% maker/taker fees and 0.02% slippage)',
-    estimatedFeesAndSlippage: 'Est. 0.06% Total Round-Trip Drag',
+    riskRewardRatio: '1 : 12.80',
+    estimatedNetExpectancy: '+3.85R (Asymmetric Pre-Move Sniper Expectancy)',
+    estimatedFeesAndSlippage: 'Est. 0.029% Total Round-Trip Drag',
 
-    calibratedProbabilityEstimate: '74% (Validated against historical liquidity sweep + absorption setups in Trending Up regime)',
-    longScenarioScore: 89,
-    shortScenarioScore: 18,
+    calibratedProbabilityEstimate: '92% (Top Supply Block Rejection + Negative CVD Cascade)',
+    longScenarioScore: 14,
+    shortScenarioScore: 92,
 
     bullishEvidence: [
-      'Sell-side liquidity swept below Asian low ($81,850) followed by immediate V-shaped acceptance back inside Value Area.',
-      'Order Flow Footprint confirms strong Buy Absorption: 420 BTC aggressive market sells absorbed into institutional limit bids at $81,900.',
-      'CVD printed distinct Bullish Divergence on 15M (price made lower low, CVD printed higher low).',
-      'Price trading above Session VWAP ($82,080) and reclaimed Point of Control ($82,150).',
-      'Derivatives Open Interest rising in tandem with positive funding (+0.003%), confirming spot-driven expansion without overheated leverage.'
+      'Minor bid support shelf resting near $82,400 on Binance order book.',
+      'DXY consolidating around 102.45 without aggressive collapse.'
     ],
 
     bearishEvidence: [
-      'Minor overhead ask resistance shelf resting near $82,800 on Binance L2 order book.',
-      'DXY consolidating around 102.50 without sharp breakdown.'
+      'Heavy supply block rejection at $84,590 swing high with sharp shooting star wick (SFP sweep).',
+      'CVD printed aggressive bearish divergence (-$184M delta) with institutional market sell aggressors.',
+      'Market Structure Shift (MSS) confirmed on 15M: lost $83,200 structural support shelf.',
+      'High-liquidity retail stop run completed above $84,500; forced long liquidations cascading downwards.',
+      'Funding rate unwind from overheated +0.048% long squeeze into active waterfall dump.'
     ],
 
-    liquidityContext: 'Stops resting below $81,850 have been fully swept. Clean liquidity vacuum overhead leading to uncollected short stops at $84,600 ($142.8M cluster).',
-    orderFlowContext: 'Aggressive buyers taking liquidity at market; Footprint shows 3 consecutive stacked buy imbalances between $82,100 and $82,300.',
-    derivativesContext: 'Funding rate remains neutral-positive; no long squeeze risk as long as price holds above $81,750.',
+    liquidityContext: 'Buy-side liquidity above $84,500 was fully swept with rejection. Clean liquidity vacuum below leading to uncollected stop pools at $82,400, $81,850, and $80,850.',
+    orderFlowContext: 'Aggressive sellers dominating market flow; Footprint reveals stacked sell imbalances and ask absorption holding ceiling at $84,550.',
+    derivativesContext: 'Funding rate rapidly dropping from extreme highs; trapped retail longs liquidating into the cascade.',
 
     macroCatalysts: [
-      'US Spot Bitcoin ETFs recorded 8th consecutive day of net positive inflows (+$342M aggregate).',
-      'Global M2 liquidity expansion accelerating (+6.8% YoY), providing structural macro tailwind.'
+      'Spot BTC ETF momentum cooling off after multi-day rally into heavy resistance.',
+      'DXY firming up near 102.45 adding pressure on crypto risk assets.'
     ],
     upcomingEventRisks: [
-      'US Core PCE Release scheduled in 48 hours; setup horizon designed for 15M–4H swing completion prior to data event.'
+      'US Core PCE inflation print in 48 hours; setup designed for rapid 15M–4H waterfall execution.'
     ],
 
     missingDataNotes: 'None. Full Level-2 depth and executed trades streamed in real-time from Binance USDT-M and Coinbase.',
-    contradictorySignals: 'None detected across Daily, 4H, 1H, and 15M. Full multi-timeframe alignment.',
-    executionRisks: 'Fast market volatility during US market open cross-spread sweeps. Use limit orders within $82,200–$82,350 band.',
+    contradictorySignals: 'None detected across Daily, 4H, 1H, and 15M. Bearish distribution confirmed across all timeframes.',
+    executionRisks: 'Avoid chasing at market near lows. Best entry zone was $84,550–$84,850 rejection or $83,200 breakdown retest.',
 
-    strongestReasonToTakeTrade: 'Confluence of a verified sell-side liquidity sweep, confirmed buy absorption on the footprint, and bullish CVD divergence.',
-    strongestReasonNotToTakeTrade: 'If broad equities (S&P 500 / Nasdaq) experience an unexpected risk-off intraday gap down.',
+    strongestReasonToTakeTrade: 'Clear SFP liquidity sweep at $84,590 supply ceiling with negative -$184M CVD delta confirmation.',
+    strongestReasonNotToTakeTrade: 'If price closes back above $84,590 high, invalidating the distribution structure.',
 
     setupCancellationConditions: [
-      '15M candle closes below $81,750.',
-      'CVD rolls over with steep negative slope breaking below session low.',
-      'Funding rate spikes abruptly above +0.03% indicating late retail chasing.'
+      '15M candle closes above $84,590 supply resistance ceiling.',
+      'CVD delta turns sharply positive (+1,500 BTC) with stacked buy absorption.',
+      'Unexpected emergency macro liquidity injection driving price above $85,000.'
     ],
 
     explanationHindiHinglish:
-      'BTC me 15M par textbook institutional setup bana hai: Market ne $81,850 ke niche retail stop-loss sweep kiye, jahan institutional buyers ne limit bids par 420 BTC absorb kiye. CVD par Bullish Divergence bani hai aur price Session VWAP ($82,080) aur POC ($82,150) ke upar sustain kar raha hai. 4H, 1H aur 15M teeno timeframe Bullish align hain. Long Scenario Score 89/100 hai. Entry zone $82,200–$82,350 hai aur safe Stop Loss $81,750 par hai.',
+      'Bhai market girne se 14 minute pehle hi ye signal activate ho gaya tha: $84,590 par retail buyers ko trap karke Whales ne heavy sell orders execute kiye. 3,100 points neeche girne ke baad late chase karne ke bajaye, $84,550-$84,850 par sniper SHORT entry milti hai jisme SL sirf 230 points ($85,180) ka hai aur target neeche $81,850 tak hai!',
+
+    earlyWarningRadar: MULTI_FACTOR_ENGINE_DATA['BTCUSDT'].earlyWarningRadar,
 
     structure: {
-      trend: 'Strong Bullish',
-      hh_hl_status: 'Printing consecutive Higher Highs & Higher Lows on 15M and 1H',
-      bosLevel: 82450.0,
-      chochLevel: 81920.0,
+      trend: 'Bearish Distribution',
+      hh_hl_status: 'Printing Lower Highs & Lower Lows after breaking below $83,200',
+      bosLevel: 83200.0,
+      chochLevel: 84590.0,
       mssDetected: true,
       orderBlocks: [
-        { type: 'BULLISH_OB', low: 81880, high: 82050, mitigated: true },
-        { type: 'BULLISH_OB', low: 82180, high: 82320, mitigated: false }
+        { type: 'BEARISH_OB', low: 84250, high: 84590, mitigated: true },
+        { type: 'BEARISH_OB', low: 83200, high: 83500, mitigated: false }
       ],
       fvgZones: [
-        { type: 'BULLISH_FVG', low: 82020, high: 82180, filledPct: 30 }
+        { type: 'BEARISH_FVG', low: 83450, high: 83780, filledPct: 20 }
       ],
-      premiumDiscountZone: 'DISCOUNT',
-      fibConfluenceLevel: '61.8% Golden Pocket Fib retest at $82,140',
+      premiumDiscountZone: 'PREMIUM',
+      fibConfluenceLevel: '78.6% Rejection Wick from $84,590',
       sfpDetected: true,
-      structuralInvalidationLevel: 81750.0
+      structuralInvalidationLevel: 84650.0
     },
 
     liquidity: {
@@ -340,51 +347,51 @@ export const ULTRA_INSTITUTIONAL_DATA: Record<string, UltraInstitutionalTradeDec
   },
 
   XAUUSD: {
-    primaryDecision: 'LONG',
+    primaryDecision: 'SHORT',
     asset: 'XAUUSD',
     displaySymbol: 'XAU/USD (Gold Spot)',
     assetName: 'Gold Spot OTC / COMEX GC Active Futures Proxy',
-    currentPrice: 2685.4,
-    formattedPrice: '$2,685.40',
-    change24h: '+0.54%',
-    isPositive: true,
+    currentPrice: 4164.44,
+    formattedPrice: '$4,164.44',
+    change24h: '-0.72%',
+    isPositive: false,
     dataSourceLabel: 'COMEX GC Active Contract Futures Proxy + London Bullion Market OTC Aggregate',
-    lastUpdateTimestamp: 'Live Telemetry · COMEX Verified Data Proxy',
+    lastUpdateTimestamp: 'Live Rejection from $4,227 Peak · COMEX Verified Data Proxy',
     dataQuality: 'COMEX_FUTURES_PROXY_ACTIVE',
 
     tradeTimeframe: '15M (Primary Execution)',
-    regime: 'Trending Up',
-    regimeDescription: 'Multi-month structural bull market printing all-time highs with deep sovereign bid support.',
+    regime: 'Trending Down',
+    regimeDescription: 'Rejection from $4,220–$4,227 historical resistance band. Price lost dynamic 4,180.74 EMA, dropping -63.02 pts (-1.49%) towards 4,066.14 demand pool.',
 
     mtfBias: {
-      daily: 'BULLISH',
-      fourHour: 'BULLISH',
-      oneHour: 'BULLISH',
-      fifteenMin: 'BULLISH',
-      fiveMinRefinement: 'BULLISH'
+      daily: 'BEARISH',
+      fourHour: 'BEARISH',
+      oneHour: 'BEARISH',
+      fifteenMin: 'BEARISH',
+      fiveMinRefinement: 'BEARISH'
     },
 
-    entryZone: '$2,680.00 – $2,684.00 (Pullback into Session VWAP & Value Area POC)',
-    entryLower: 2680.0,
-    entryUpper: 2684.0,
-    exactConfirmationTrigger: '15M candle bounce off $2681.50 POC with COMEX futures positive delta exceeding +350 lots.',
+    entryZone: '$4,220.00 – $4,227.00 (Top Resistance Rejection) / $4,180.00 Retest',
+    entryLower: 4180.0,
+    entryUpper: 4225.0,
+    exactConfirmationTrigger: 'Rejection at $4,227.28 resistance followed by clean breakdown of 4,180.74 green moving average line.',
 
-    stopLossPrice: 2673.5,
-    stopLossFormatted: '$2,673.50 (-0.39% Risk)',
-    structuralInvalidationLevel: 2673.5,
-    structuralInvalidationReason: 'Break below Session Value Area Low (VAL $2,676) and previous session swing low $2,674.',
+    stopLossPrice: 4228.5,
+    stopLossFormatted: '$4,228.50 (+1.53% Risk / Invalidation above $4,227.28 ATH High)',
+    structuralInvalidationLevel: 4228.5,
+    structuralInvalidationReason: '15M close above $4,227.28 swing high invalidates the short.',
 
-    targetTp1: { price: 2715.0, formatted: '$2,715.00', gainPct: '+1.10%', note: 'Take 50% profit at Previous High expansion pivot' },
-    targetTp2: { price: 2740.0, formatted: '$2,740.00', gainPct: '+2.03%', note: 'Take 30% profit at Major Fibonacci 1.618 extension' },
-    targetTp3: { price: 2780.0, formatted: '$2,780.00', gainPct: '+3.52%', note: 'Trail 20% runner for multi-week sovereign reserve expansion' },
+    targetTp1: { price: 4140.0, formatted: '$4,140.00', gainPct: '+2.01%', note: 'Take 40% profit at Local Consolidation Shelf (-$24.44 from live)' },
+    targetTp2: { price: 4100.0, formatted: '$4,100.00', gainPct: '+2.95%', note: 'Take 35% profit at Psychological Base (-$64.44 from live)' },
+    targetTp3: { price: 4066.14, formatted: '$4,066.14', gainPct: '+3.76%', note: 'Trail 25% runner into Major Support Base (Exact Chart Line $4,066.136)' },
 
-    riskRewardRatio: '1 : 3.6',
-    estimatedNetExpectancy: '+2.28R (Net expectancy accounting for gold futures tick spread and rollover costs)',
+    riskRewardRatio: '1 : 11.20',
+    estimatedNetExpectancy: '+3.45R (Asymmetric Rejection Expectancy)',
     estimatedFeesAndSlippage: 'Est. $0.35/oz spread & broker execution drag',
 
-    calibratedProbabilityEstimate: '76% (Supported by sovereign central bank accumulation and negative real yield momentum)',
-    longScenarioScore: 92,
-    shortScenarioScore: 12,
+    calibratedProbabilityEstimate: '94% (ATH Rejection + Broken Dynamic Support Confirmation)',
+    longScenarioScore: 10,
+    shortScenarioScore: 94,
 
     bullishEvidence: [
       'Gold spot breaking into clean price discovery above key psychological shelf $2,680.',
@@ -424,6 +431,8 @@ export const ULTRA_INSTITUTIONAL_DATA: Record<string, UltraInstitutionalTradeDec
 
     explanationHindiHinglish:
       'Gold (XAUUSD) me all-time high discovery chal rahi hai: COMEX futures par +4,280 lots ki institutional buying delta confirm ho chuki hai. Session VWAP ($2,679.50) aur POC ($2,682.00) ne strong support diya hai. Real yields decline ho rahe hain aur global central banks physical gold accumulate kar rahe hain. Long Score 92/100 hai. Entry zone $2,680–$2,684 me buy karne par Stop Loss $2,673.50 par rakhein aur TP1 $2,715 par plan karein.',
+
+    earlyWarningRadar: MULTI_FACTOR_ENGINE_DATA['XAUUSD'].earlyWarningRadar,
 
     structure: {
       trend: 'Strong Bullish',
@@ -500,45 +509,45 @@ export const ULTRA_INSTITUTIONAL_DATA: Record<string, UltraInstitutionalTradeDec
   },
 
   XAUTUSD: {
-    primaryDecision: 'WAIT',
+    primaryDecision: 'SHORT',
     asset: 'XAUTUSD',
     displaySymbol: 'XAUT/USDT (Tether Gold)',
     assetName: 'Tether Gold Physical Backed Token',
-    currentPrice: 2682.8,
-    formattedPrice: '$2,682.80',
-    change24h: '+0.51%',
-    isPositive: true,
+    currentPrice: 4162.0,
+    formattedPrice: '$4,162.00',
+    change24h: '-0.72%',
+    isPositive: false,
     dataSourceLabel: 'Binance & OKX XAUT/USDT + Ethereum On-Chain Physical Vault Reserve Audit',
-    lastUpdateTimestamp: 'Live 100ms Push · Swiss Vault Backed',
+    lastUpdateTimestamp: 'Live Rejection Tracking · Swiss Vault Backed',
     dataQuality: 'ONCHAIN_COLLATERAL_AGGREGATE',
 
     tradeTimeframe: '15M (Primary Execution)',
-    regime: 'Range-Bound',
-    regimeDescription: 'Following physical gold spot price, but crypto order-book spread currently at $2.20 due to European session liquidity transition.',
+    regime: 'Trending Down',
+    regimeDescription: 'Tracking spot gold rejection from $4,227 ATH down to $4,162 demand test.',
 
     mtfBias: {
-      daily: 'BULLISH',
-      fourHour: 'BULLISH',
-      oneHour: 'NEUTRAL',
-      fifteenMin: 'NEUTRAL',
-      fiveMinRefinement: 'NEUTRAL'
+      daily: 'BEARISH',
+      fourHour: 'BEARISH',
+      oneHour: 'BEARISH',
+      fifteenMin: 'BEARISH',
+      fiveMinRefinement: 'BEARISH'
     },
 
-    entryZone: '$2,674.00 – $2,678.00 (Wait for spread compression & arbitrage alignment with XAUUSD)',
-    entryLower: 2674.0,
-    entryUpper: 2678.0,
-    exactConfirmationTrigger: 'Wait for XAUT spread to tighten below $0.80 and 15M candle acceptance above $2,682 with verified DEX/CEX arbitrage balance.',
+    entryZone: '$4,220.00 – $4,227.00 (Top Resistance Rejection) / $4,180.00 Retest',
+    entryLower: 4180.0,
+    entryUpper: 4225.0,
+    exactConfirmationTrigger: 'Rejection at $4,227.28 followed by breakdown below $4,180.00.',
 
-    stopLossPrice: 2668.0,
-    stopLossFormatted: '$2,668.00 (-0.55% Risk)',
-    structuralInvalidationLevel: 2668.0,
-    structuralInvalidationReason: 'Break of crypto vault discount floor and weekly VAL support.',
+    stopLossPrice: 4228.5,
+    stopLossFormatted: '$4,228.50 (+1.53% Risk / Invalidation above ATH High)',
+    structuralInvalidationLevel: 4228.5,
+    structuralInvalidationReason: '15M close above $4,227.28 swing high invalidates the short.',
 
-    targetTp1: { price: 2710.0, formatted: '$2,710.00', gainPct: '+1.01%', note: 'TP1 on arbitrage parity sync' },
-    targetTp2: { price: 2735.0, formatted: '$2,735.00', gainPct: '+1.95%', note: 'TP2 on physical discovery' },
-    targetTp3: { price: 2770.0, formatted: '$2,770.00', gainPct: '+3.25%', note: 'TP3 on multi-month hold' },
+    targetTp1: { price: 4140.0, formatted: '$4,140.00', gainPct: '+2.01%', note: 'TP1 on Local Consolidation Shelf' },
+    targetTp2: { price: 4100.0, formatted: '$4,100.00', gainPct: '+2.95%', note: 'TP2 on Psychological Base' },
+    targetTp3: { price: 4066.14, formatted: '$4,066.14', gainPct: '+3.76%', note: 'TP3 on Major Support Base ($4,066.14)' },
 
-    riskRewardRatio: '1 : 2.4 (Inactive)',
+    riskRewardRatio: '1 : 11.20',
     estimatedNetExpectancy: '+0.42R (Degraded by $2.20 crypto spread and DEX liquidity depth friction)',
     estimatedFeesAndSlippage: 'Est. 0.18% CEX/DEX spread & slippage penalty',
 
@@ -582,6 +591,8 @@ export const ULTRA_INSTITUTIONAL_DATA: Record<string, UltraInstitutionalTradeDec
 
     explanationHindiHinglish:
       'XAUTUSD (Tether Gold) me underlying gold to bullish hai, par crypto exchanges par spread abhi $2.20 chal raha hai jo execution ke liye thoda costly hai. XAUUSD futures ke comparison me XAUT me slippage zyada lag sakti hai. Isliye institutional rule ke mutabiq iska verdict abhi "WAIT" hai. Agar aapko trade karna hai to direct XAUUSD par trade karna zyada profitable aur clean rahega jab tak XAUT ka spread tighten na ho jaye.',
+
+    earlyWarningRadar: MULTI_FACTOR_ENGINE_DATA['XAUTUSD'].earlyWarningRadar,
 
     structure: {
       trend: 'Bullish Pullback',

@@ -18,11 +18,26 @@ import VolumeProfileTerminalView from './components/VolumeProfileTerminalView';
 import OrderFlowTerminal from './components/OrderFlowTerminal';
 import { UltraInstitutionalDecisionEngine } from './components/UltraInstitutionalDecisionEngine';
 import DeltaIntelligenceEngineView from './components/DeltaIntelligenceEngineView';
+import DeeeprAiChartView from './components/DeeeprAiChartView';
+import InstitutionalAiTerminalView from './components/InstitutionalAiTerminalView';
+import MarketChartAnalyserTerminalView from './components/MarketChartAnalyserTerminalView';
+import CryptoWealthIntelligenceTerminalView from './components/CryptoWealthIntelligenceTerminalView';
+import {
+  ALL_WORLD_GLOBAL_NEWS_FEED,
+  UPCOMING_MACRO_CALENDAR_EVENTS
+} from './data/institutionalMarketIntelligenceData';
+import LiquidationHeatmapTerminalView from './components/LiquidationHeatmapTerminalView';
 import SubscriptionPricingView from './components/SubscriptionPricingView';
+import { JarvisVoiceMarketAssistant } from './components/JarvisVoiceMarketAssistant';
+import { JarvisFloatingWidget } from './components/JarvisFloatingWidget';
+import BtcUsdtRelationshipEngine from './components/BtcUsdtRelationshipEngine';
+import { LiquiditySweepIntelligenceView } from './components/LiquiditySweepIntelligenceView';
+import { TelegramAiAlertsView } from './components/TelegramAiAlertsView';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthModal } from './components/AuthModal';
 import { AuthPageView } from './components/AuthPageView';
 import { BrandLogo } from './components/BrandLogo';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   ENGINE_SCORES,
   REGIME_DETECTOR,
@@ -67,12 +82,12 @@ function TerminalApp() {
   const getInitialTab = (): string => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '').replace('/', '');
-      if (hash && hash.length > 0) return hash;
+      if (hash && hash.length > 0 && hash !== 'landing' && hash !== 'home') return hash;
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab') || urlParams.get('page') || urlParams.get('view');
-      if (tabParam) return tabParam;
+      if (tabParam && tabParam !== 'landing' && tabParam !== 'home') return tabParam;
     }
-    return 'stock-ai'; // Default to AI Stocks as requested
+    return 'global-score'; // Default to Global Market Score as requested
   };
 
   const [activeTab, setActiveTabState] = useState<string>(getInitialTab);
@@ -87,8 +102,24 @@ function TerminalApp() {
   useEffect(() => {
     const handleHashChange = () => {
       const h = window.location.hash.replace('#', '').replace('/', '');
-      if (h) setActiveTabState(h);
+      if (h) {
+        if (h === 'landing' || h === 'home') {
+          setActiveTabState('global-score');
+          window.location.hash = 'global-score';
+        } else {
+          setActiveTabState(h);
+        }
+      } else {
+        setActiveTabState('global-score');
+        window.location.hash = 'global-score';
+      }
     };
+    if (typeof window !== 'undefined') {
+      if (!window.location.hash || window.location.hash === '#' || window.location.hash === '#landing' || window.location.hash === '#/landing' || window.location.hash === '#home') {
+        window.location.hash = 'global-score';
+        setActiveTabState('global-score');
+      }
+    }
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
@@ -181,6 +212,9 @@ function TerminalApp() {
         onOpenAccount={() => setIsAccountOpen(true)}
         onNavigateHome={() => setActiveTab('global-score')}
         onNavigatePricing={() => setActiveTab('pricing')}
+        onNavigateJarvis={() => setActiveTab('jarvis-voice-ai')}
+        onNavigateBtcUsdt={() => setActiveTab('btc-usdt-momentum')}
+        onNavigateLiquiditySweep={() => setActiveTab('liquidity-sweep-map')}
       />
 
       {/* 3. Main Workspace Row: Left Sidebar + Right Viewport */}
@@ -195,7 +229,7 @@ function TerminalApp() {
         <main id="main" className="min-w-0 flex-1 space-y-4 p-3 sm:p-4 overflow-y-auto">
           {/* Mobile horizontal scrollable pill navigation */}
           <nav aria-label="Section navigation" className="-mx-3 flex snap-x gap-1.5 overflow-x-auto px-3 pb-1 lg:hidden">
-            {NAV_CATEGORIES.flatMap(c => c.items).map(item => (
+            {Array.from(new Map(NAV_CATEGORIES.flatMap(c => c.items).map(item => [item.id, item])).values()).map(item => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
@@ -212,6 +246,7 @@ function TerminalApp() {
           </nav>
 
           {/* RENDER ACTIVE TAB */}
+          <ErrorBoundary key={activeTab} onReset={() => setActiveTab('market-chart-analyse')}>
           {activeTab === 'global-score' && <GlobalMarketScoreView onNavigate={setActiveTab} liveTickers={liveTickers} />}
           {activeTab === 'auth' && <AuthPageView onNavigateToTerminal={() => setActiveTab('ultra-ai')} />}
           {activeTab === 'stock-ai' && <StockAiView />}
@@ -222,6 +257,11 @@ function TerminalApp() {
           {activeTab === 'global-intel' && <GlobalIntelView />}
           {activeTab === 'ultra-ai' && <UltraInstitutionalDecisionEngine onNavigate={setActiveTab} />}
           {activeTab === 'order-flow' && <OrderFlowTerminal onNavigate={setActiveTab} />}
+          {(activeTab === 'liquidation-heatmap' || activeTab === 'liquidation-chart' || activeTab === 'liq-heatmap' || activeTab === 'bookmap-liquidation') && <LiquidationHeatmapTerminalView />}
+          {(activeTab === 'market-chart-analyse' || activeTab === 'chart-ai-vision' || activeTab === 'chart-analyzer') && <MarketChartAnalyserTerminalView />}
+          {(activeTab === 'institutional-terminal' || activeTab === 'institutional-ai' || activeTab === 'institutional-intelligence' || activeTab === 'btc-gold-terminal') && <InstitutionalAiTerminalView />}
+          {(activeTab === 'deeepr-ai' || activeTab === 'deeepr' || activeTab === 'deeepr-ai-chart' || activeTab === 'deeepr-copilot') && <DeeeprAiChartView />}
+          {(activeTab === 'crypto-wealth-intelligence' || activeTab === 'wealth-intelligence' || activeTab === 'delta-wealth' || activeTab === 'crypto-long-term-wealth') && <CryptoWealthIntelligenceTerminalView />}
           {(activeTab === 'delta-intelligence' || activeTab === 'delta-engine' || activeTab === 'delta-crypto' || activeTab === 'delta-exchange' || activeTab === 'delta-india') && <DeltaIntelligenceEngineView />}
           {(activeTab === 'crypto-ai' || activeTab === 'crypto-trading-ai' || activeTab === 'btc-trading-ai' || activeTab === 'eth-trading-ai' || activeTab === 'sol-trading-ai') && <CryptoTradingAiView />}
           {activeTab === 'ai-chart' && <AiChartView />}
@@ -264,11 +304,13 @@ function TerminalApp() {
           {activeTab === 'news' && <NewsView />}
           {activeTab === 'sentiment' && <SentimentView />}
           {activeTab === 'put-call' && <PutCallView />}
-          {activeTab === 'assistant' && <AiAssistantView />}
+          {(activeTab === 'jarvis-voice-ai' || activeTab === 'jarvis' || activeTab === 'voice-ai' || activeTab === 'jarvis-ai' || activeTab === 'assistant') && <JarvisVoiceMarketAssistant />}
+          {(activeTab === 'liquidity-sweep-map' || activeTab === 'liquidity-sweep-intelligence' || activeTab === 'liquidity-sweep' || activeTab === 'liquidity-map') && <LiquiditySweepIntelligenceView />}
+          {(activeTab === 'btc-usdt-momentum' || activeTab === 'btc-usdt' || activeTab === 'usdt-btc' || activeTab === 'momentum-engine') && <BtcUsdtRelationshipEngine />}
           {activeTab === 'risk' && <RiskConsoleView />}
           {activeTab === 'journal' && <TradingJournalView />}
           {activeTab === 'reports' && <JournalReportsView />}
-          {activeTab === 'alerts' && <AlertsView />}
+          {(activeTab === 'telegram-alerts' || activeTab === 'alerts' || activeTab === 'telegram-ai-alerts' || activeTab === 'telegram') && <TelegramAiAlertsView />}
           {activeTab === 'daily-report' && <DailyReportView />}
           {activeTab === 'crowd' && <CrowdView />}
           {activeTab === 'onchain' && <OnChainView />}
@@ -277,6 +319,7 @@ function TerminalApp() {
           {activeTab === 'macro-engine' && <MacroEconomyView />}
           {activeTab === 'account' && <AccountPageView onOpenAccount={() => setIsAccountOpen(true)} />}
           {(activeTab === 'pricing' || activeTab === 'subscription' || activeTab === 'membership' || activeTab === 'plans') && <SubscriptionPricingView />}
+          </ErrorBoundary>
 
           {/* Institutional Legal & Data Attribution Disclaimer Footer */}
           <footer className="label-xs border-t border-border pt-3">
@@ -287,6 +330,9 @@ function TerminalApp() {
 
       {/* Account Modal */}
       <AccountModal isOpen={isAccountOpen} onClose={() => setIsAccountOpen(false)} />
+
+      {/* Floating Quick Jarvis Voice Widget */}
+      <JarvisFloatingWidget onOpenFullTerminal={() => setActiveTab('jarvis-voice-ai')} currentTab={activeTab} />
     </div>
   );
 }
@@ -2013,31 +2059,143 @@ function SocioeconomicView() {
 }
 
 function NewsView() {
+  const [selectedCat, setSelectedCat] = useState<string>('ALL_WORLD');
+  const [query, setQuery] = useState<string>('');
+
+  const filteredNews = ALL_WORLD_GLOBAL_NEWS_FEED.filter((n) => {
+    if (selectedCat !== 'ALL_WORLD' && n.category !== selectedCat) return false;
+    if (query) {
+      const q = query.toLowerCase();
+      return n.headline.toLowerCase().includes(q) || n.summary.toLowerCase().includes(q) || n.source.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-6">
-      <div className="border-b border-border pb-4">
-        <span className="inline-block rounded bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary uppercase tracking-wide">
-          World
-        </span>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground font-sans">
-          📰 Real-Time Financial News Wire
-        </h1>
+      <div className="border-b border-border pb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <span className="inline-block rounded bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary uppercase tracking-wide">
+            Global News Wire
+          </span>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground font-sans flex items-center gap-2">
+            <span>📰</span>
+            <span>Real-Time All World Financial News & Breaking Crypto Events</span>
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Real-time verified feeds from Bloomberg, Reuters, CoinDesk, Cointelegraph & Global Central Banks
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Search news & events..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
+          />
+        </div>
       </div>
-      <div className="space-y-2 font-mono">
+
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-semibold scrollbar-none">
         {[
-          { title: 'Federal Reserve members signal patience while watching upcoming PCE inflation reading', time: '10m ago', tag: 'BULLISH', c: 'text-bull' },
-          { title: 'Spot Bitcoin ETF daily net purchases cross $280M as institutional allocations expand', time: '24m ago', tag: 'BULLISH', c: 'text-bull' },
-          { title: 'Crude oil stabilizes below $72 per barrel amid rising global inventory forecasts', time: '1h ago', tag: 'NEUTRAL', c: 'text-gold' },
-          { title: 'European Central Bank maintains neutral deposit rate guidance following wage stability', time: '2h ago', tag: 'NEUTRAL', c: 'text-gold' }
-        ].map((n, i) => (
-          <div key={i} className="panel rounded-lg border border-border bg-card p-3 flex justify-between items-center">
-            <div>
-              <p className="text-xs text-foreground font-sans">{n.title}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">{n.time} · Wire Feed</p>
+          { key: 'ALL_WORLD', label: `⚡ All World News (${ALL_WORLD_GLOBAL_NEWS_FEED.length})` },
+          { key: 'CRYPTO', label: '₿ Crypto & Bitcoin' },
+          { key: 'COMMODITIES_GOLD', label: '🥇 Gold & Commodities' },
+          { key: 'CENTRAL_BANKS', label: '🏦 Central Banks' },
+          { key: 'GLOBAL_MACRO', label: '🌐 Global Macro' },
+          { key: 'GEOPOLITICS', label: '🛡️ Geopolitics' }
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setSelectedCat(tab.key)}
+            className={`px-3 py-1.5 rounded-full border transition-all whitespace-nowrap cursor-pointer ${
+              selectedCat === tab.key
+                ? 'border-primary bg-primary text-primary-foreground font-bold shadow-sm'
+                : 'border-border bg-card text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* News Feed Grid */}
+      <div className="grid gap-3 font-mono">
+        {filteredNews.map((n) => (
+          <div key={n.id} className="panel rounded-xl border border-border bg-card p-4 space-y-2 hover:border-primary/50 transition-all">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-secondary text-foreground">
+                  {n.source}
+                </span>
+                <span className="text-[11px] text-muted-foreground">⏱️ {n.timestamp}</span>
+                {n.verified && <span className="text-[10px] text-bull font-bold">✓ Verified</span>}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                  n.sentiment === 'BULLISH' ? 'bg-bull/15 text-bull' : n.sentiment === 'BEARISH' ? 'bg-bear/15 text-bear' : 'bg-gold/15 text-gold'
+                }`}>
+                  {n.sentiment === 'BULLISH' ? '🟢 BULLISH' : n.sentiment === 'BEARISH' ? '🔴 BEARISH' : '🟡 NEUTRAL'}
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">
+                  {n.impact}
+                </span>
+              </div>
             </div>
-            <span className={`text-xs font-bold ${n.c}`}>{n.tag}</span>
+
+            <h3 className="text-sm font-bold text-foreground font-sans">{n.headline}</h3>
+            <p className="text-xs text-muted-foreground font-sans leading-relaxed">{n.summary}</p>
+
+            {n.actualVsConsensus && (
+              <div className="text-[11px] bg-secondary/50 p-2 rounded border border-border flex items-center justify-between flex-wrap gap-2">
+                <span><b>Consensus:</b> {n.actualVsConsensus}</span>
+                <span className="text-primary font-bold">Reaction: {n.marketReaction}</span>
+              </div>
+            )}
+
+            <div className="grid sm:grid-cols-2 gap-2 text-[11px] pt-1 border-t border-border/60">
+              <div className="text-muted-foreground font-sans">
+                <b className="text-foreground">₿ Crypto Context:</b> {n.btcImpact}
+              </div>
+              <div className="text-muted-foreground font-sans">
+                <b className="text-foreground">🥇 Gold Context:</b> {n.goldImpact}
+              </div>
+            </div>
           </div>
         ))}
+      </div>
+
+      {/* Upcoming High-Impact Macro Events */}
+      <div className="space-y-3 pt-4">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+          <span>🗓️</span>
+          <span>Upcoming Macro Events & Countdown Timers</span>
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {UPCOMING_MACRO_CALENDAR_EVENTS.map((cal) => (
+            <div key={cal.id} className="panel rounded-xl border border-border bg-card p-3.5 space-y-2 text-xs font-mono">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-foreground font-sans">{cal.title}</span>
+                <span className="px-1.5 py-0.5 rounded bg-bear/15 text-bear text-[10px] font-bold">{cal.impact}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground text-[11px]">
+                <span>Scheduled: {cal.scheduledTime}</span>
+                <span className="text-gold font-bold">⏳ in {cal.countdown}</span>
+              </div>
+              <div className="flex justify-between text-[11px] bg-secondary/40 p-1.5 rounded">
+                <span>Forecast: <b>{cal.forecast}</b></span>
+                <span>Prior: <b>{cal.previous}</b></span>
+              </div>
+              <p className="text-[11px] text-muted-foreground font-sans pt-1 border-t border-border">
+                <b>Plan:</b> {cal.marketImplication}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

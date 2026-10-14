@@ -125,6 +125,80 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT OR UPDATE ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- 6. CREATE TELEGRAM ALERT SUBSCRIBERS TABLE
+CREATE TABLE IF NOT EXISTS public.telegram_subscribers (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
+  chat_id TEXT NOT NULL UNIQUE,
+  telegram_username TEXT,
+  first_name TEXT,
+  is_connected BOOLEAN DEFAULT TRUE,
+  alert_toggles JSONB DEFAULT '{
+    "price_crossing": true,
+    "support_resistance_breakout": true,
+    "liquidity_sweep": true,
+    "liquidation_clusters": true,
+    "volume_funding_spikes": true,
+    "market_structure_shifts": true,
+    "btc_usdt_momentum": true,
+    "long_short_wait_setups": true,
+    "entry_tp_sl_risk_reward": true,
+    "macro_economic_news": true,
+    "daily_summary": true,
+    "emergency_volatility": true
+  }'::jsonb,
+  asset_settings JSONB DEFAULT '{
+    "BTC": {"enabled": true, "timeframe": "15m", "frequency": "5m"},
+    "ETH": {"enabled": true, "timeframe": "15m", "frequency": "15m"},
+    "SOL": {"enabled": true, "timeframe": "15m", "frequency": "15m"},
+    "XAUUSD": {"enabled": true, "timeframe": "15m", "frequency": "15m"},
+    "XAGUSD": {"enabled": true, "timeframe": "1h", "frequency": "30m"},
+    "DXY": {"enabled": true, "timeframe": "1h", "frequency": "1h"},
+    "USDT_D": {"enabled": true, "timeframe": "15m", "frequency": "15m"}
+  }'::jsonb,
+  last_alert_sent_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.telegram_subscribers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own telegram subscriber config" ON public.telegram_subscribers;
+CREATE POLICY "Users can view own telegram subscriber config"
+  ON public.telegram_subscribers FOR SELECT
+  USING (auth.uid() = user_id OR auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Users can upsert own telegram subscriber config" ON public.telegram_subscribers;
+CREATE POLICY "Users can upsert own telegram subscriber config"
+  ON public.telegram_subscribers FOR ALL
+  USING (auth.uid() = user_id OR auth.role() = 'service_role');
+
+-- 7. CREATE TELEGRAM ALERT AUDIT & DELIVERY HISTORY TABLE
+CREATE TABLE IF NOT EXISTS public.telegram_alert_history (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  chat_id TEXT NOT NULL,
+  asset TEXT NOT NULL,
+  alert_type TEXT NOT NULL,
+  price NUMERIC,
+  bias TEXT NOT NULL,
+  confidence_score INTEGER,
+  delivery_status TEXT DEFAULT 'DELIVERED', -- 'DELIVERED' | 'FAILED' | 'THROTTLED'
+  message_preview TEXT,
+  ist_timestamp TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.telegram_alert_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own alert history" ON public.telegram_alert_history;
+CREATE POLICY "Users can view own alert history"
+  ON public.telegram_alert_history FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM public.telegram_subscribers
+    WHERE telegram_subscribers.chat_id = telegram_alert_history.chat_id
+    AND (telegram_subscribers.user_id = auth.uid() OR auth.role() = 'service_role')
+  ));
+
 -- =============================================================================
 -- PRODUCTION AUTHENTICATION & PAYMENT PROVIDER CONFIGURATION GUIDE
 -- =============================================================================
@@ -144,4 +218,9 @@ CREATE TRIGGER on_auth_user_created
 --    - Settings -> API Keys: Generate Key ID and Key Secret.
 --    - Test Mode Key: rzp_test_... | Live Mode Key: rzp_live_...
 --    - Configure VITE_RAZORPAY_KEY_ID in production environment variables.
+--
+-- 4. TELEGRAM BOT API:
+--    - Create bot via @BotFather in Telegram.
+--    - Set TELEGRAM_BOT_TOKEN in backend environment variables.
+--    - Run backend daemon: python server/telegram_alert_daemon.py
 -- =============================================================================

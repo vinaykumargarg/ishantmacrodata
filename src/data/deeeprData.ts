@@ -41,12 +41,15 @@ export interface WhaleWall {
 
 export interface PriceLadderLevel {
   id: string;
-  type: 'WHALE_WALL' | 'LIQUIDATION_SHORT' | 'LIQUIDATION_LONG' | 'RESISTANCE' | 'SUPPORT' | 'CURRENT_PRICE';
+  type: 'WHALE_WALL' | 'LIQUIDATION_SHORT' | 'LIQUIDATION_LONG' | 'RESISTANCE' | 'SUPPORT' | 'CURRENT_PRICE' | 'ALERT' | 'TARGET_TP' | 'STOP_LOSS' | 'OPTIMAL_ENTRY';
   label: string;
   volumeUsd?: string;
+  volume?: string;
   price: number;
   formattedPrice: string;
   color: string;
+  badgeBg?: string;
+  badgeTextColor?: string;
 }
 
 export interface LaneTelemetry {
@@ -151,50 +154,50 @@ export const DEEEPR_ASSETS_DATA: Record<string, DeeeprAssetSetup> = {
     name: 'Bitcoin',
     category: 'Crypto',
     tradingViewSymbol: 'BINANCE:BTCUSDT',
-    currentPrice: 82374,
-    priceFormatted: '$82,374',
-    change24h: '+1.08%',
-    isPositive: true,
+    currentPrice: 82862,
+    priceFormatted: '$82,862',
+    change24h: '-0.97%',
+    isPositive: false,
     volume24h: '$41.8B',
-    rsi14: 54.3,
-    regime: 'TRENDING UP',
-    regimeColor: '#eab308',
+    rsi14: 41.8,
+    regime: 'TRENDING DOWN',
+    regimeColor: '#f43f5e',
     laneAgreementFraction: '4/4 LANES',
-    verdict: 'LONG',
+    verdict: 'SHORT',
     holdDuration: '1–2 Days Hold Trader',
-    confidencePct: 86,
+    confidencePct: 92,
     status: 'ACTIVATED',
-    setupSummary: 'Bullish flow and narrative support technical bounce from support near $81,878. Structure and order flow agree on the long side.',
+    setupSummary: 'Rejection from $84,590 supply block confirmed. -1,672 pt cascade broken below $83,000 support, targeting liquidity floor.',
     
     invalidationRules: [
-      '1h close below $80,850.36 (nearest structural support shelf)',
-      'Funding rate flips positive above +0.01% (indicates retail over-leverage)',
-      'RSI drops below 45 on 1h timeframe'
+      '1h close above $84,590 supply ceiling',
+      'Sudden positive taker CVD surge exceeding +2,000 BTC',
+      'RSI climbs back above 58 on 1h timeframe'
     ],
     
     activationTrigger: {
-      price: 82150,
-      priceFormatted: '$82,150',
-      conditionText: 'Triggers on 1H candle acceptance above $82,150 with positive CVD delta',
+      price: 84550,
+      priceFormatted: '$84,550',
+      conditionText: '⚡ SFP Short Trigger: Rejection at $84,590 resistance with negative CVD delta cascade',
       isTriggered: true
     },
     optimalEntry: {
-      price: 82350,
-      priceFormatted: '$82,350',
-      type: 'LIMIT_PULLBACK'
+      price: 84550,
+      priceFormatted: '$84,550',
+      type: 'BREAKOUT_RETEST'
     },
     stopLoss: {
-      price: 80850,
-      priceFormatted: '$80,850',
-      riskPct: '-1.82%',
-      invalidationReason: 'Invalidates if 4H candle closes below the $80,850 whale iceberg absorption shelf'
+      price: 84650,
+      priceFormatted: '$84,650',
+      riskPct: '+0.12% (Tight Invalidation)',
+      invalidationReason: 'Strict invalidation above $84,590 supply ceiling'
     },
     targets: {
-      tp1: { price: 84600, priceFormatted: '$84,600', gainPct: '+2.73%', sizePct: '50% position' },
-      tp2: { price: 86400, priceFormatted: '$86,400', gainPct: '+4.92%', sizePct: '30% position' },
-      tp3: { price: 88800, priceFormatted: '$88,800', gainPct: '+7.83%', sizePct: '20% runner' }
+      tp1: { price: 82400, priceFormatted: '$82,400', gainPct: '+2.54%', sizePct: '50% position' },
+      tp2: { price: 81800, priceFormatted: '$81,800', gainPct: '+3.25%', sizePct: '30% position' },
+      tp3: { price: 80850, priceFormatted: '$80,850', gainPct: '+4.37%', sizePct: '20% runner' }
     },
-    riskRewardRatio: '1 : 3.8',
+    riskRewardRatio: '1 : 12.8',
     
     priceLadder: [
       { id: 'l1', type: 'WHALE_WALL', label: 'Sell wall', volume: '$5.2M', price: 86000.0, formattedPrice: '86000.00', color: '#eab308' },
@@ -1049,30 +1052,31 @@ export const DEEEPR_ASSETS_DATA: Record<string, DeeeprAssetSetup> = {
     name: 'Pax Gold',
     category: 'Commodity',
     tradingViewSymbol: 'BINANCE:PAXGUSDT',
-    currentPrice: 2685,
-    priceFormatted: '$2,685',
-    change24h: '+0.54%',
-    isPositive: true,
+    currentPrice: 4164.44,
+    priceFormatted: '$4,164.44',
+    change24h: '-0.72%',
+    isPositive: false,
     volume24h: '$65M',
-    rsi14: 68.4,
-    regime: 'TRENDING UP',
-    regimeColor: '#eab308',
+    rsi14: 42.1,
+    regime: 'TRENDING DOWN',
+    regimeColor: '#f43f5e',
     laneAgreementFraction: '4/4 LANES',
-    verdict: 'LONG',
+    verdict: 'SHORT',
     holdDuration: '1–2 Days Hold Trader',
-    confidencePct: 88,
+    confidencePct: 94,
     status: 'ACTIVATED',
-    setupSummary: 'Gold spot prints historic all-time highs driven by global central bank reserves diversification. Pristine 1-2 day swing LONG.',
-    invalidationRules: ['1h close below $2,640 support shelf'],
-    activationTrigger: { price: 2665, priceFormatted: '$2,665', conditionText: 'Hold above $2,665', isTriggered: true },
-    optimalEntry: { price: 2680, priceFormatted: '$2,680', type: 'LIMIT_PULLBACK' },
-    stopLoss: { price: 2625, priceFormatted: '$2,625', riskPct: '-2.05%', invalidationReason: 'Break of trendline' },
-    targets: { tp1: { price: 2740, priceFormatted: '$2,740', gainPct: '+2.23%', sizePct: '50%' }, tp2: { price: 2790, priceFormatted: '$2,790', gainPct: '+4.10%', sizePct: '30%' }, tp3: { price: 2850, priceFormatted: '$2,850', gainPct: '+6.34%', sizePct: '20%' } },
-    riskRewardRatio: '1 : 3.6',
+    setupSummary: 'Rejection from $4,227.28 ATH resistance confirmed. -63 pt cascade broken below 4,180.74 EMA, targeting $4,066.14 demand pool.',
+    invalidationRules: ['1h close above $4,227.28 ATH high'],
+    activationTrigger: { price: 4225, priceFormatted: '$4,225', conditionText: 'Rejection from $4,227 ATH ceiling', isTriggered: true },
+    optimalEntry: { price: 4225, priceFormatted: '$4,225', type: 'BREAKOUT_RETEST' },
+    stopLoss: { price: 4228.5, priceFormatted: '$4,228.50', riskPct: '+0.08%', invalidationReason: 'Strict invalidation above $4,227.28 ATH high' },
+    targets: { tp1: { price: 4140, priceFormatted: '$4,140', gainPct: '+2.01%', sizePct: '50%' }, tp2: { price: 4100, priceFormatted: '$4,100', gainPct: '+2.95%', sizePct: '30%' }, tp3: { price: 4066.14, priceFormatted: '$4,066.14', gainPct: '+3.76%', sizePct: '20%' } },
+    riskRewardRatio: '1 : 11.2',
     priceLadder: [
-      { id: 'p1', type: 'LIQUIDATION_SHORT', label: 'Short stop', volume: '$12.5M', price: 2740.0, formattedPrice: '2740.00', color: '#f43f5e' },
-      { id: 'p2', type: 'CURRENT_PRICE', label: 'Live', volume: '', price: 2685.0, formattedPrice: '2685.00', color: '#10b981' },
-      { id: 'p3', type: 'SUPPORT', label: 'S', volume: '', price: 2640.0, formattedPrice: '2640.00', color: '#64748b' }
+      { id: 'p1', type: 'RESISTANCE', label: 'R ATH', volume: '$12.5M', price: 4227.28, formattedPrice: '4227.28', color: '#f43f5e' },
+      { id: 'p2', type: 'CURRENT_PRICE', label: 'Live', volume: '', price: 4164.44, formattedPrice: '4164.44', color: '#f43f5e' },
+      { id: 'p3', type: 'SUPPORT', label: 'Broken EMA', volume: '', price: 4180.74, formattedPrice: '4180.74', color: '#10b981' },
+      { id: 'p4', type: 'TARGET_TP', label: 'Target Floor', volume: '', price: 4066.14, formattedPrice: '4066.14', color: '#10b981' }
     ],
     liquidationClusters: [],
     whaleWalls: [],
