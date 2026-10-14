@@ -8,34 +8,6 @@ export interface NavCategory {
 
 export const NAV_CATEGORIES: NavCategory[] = [
   {
-    title: 'Delta 4H Swing Scanner ⭐',
-    icon: '⚡',
-    items: [
-      { id: 'delta-swing-scanner', label: 'Delta 4H All-Coin Scanner ⭐ (SMC & Profile)', icon: '⚡' },
-      { id: 'delta-swing-top5', label: 'Top 5 Alpha Swings (Delta)', icon: '🔥' },
-      { id: 'delta-wealth-1-3m', label: 'Delta 1-3M Investment Outlook', icon: '💎' }
-    ]
-  },
-  {
-    title: 'USA Stock Swing & Invest ⭐',
-    icon: '🇺🇸',
-    items: [
-      { id: 'usa-swing-scanner', label: 'USA Stocks 4H Swing Scanner ⭐ (S&P/Nasdaq)', icon: '📈' },
-      { id: 'usa-earnings-guard', label: 'Earnings Risk Guard (<14D Warning)', icon: '🛡️' },
-      { id: 'usa-portfolio-builder', label: 'US 1-6M Portfolio Builder', icon: '💼' }
-    ]
-  },
-  {
-    title: 'Market News & Event Impact ⭐',
-    icon: '🌍',
-    items: [
-      { id: 'event-impact-engine', label: 'Live Event Impact Engine ⭐ (Live Scenarios)', icon: '🌍' },
-      { id: 'macro-scenarios-matrix', label: '3-Scenario Matrix (CPI/FOMC/NFP)', icon: '📊' },
-      { id: 'gold-btc-transmission', label: 'Gold & Bitcoin Transmission Models', icon: '🥇' },
-      { id: 'voice-query-assistant', label: 'AI Voice Macro Assistant 🎙️ (Hindi/Eng)', icon: '🎙️' }
-    ]
-  },
-  {
     title: 'AI Decision & Live Chart',
     icon: '⚡',
     items: [
@@ -63,6 +35,34 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { id: 'global-intel', label: 'Global Intelligence', icon: '🌍' },
       { id: 'ultra-ai', label: 'TradeAI Terminal ⭐', icon: '⚡' },
       { id: 'order-flow', label: 'Order Flow & Bookmap AI ⭐ (BTC/ETH/Gold/Silver/SOL)', icon: '🌊' }
+    ]
+  },
+  {
+    title: 'Delta 4H Swing Scanner ⭐',
+    icon: '⚡',
+    items: [
+      { id: 'delta-swing-scanner', label: 'Delta 4H All-Coin Scanner ⭐ (SMC & Profile)', icon: '⚡' },
+      { id: 'delta-swing-top5', label: 'Top 5 Alpha Swings (Delta)', icon: '🔥' },
+      { id: 'delta-wealth-1-3m', label: 'Delta 1-3M Investment Outlook', icon: '💎' }
+    ]
+  },
+  {
+    title: 'USA Stock Swing & Invest ⭐',
+    icon: '🇺🇸',
+    items: [
+      { id: 'usa-swing-scanner', label: 'USA Stocks 4H Swing Scanner ⭐ (S&P/Nasdaq)', icon: '📈' },
+      { id: 'usa-earnings-guard', label: 'Earnings Risk Guard (<14D Warning)', icon: '🛡️' },
+      { id: 'usa-portfolio-builder', label: 'US 1-6M Portfolio Builder', icon: '💼' }
+    ]
+  },
+  {
+    title: 'Market News & Event Impact ⭐',
+    icon: '🌍',
+    items: [
+      { id: 'event-impact-engine', label: 'Live Event Impact Engine ⭐ (Live Scenarios)', icon: '🌍' },
+      { id: 'macro-scenarios-matrix', label: '3-Scenario Matrix (CPI/FOMC/NFP)', icon: '📊' },
+      { id: 'gold-btc-transmission', label: 'Gold & Bitcoin Transmission Models', icon: '🥇' },
+      { id: 'voice-query-assistant', label: 'AI Voice Macro Assistant 🎙️ (Hindi/Eng)', icon: '🎙️' }
     ]
   },
   {
@@ -233,8 +233,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
                     onClick={() => onSelectTab(item.id)}
                     className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-[13px] transition-all text-left cursor-pointer ${
                       isActive
-                        ? 'border-gold/40 bg-primary font-semibold text-primary-foreground shadow-glow'
-                        : 'border-transparent text-sidebar-foreground/70 hover:border-border hover:bg-card hover:text-sidebar-accent-foreground hover:shadow-sm'
+                        ? 'border-cyan-400/60 bg-gradient-to-r from-cyan-500/20 to-indigo-500/15 font-bold text-cyan-300 shadow-[0_0_16px_rgba(0,242,254,0.3)] ring-1 ring-cyan-400/40'
+                        : 'border-transparent text-sidebar-foreground/75 hover:border-cyan-500/30 hover:bg-slate-800/60 hover:text-white hover:shadow-sm'
                     }`}
                   >
                     <span

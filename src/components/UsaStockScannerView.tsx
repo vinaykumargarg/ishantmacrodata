@@ -209,101 +209,228 @@ export default function UsaStockScannerView({ onNavigate }: Props) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* ── TOP HERO HEADER & US REGIME BANNER ── */}
-      <div className="rounded-xl border border-border/80 bg-gradient-to-r from-card via-card/90 to-primary/5 p-4 sm:p-5 shadow-2xl backdrop-blur-md">
+    <div className="space-y-5 font-sans">
+      {/* ── TOP HERO HEADER & METRIC STREAM ── */}
+      <div className="terminal-card-glass p-4 sm:p-5">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400 border border-emerald-500/20">
-                <Radio className="h-3.5 w-3.5 animate-pulse text-emerald-400" />
-                NYSE / NASDAQ LIVE STREAM
-              </span>
-              <span className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary border border-primary/20">
-                4H SWING & 1-6M INVESTOR
-              </span>
-              <span className="rounded-md bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-400 border border-amber-500/20">
-                EARNINGS RISK SHIELD (&lt;14D)
-              </span>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 text-white font-black text-xl shadow-[0_0_16px_rgba(59,130,246,0.35)] shrink-0">
+              🇺🇸
             </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
-              USA Stocks — Advanced Swing & Investment Scanner
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-3xl">
-              Quantitative 10-Pillar Equity Scoring across S&P 500 & Nasdaq leaders. Evaluates 4H market structure, SMC, 13F smart money accumulation, Options Max Pain, DCF valuation, and Earnings Event Risk warnings.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-blue-400 bg-clip-text text-transparent">
+                  USA STOCKS // 4H SWING & INVESTMENT SCANNER
+                </h1>
+              </div>
+              <div className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-0.5">
+                S&P 500, NASDAQ & RUSSELL 1000 INSTITUTIONAL EQUITY RADAR
+              </div>
+            </div>
           </div>
 
-          {/* Voice Briefing & Lang Controls */}
-          <div className="flex flex-wrap items-center gap-2 bg-background/60 p-2.5 rounded-lg border border-border">
-            <div className="flex items-center rounded-md bg-card p-0.5 border border-border text-xs">
-              <button
-                onClick={() => setLangMode('hinglish')}
-                className={`px-2 py-1 rounded ${langMode === 'hinglish' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'}`}
-              >
-                Hinglish
-              </button>
-              <button
-                onClick={() => setLangMode('hindi')}
-                className={`px-2 py-1 rounded ${langMode === 'hindi' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'}`}
-              >
-                हिंदी
-              </button>
-              <button
-                onClick={() => setLangMode('english')}
-                className={`px-2 py-1 rounded ${langMode === 'english' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'}`}
-              >
-                Eng
-              </button>
+          {/* Telemetry Chips & Scan Button */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-mono font-bold text-emerald-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#00e676]" />
+              LIVE NYSE / NASDAQ
+            </div>
+            <div className="rounded-full border border-blue-500/20 bg-background/50 px-3 py-1 text-xs font-mono text-blue-300">
+              500+ Scanned
+            </div>
+            <div className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-mono text-amber-400 font-bold">
+              EARNINGS SHIELD (&lt;14D)
             </div>
 
             <button
               onClick={triggerVoiceBriefing}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all shadow-md cursor-pointer ${
-                isSpeaking
-                  ? 'bg-rose-500 text-white animate-pulse'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
-              }`}
+              className="btn-scan-neon"
             >
-              {isSpeaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-              {isSpeaking ? 'Stop Briefing' : 'Deeepr.ai Voice Briefing'}
+              <Volume2 className="h-3.5 w-3.5" />
+              {isSpeaking ? 'Stop Briefing' : 'Deeepr Voice Briefing'}
             </button>
-          </div>
-        </div>
-
-        {/* Macro Regime Status Ticker Row */}
-        <div className="mt-4 pt-3 border-t border-border grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-          <div className="rounded-lg bg-background/50 border border-border p-2">
-            <span className="text-muted-foreground text-[10px]">S&P 500 (SPY):</span>
-            <div className="font-bold text-emerald-400 mt-0.5">Bullish Trend (Above 20 EMA)</div>
-          </div>
-          <div className="rounded-lg bg-background/50 border border-border p-2">
-            <span className="text-muted-foreground text-[10px]">Nasdaq 100 (QQQ):</span>
-            <div className="font-bold text-emerald-400 mt-0.5">Bullish Expansion</div>
-          </div>
-          <div className="rounded-lg bg-background/50 border border-border p-2">
-            <span className="text-muted-foreground text-[10px]">VIX Volatility:</span>
-            <div className="font-bold text-primary mt-0.5">{CURRENT_MACRO_REGIME.vixLevel} (Low Risk)</div>
-          </div>
-          <div className="rounded-lg bg-background/50 border border-border p-2">
-            <span className="text-muted-foreground text-[10px]">US 10Y Yield:</span>
-            <div className="font-bold text-foreground mt-0.5">{CURRENT_MACRO_REGIME.us10YYield}%</div>
-          </div>
-          <div className="rounded-lg bg-background/50 border border-border p-2 col-span-2 sm:col-span-1">
-            <span className="text-muted-foreground text-[10px]">US Dollar Index (DXY):</span>
-            <div className="font-bold text-amber-400 mt-0.5">{CURRENT_MACRO_REGIME.dxyIndex}</div>
           </div>
         </div>
       </div>
 
-      {/* ── TOP 5 SWING HERO PICKS ── */}
+      {/* ── MACRO REGIME BANNER (EXACT NEON PHOTO MATCH) ── */}
+      <div className="regime-banner-neon">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="badge-long-neon flex items-center gap-1.5 self-start sm:self-center">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            RISK-ON EQUITIES
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-foreground">
+              US Macro & Equity Regime Filter
+            </h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {CURRENT_MACRO_REGIME.marketRegimeVerdict}
+            </p>
+          </div>
+        </div>
+
+        <div className="hidden lg:flex items-center gap-5 shrink-0 text-right">
+          <div className="border-l border-border/60 pl-4">
+            <div className="text-[10px] uppercase font-bold text-muted-foreground">S&P 500</div>
+            <div className="text-xs font-mono font-black text-emerald-400 mt-0.5">BULLISH TREND</div>
+          </div>
+          <div className="border-l border-border/60 pl-4">
+            <div className="text-[10px] uppercase font-bold text-muted-foreground">Nasdaq 100</div>
+            <div className="text-xs font-mono font-black text-cyan-400 mt-0.5">EXPANSION</div>
+          </div>
+          <div className="border-l border-border/60 pl-4">
+            <div className="text-[10px] uppercase font-bold text-muted-foreground">VIX Volatility</div>
+            <div className="text-xs font-mono font-black text-foreground mt-0.5">{CURRENT_MACRO_REGIME.vixLevel}</div>
+          </div>
+          <div className="border-l border-border/60 pl-4">
+            <div className="text-[10px] uppercase font-bold text-muted-foreground">US 10Y Yield</div>
+            <div className="text-xs font-mono font-black text-amber-400 mt-0.5">{CURRENT_MACRO_REGIME.us10YYield}%</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── HIGHEST-QUALITY US OPPORTUNITY SPOTLIGHT ── */}
+      <div className="terminal-hero-spotlight">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column (5 cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div>
+              <div className="text-xs font-extrabold uppercase tracking-widest text-cyan-400 flex items-center gap-1.5 mb-1.5">
+                <span>🏆</span>
+                HIGHEST-QUALITY US EQUITY OPPORTUNITY
+              </div>
+
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl sm:text-3xl font-black font-sans tracking-tight text-white">
+                  {bestPick.ticker}
+                </span>
+                <span className="text-xl sm:text-2xl font-mono font-bold text-cyan-400">
+                  ${bestPick.price.toFixed(2)}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground font-semibold mt-0.5">
+                {bestPick.name} • {bestPick.sector} ({bestPick.industry})
+              </div>
+            </div>
+
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="badge-long-neon">
+                FINAL BIAS: {bestPick.verdict.replace('_', ' ')}
+              </span>
+              <span className="badge-score-neon">
+                10-PILLAR SCORE: {bestPick.scoreBreakdown.totalScore}/100
+              </span>
+              <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-bold text-emerald-400">
+                EARNINGS SAFE: {bestPick.earningsRisk.daysUntilEarnings}d away
+              </span>
+              <span className="rounded-full bg-slate-800/80 border border-slate-700 px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
+                13F INST: {bestPick.institutionalOwnership}%
+              </span>
+            </div>
+
+            {/* Bullets with glowing cyan diamonds */}
+            <ul className="space-y-2 text-xs text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
+                <span>{bestPick.structureSummary}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
+                <span>Options Max Pain at ${bestPick.optionsSentiment.maxPainPrice.toFixed(2)} with Bullish institutional flow (P/C {bestPick.optionsSentiment.putCallRatio}).</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
+                <span>DCF Intrinsic Fair Value ${bestPick.investmentHorizon.fairValueDCF.toFixed(2)} with +{bestPick.investmentHorizon.marginOfSafety.toFixed(1)}% margin of safety. {bestPick.investmentHorizon.growthThesis}</span>
+              </li>
+            </ul>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                onClick={() => {
+                  setSelectedStock(bestPick);
+                  setIsModalOpen(true);
+                }}
+                className="flex items-center gap-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 px-4 py-2 text-xs font-bold transition-all shadow-[0_0_14px_rgba(0,242,254,0.15)] cursor-pointer"
+              >
+                <span>⚡</span>
+                Open Deep Research & 4H Chart
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: 2x3 Parameter Grid & Invalidation (7 cols) */}
+          <div className="lg:col-span-7 space-y-3">
+            <div className="plan-grid-neon">
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Preferred Entry Zone</div>
+                <div className="plan-item-val text-cyan-400">
+                  ${bestPick.tradePlan.entryZone[0].toFixed(2)} – ${bestPick.tradePlan.entryZone[1].toFixed(2)}
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Dynamic Stop Loss (ATR)</div>
+                <div className="plan-item-val text-rose-400">
+                  ${bestPick.tradePlan.stopLoss.toFixed(2)}
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Take Profit 1 (Partial)</div>
+                <div className="plan-item-val text-emerald-400">
+                  ${bestPick.tradePlan.takeProfit1.toFixed(2)} (Partial 2R)
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Take Profit 2 / 3</div>
+                <div className="plan-item-val text-emerald-400">
+                  ${bestPick.tradePlan.takeProfit2.toFixed(2)} (Swing Expansion)
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Risk : Reward Ratio</div>
+                <div className="plan-item-val text-cyan-300">
+                  1 : {bestPick.tradePlan.riskRewardRatio.toFixed(2)}
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">DCF Fair Value Target</div>
+                <div className="plan-item-val text-white">
+                  ${bestPick.investmentHorizon.fairValueDCF.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div className="invalidation-box-neon">
+              <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
+              <span>
+                <strong>Invalidation:</strong> ${bestPick.tradePlan.stopLoss.toFixed(2)} ({bestPick.tradePlan.invalidationTrigger})
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── BEST 5 US SWING PICKS (EXACT MATCH TO PHOTO) ── */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Flame className="h-4 w-4 text-amber-400" />
-            Top 5 US Equity 4H Swings (Zero Earnings Risk &lt;14D)
-          </h2>
-          <span className="text-xs text-muted-foreground">Ranked by 10-Pillar Equity Confluence</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-400">🏆</span>
+            <h2 className="text-xs sm:text-sm font-extrabold text-foreground uppercase tracking-wider">
+              Top 5 US Equity 4H Swings (Zero Earnings Risk &lt;14D)
+            </h2>
+            <span className="rounded-full bg-indigo-500/20 text-cyan-300 border border-indigo-500/40 px-2.5 py-0.5 text-[10px] font-bold">
+              PRIMARY 4H DECISION TIMEFRAME
+            </span>
+          </div>
+          <span className="text-[11px] text-muted-foreground font-medium">
+            Strict Binary Earnings Safeguards Applied
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -314,173 +441,35 @@ export default function UsaStockScannerView({ onNavigate }: Props) {
                 setSelectedStock(s);
                 setIsModalOpen(true);
               }}
-              className={`group relative rounded-xl border p-3.5 transition-all duration-200 cursor-pointer hover:border-primary/60 hover:shadow-xl ${
-                s.ticker === selectedStock.ticker
-                  ? 'border-primary bg-primary/5 shadow-md'
-                  : 'border-border bg-card/60'
-              }`}
+              className="terminal-card-glass p-3.5 hover:border-cyan-400/50 cursor-pointer transition-all space-y-2 group"
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-black text-primary">
-                    #{idx + 1}
-                  </span>
-                  <span className="font-bold text-sm text-foreground">{s.ticker}</span>
+                  <span className="text-xs font-mono font-black text-cyan-400">#{idx + 1}</span>
+                  <span className="font-bold text-sm text-white">{s.ticker}</span>
                 </div>
-                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                <span className="badge-long-neon text-[10px]">
                   {s.verdict.replace('_', ' ')}
                 </span>
               </div>
 
-              <div className="flex items-baseline justify-between mb-1.5">
-                <span className="text-base font-black text-foreground">${s.price.toFixed(2)}</span>
-                <span className={`text-xs font-semibold ${s.change24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {s.change24h >= 0 ? '+' : ''}{s.change24h.toFixed(2)}%
+              <div className="flex items-baseline justify-between">
+                <span className="text-base font-black font-mono text-cyan-300">
+                  ${s.price.toFixed(2)}
+                </span>
+                <span className="badge-score-neon text-[10px] py-0 px-2">
+                  {s.scoreBreakdown.totalScore}/100
                 </span>
               </div>
 
-              <div className="text-[10px] text-muted-foreground truncate mb-2">{s.name}</div>
+              <div className="text-[10px] text-muted-foreground truncate">{s.name}</div>
 
-              <div className="space-y-1 pt-2 border-t border-border/50 text-[11px]">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Score:</span>
-                  <span className="font-bold text-primary">{s.scoreBreakdown.totalScore}/100</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>R:R Setup:</span>
-                  <span className="font-semibold text-emerald-400">1:{s.tradePlan.riskRewardRatio.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Earnings:</span>
-                  <span className="font-medium text-emerald-400">{s.earningsRisk.daysUntilEarnings}d away (Safe)</span>
-                </div>
-              </div>
-
-              <div className="mt-2.5 flex items-center justify-center gap-1 text-[11px] font-bold text-primary group-hover:translate-x-1 transition-transform">
-                <span>View Full Audit</span>
-                <ChevronRight className="h-3 w-3" />
+              <div className="flex justify-between text-[11px] pt-1.5 border-t border-border/50 text-slate-400 font-mono">
+                <span>R:R: 1:{s.tradePlan.riskRewardRatio.toFixed(2)}</span>
+                <span className="text-emerald-400">{s.earningsRisk.daysUntilEarnings}d safe</span>
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* ── SPOTLIGHT BEST STOCK CARD ── */}
-      <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-card via-card/95 to-primary/10 p-5 shadow-2xl">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/40 font-black text-lg">
-              {bestPick.ticker}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-primary uppercase tracking-wider">#1 US Institutional Pick</span>
-                <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-extrabold">
-                  {bestPick.verdict.replace('_', ' ')}
-                </span>
-              </div>
-              <h3 className="text-xl font-black text-foreground">
-                {bestPick.name} • {bestPick.sector} ({bestPick.industry})
-              </h3>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="text-right">
-              <div className="text-xs text-muted-foreground">Current Price</div>
-              <div className="text-xl font-black text-foreground">${bestPick.price.toFixed(2)}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-muted-foreground">10-Pillar Score</div>
-              <div className="text-xl font-black text-primary">
-                {bestPick.scoreBreakdown.totalScore}
-                <span className="text-xs text-muted-foreground">/100</span>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setSelectedStock(bestPick);
-                setIsModalOpen(true);
-              }}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-lg"
-            >
-              <Maximize2 className="h-4 w-4" />
-              Open 4H Canvas & 1-6M Thesis
-            </button>
-          </div>
-        </div>
-
-        {/* 10-Pillar Scoring Breakdown Grid */}
-        <div className="py-4">
-          <div className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider flex items-center gap-1.5">
-            <Layers className="h-3.5 w-3.5 text-primary" />
-            10-Pillar Equity Scoring Audit
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2">
-            {[
-              { label: 'Structure', score: bestPick.scoreBreakdown.structureScore, max: 15 },
-              { label: 'SMC POC', score: bestPick.scoreBreakdown.smcVolumeScore, max: 15 },
-              { label: 'RS vs SPY', score: bestPick.scoreBreakdown.relStrengthScore, max: 10 },
-              { label: 'Earnings Risk', score: bestPick.scoreBreakdown.earningsSafetyScore, max: 10 },
-              { label: 'Fundamentals', score: bestPick.scoreBreakdown.fundamentalsScore, max: 10 },
-              { label: 'Valuation/DCF', score: bestPick.scoreBreakdown.valuationScore, max: 10 },
-              { label: '13F Smart Money', score: bestPick.scoreBreakdown.inst13FOwnershipScore, max: 10 },
-              { label: 'Options/MaxPain', score: bestPick.scoreBreakdown.optionsSentimentScore, max: 10 },
-              { label: 'Macro Regime', score: bestPick.scoreBreakdown.macroAlignmentScore, max: 5 },
-              { label: 'Risk/Reward', score: bestPick.scoreBreakdown.riskRewardScore, max: 5 }
-            ].map(pillar => (
-              <div key={pillar.label} className="rounded-lg bg-background/50 border border-border p-2 text-center">
-                <div className="text-[10px] text-muted-foreground truncate">{pillar.label}</div>
-                <div className="text-xs font-black text-foreground mt-0.5">
-                  <span className="text-primary">{pillar.score}</span>
-                  <span className="text-muted-foreground text-[10px]">/{pillar.max}</span>
-                </div>
-                <div className="w-full bg-border/50 h-1 rounded-full mt-1.5 overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full"
-                    style={{ width: `${(pillar.score / pillar.max) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Execution Plan Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-3 border-t border-border">
-          <div className="rounded-lg bg-background/60 p-3 border border-border">
-            <div className="text-[10px] font-bold text-muted-foreground uppercase">4H Swing Entry Zone</div>
-            <div className="text-sm font-black text-emerald-400 mt-1">
-              ${bestPick.tradePlan.entryZone[0].toFixed(2)} – ${bestPick.tradePlan.entryZone[1].toFixed(2)}
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">4H Order Block Retest</div>
-          </div>
-
-          <div className="rounded-lg bg-background/60 p-3 border border-border">
-            <div className="text-[10px] font-bold text-muted-foreground uppercase">Invalidation Stop Loss</div>
-            <div className="text-sm font-black text-rose-400 mt-1">
-              ${bestPick.tradePlan.stopLoss.toFixed(2)}
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">Strict structural invalidation</div>
-          </div>
-
-          <div className="rounded-lg bg-background/60 p-3 border border-border">
-            <div className="text-[10px] font-bold text-muted-foreground uppercase">Targets (TP1 / TP2)</div>
-            <div className="text-sm font-black text-primary mt-1">
-              TP1: ${bestPick.tradePlan.takeProfit1.toFixed(2)} | TP2: ${bestPick.tradePlan.takeProfit2.toFixed(2)}
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">R:R Ratio 1:{bestPick.tradePlan.riskRewardRatio.toFixed(2)}</div>
-          </div>
-
-          <div className="rounded-lg bg-background/60 p-3 border border-border">
-            <div className="text-[10px] font-bold text-muted-foreground uppercase">1-6M Investment Target</div>
-            <div className="text-sm font-black text-amber-400 mt-1">
-              ${bestPick.investmentHorizon.target6M.toFixed(2)} (Fair Value: ${bestPick.investmentHorizon.fairValueDCF.toFixed(2)})
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-              {bestPick.investmentHorizon.moatRating.replace('_', ' ')} • {bestPick.investmentHorizon.suitability.replace('_', ' ')}
-            </div>
-          </div>
         </div>
       </div>
 

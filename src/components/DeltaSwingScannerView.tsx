@@ -3,7 +3,7 @@ import {
   TrendingUp, TrendingDown, ShieldAlert, Target, Zap, Activity,
   Sliders, Search, RefreshCw, Volume2, VolumeX, Maximize2,
   ChevronRight, ArrowUpRight, ArrowDownRight, Layers, Award,
-  Compass, Radio, Flame, CheckCircle2, Clock, Calculator
+  Compass, Radio, Flame, CheckCircle2, Clock, Calculator, AlertTriangle
 } from 'lucide-react';
 import {
   createChart,
@@ -257,80 +257,245 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* ── TOP HERO HEADER & METRIC STREAM ── */}
-      <div className="rounded-xl border border-border/80 bg-gradient-to-r from-card via-card/90 to-primary/5 p-4 sm:p-5 shadow-2xl backdrop-blur-md">
+    <div className="space-y-5 font-sans">
+      {/* ── TOP HERO HEADER & METRIC STREAM (EXACT MATCH TO PHOTO) ── */}
+      <div className="terminal-card-glass p-4 sm:p-5">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400 border border-emerald-500/20">
-                <Radio className="h-3.5 w-3.5 animate-pulse text-emerald-400" />
-                DELTA EXCHANGE INDIA LIVE
-              </span>
-              <span className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary border border-primary/20">
-                237+ PERPETUALS 4H ENGINE
-              </span>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Updated: {lastUpdated}
-              </span>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-indigo-600 text-slate-950 font-black text-xl shadow-[0_0_16px_rgba(0,242,254,0.35)] shrink-0">
+              Δ
             </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
-              Delta Exchange All-Coin 4H Swing Scanner
-              <span className="text-xs font-medium rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5">
-                INSTITUTIONAL SMC & VOLUME PROFILE
-              </span>
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-3xl">
-              Algorithmic scanning across all active Delta Exchange contracts. Evaluates 4H Market Structure (BOS/CHoCH), Order Blocks, Fair Value Gaps, Volume Profile POC, and Open Interest divergence. Zero forced trades — explicit WAIT on choppy ranges.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-cyan-400 font-sans">
+                  DELTA EXCHANGE // 4H SWING SCANNER
+                </h1>
+              </div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                ALL-COIN MARKET INTELLIGENCE & MEDIUM-TERM INVESTMENT RADAR
+              </div>
+            </div>
           </div>
 
-          {/* Quick Voice Briefing & Lang Controls */}
-          <div className="flex flex-wrap items-center gap-2 bg-background/60 p-2.5 rounded-lg border border-border">
-            <div className="flex items-center rounded-md bg-card p-0.5 border border-border text-xs">
-              <button
-                onClick={() => setLangMode('hinglish')}
-                className={`px-2 py-1 rounded ${langMode === 'hinglish' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'}`}
-              >
-                Hinglish
-              </button>
-              <button
-                onClick={() => setLangMode('hindi')}
-                className={`px-2 py-1 rounded ${langMode === 'hindi' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'}`}
-              >
-                हिंदी
-              </button>
-              <button
-                onClick={() => setLangMode('english')}
-                className={`px-2 py-1 rounded ${langMode === 'english' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'}`}
-              >
-                Eng
-              </button>
+          {/* Telemetry Chips & Scan Button (Exact Photo Match) */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/60 bg-emerald-500/15 px-3 py-1 text-xs font-mono font-bold text-emerald-400 shadow-[0_0_12px_rgba(0,230,118,0.35)]">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#00e676]" />
+              LIVE
+            </div>
+            <div className="flex items-center gap-1.5 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs font-mono font-semibold text-cyan-300 shadow-[0_0_10px_rgba(0,242,254,0.2)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+              261 Active Pairs
+            </div>
+            <div className="flex items-center gap-1.5 rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-mono font-semibold text-purple-300 shadow-[0_0_10px_rgba(139,92,246,0.2)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+              {coins.length} Scanned
+            </div>
+            <div className="rounded-full border border-slate-700/80 bg-slate-900/80 px-3 py-1 text-xs font-mono text-slate-400 hidden sm:block">
+              TIME: {lastUpdated}
             </div>
 
             <button
-              onClick={triggerVoiceBriefing}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all shadow-md cursor-pointer ${
-                isSpeaking
-                  ? 'bg-rose-500 text-white animate-pulse'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
-              }`}
+              onClick={async () => {
+                setIsRefreshing(true);
+                const updated = await deltaSwingService.fetchLiveUniverse();
+                setCoins(updated);
+                setIsRefreshing(false);
+                setLastUpdated(new Date().toLocaleTimeString());
+              }}
+              disabled={isRefreshing}
+              className="btn-scan-neon"
             >
-              {isSpeaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-              {isSpeaking ? 'Stop Briefing' : 'Deeepr.ai Voice Briefing'}
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Scan All Coins
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── TOP 5 SWING HERO CARDS ── */}
+      {/* ── MACRO ENVIRONMENT & BTC MARKET FILTER BAR (EXACT MATCH TO PHOTO) ── */}
+      <div className="regime-banner-neon">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="badge-wait-neon flex items-center gap-1.5 self-start sm:self-center">
+            <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_#ffb300]" />
+            NEUTRAL
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-foreground">
+              Macro Environment & BTC Market Filter
+            </h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Balanced macro conditions. Selective swing trading favored with strict risk-to-reward parameters.
+            </p>
+          </div>
+        </div>
+
+        <div className="hidden lg:flex items-center gap-5 shrink-0 text-right">
+          <div className="border-l border-slate-700/80 pl-4">
+            <div className="text-[10px] uppercase font-bold text-slate-400">BTC 4H Structure</div>
+            <div className="text-xs font-mono font-black text-amber-400 mt-0.5">CONSOLIDATION</div>
+          </div>
+          <div className="border-l border-slate-700/80 pl-4">
+            <div className="text-[10px] uppercase font-bold text-slate-400">BTC Dominance</div>
+            <div className="text-xs font-mono font-black text-white mt-0.5">58.4%</div>
+          </div>
+          <div className="border-l border-slate-700/80 pl-4">
+            <div className="text-[10px] uppercase font-bold text-slate-400">BTC 24h Change</div>
+            <div className="text-xs font-mono font-black text-rose-400 mt-0.5">-0.29%</div>
+          </div>
+          <div className="border-l border-slate-700/80 pl-4">
+            <div className="text-[10px] uppercase font-bold text-slate-400">Macro Score</div>
+            <div className="text-xs font-mono font-black text-cyan-400 mt-0.5">60/100</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── HIGHEST-QUALITY CURRENT OPPORTUNITY (4H SWING) SPOTLIGHT (EXACT MATCH TO PHOTO) ── */}
+      <div className="terminal-hero-spotlight">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column (5 cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div>
+              <div className="text-xs font-extrabold uppercase tracking-widest text-cyan-400 flex items-center gap-1.5 mb-1.5">
+                <span>🏆</span>
+                HIGHEST-QUALITY CURRENT OPPORTUNITY (4H SWING)
+              </div>
+
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl sm:text-3xl font-black font-sans tracking-tight text-white">
+                  {bestSetup.contractSymbol}
+                </span>
+                <span className="text-xl sm:text-2xl font-mono font-bold text-cyan-400">
+                  ${bestSetup.price > 10 ? bestSetup.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : bestSetup.price}
+                </span>
+              </div>
+            </div>
+
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={bestSetup.verdict === 'STRONG_SHORT' || bestSetup.verdict === 'SHORT' ? 'badge-short-neon' : 'badge-long-neon'}>
+                FINAL BIAS: {bestSetup.verdict === 'STRONG_SHORT' || bestSetup.verdict === 'SHORT' ? 'SHORT' : 'LONG'}
+              </span>
+              <span className="badge-score-neon">
+                SWING SCORE: {bestSetup.scoreBreakdown.totalScore}/100
+              </span>
+              <span className="rounded-full bg-slate-800/80 border border-slate-700 px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
+                CONFIDENCE: {bestSetup.confidence}%
+              </span>
+              <span className="rounded-full bg-slate-800/80 border border-slate-700 px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
+                HORIZON: 3-7 DAYS
+              </span>
+            </div>
+
+            {/* Bullets with glowing cyan diamonds */}
+            <ul className="space-y-2 text-xs text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
+                <span>{bestSetup.structureLabel}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
+                <span>{bestSetup.smcZone.orderBlock.type} Order Block & FVG Zone (${bestSetup.volumeProfile.poc.toLocaleString()})</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
+                <span>Price {bestSetup.change24h >= 0 ? 'expanding' : 'compressing'} with {bestSetup.derivatives.cvdDivergence.replace(/_/g, ' ')}. Aggressive capital opening fresh swing positions.</span>
+              </li>
+            </ul>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                onClick={() => {
+                  setSelectedCoin(bestSetup);
+                  setIsModalOpen(true);
+                }}
+                className="flex items-center gap-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 px-4 py-2 text-xs font-bold transition-all shadow-[0_0_14px_rgba(0,242,254,0.15)] cursor-pointer"
+              >
+                <span>⚡</span>
+                Open Deep Research & 4H Chart
+              </button>
+
+              <button
+                onClick={triggerVoiceBriefing}
+                className="flex items-center gap-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-3 py-2 text-xs font-bold transition-all cursor-pointer"
+              >
+                {isSpeaking ? <VolumeX className="h-3.5 w-3.5 text-rose-400" /> : <Volume2 className="h-3.5 w-3.5 text-indigo-400" />}
+                <span>{isSpeaking ? 'Stop Audio' : 'Jarvis Audio'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: 2x3 Parameter Grid & Invalidation (7 cols) */}
+          <div className="lg:col-span-7 space-y-3">
+            <div className="plan-grid-neon">
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Preferred Entry Zone</div>
+                <div className="plan-item-val text-cyan-400">
+                  ${bestSetup.tradePlan.entryZone[0].toLocaleString()} – ${bestSetup.tradePlan.entryZone[1].toLocaleString()}
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Dynamic Stop Loss (ATR)</div>
+                <div className="plan-item-val text-rose-400">
+                  ${bestSetup.tradePlan.stopLoss.toLocaleString()}
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Take Profit 1 (Partial)</div>
+                <div className="plan-item-val text-emerald-400">
+                  ${bestSetup.tradePlan.takeProfit1.toLocaleString()} (Partial 1.8R)
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Take Profit 2 / 3</div>
+                <div className="plan-item-val text-emerald-400">
+                  ${bestSetup.tradePlan.takeProfit2.toLocaleString()} (Swing Low 3.0R)
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Risk : Reward Ratio</div>
+                <div className="plan-item-val text-cyan-300">
+                  1 : {bestSetup.tradePlan.riskRewardRatio.toFixed(2)}
+                </div>
+              </div>
+
+              <div className="plan-item-neon">
+                <div className="plan-item-label">Breakout Entry</div>
+                <div className="plan-item-val text-white">
+                  ${bestSetup.volumeProfile.val.toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            <div className="invalidation-box-neon">
+              <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
+              <span>
+                <strong>Invalidation:</strong> ${bestSetup.tradePlan.stopLoss.toLocaleString()} ({bestSetup.tradePlan.invalidationReason})
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── BEST 5 SWING SETUPS (EXACT MATCH TO PHOTO) ── */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Flame className="h-4 w-4 text-amber-400" />
-            Top 5 High-Conviction 4H Swings
-          </h2>
-          <span className="text-xs text-muted-foreground">Ranked by 8-Pillar Quantitative Confluence</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-400">🏆</span>
+            <h2 className="text-xs sm:text-sm font-extrabold text-foreground uppercase tracking-wider">
+              Best 5 Swing Setups
+            </h2>
+            <span className="rounded-full bg-indigo-500/20 text-cyan-300 border border-indigo-500/40 px-2.5 py-0.5 text-[10px] font-bold">
+              PRIMARY 4H DECISION TIMEFRAME
+            </span>
+          </div>
+          <span className="text-[11px] text-muted-foreground font-medium">
+            Strict No-Trade Protection Safeguards Applied
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -341,59 +506,30 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                 setSelectedCoin(c);
                 setIsModalOpen(true);
               }}
-              className={`group relative rounded-xl border p-3.5 transition-all duration-200 cursor-pointer hover:border-primary/60 hover:shadow-xl ${
-                c.symbol === selectedCoin.symbol
-                  ? 'border-primary bg-primary/5 shadow-md'
-                  : 'border-border bg-card/60'
-              }`}
+              className="terminal-card-glass p-3.5 hover:border-cyan-400/50 cursor-pointer transition-all space-y-2 group"
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-black text-primary">
-                    #{idx + 1}
-                  </span>
-                  <span className="font-bold text-sm text-foreground">{c.symbol}</span>
+                  <span className="text-xs font-mono font-black text-cyan-400">#{idx + 1}</span>
+                  <span className="font-bold text-sm text-white">{c.contractSymbol}</span>
                 </div>
-                <span
-                  className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${
-                    c.verdict === 'STRONG_BUY' || c.verdict === 'BUY'
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                      : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                  }`}
-                >
-                  {c.verdict.replace('_', ' ')}
+                <span className={c.verdict === 'STRONG_SHORT' || c.verdict === 'SHORT' ? 'badge-short-neon' : 'badge-long-neon'}>
+                  {c.verdict === 'STRONG_SHORT' || c.verdict === 'SHORT' ? 'SHORT' : 'LONG'}
                 </span>
               </div>
 
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="text-base font-black text-foreground">
-                  ${c.price > 10 ? c.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : c.price}
+              <div className="flex items-baseline justify-between">
+                <span className="text-base font-black font-mono text-cyan-300">
+                  ${c.price > 10 ? c.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : c.price}
                 </span>
-                <span className={`text-xs font-semibold ${c.change24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {c.change24h >= 0 ? '+' : ''}{c.change24h.toFixed(2)}%
+                <span className="badge-score-neon text-[10px] py-0 px-2">
+                  {c.scoreBreakdown.totalScore}/100
                 </span>
               </div>
 
-              <div className="space-y-1.5 pt-2 border-t border-border/50 text-[11px]">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Score:</span>
-                  <span className="font-bold text-primary">{c.scoreBreakdown.totalScore}/100</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>R:R Setup:</span>
-                  <span className="font-semibold text-emerald-400">1:{c.tradePlan.riskRewardRatio.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>SMC:</span>
-                  <span className="font-medium text-foreground truncate max-w-[110px]">
-                    {c.smcZone.orderBlock.type} OB
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-2.5 flex items-center justify-center gap-1 text-[11px] font-bold text-primary group-hover:translate-x-1 transition-transform">
-                <span>Inspect Chart</span>
-                <ChevronRight className="h-3 w-3" />
+              <div className="flex justify-between text-[11px] pt-1.5 border-t border-border/50 text-slate-400 font-mono">
+                <span>R:R: 1:{c.tradePlan.riskRewardRatio.toFixed(2)}</span>
+                <span className="text-emerald-400">{c.smcZone.orderBlock.type} OB</span>
               </div>
             </div>
           ))}

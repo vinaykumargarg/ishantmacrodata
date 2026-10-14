@@ -553,3 +553,187 @@ html.dark .sidebar-scroll-custom::-webkit-scrollbar-thumb:hover,
   background: linear-gradient(180deg, #38bdf8 0%, #00f2fe 100%);
   box-shadow: 0 0 16px rgba(0, 242, 254, 1);
 }
+
+/* ==========================================================================
+   EXACT LOCALHOST:3000 INSTITUTIONAL TERMINAL NEON THEME & PALETTE
+   Obsidian, Electric Cyan (#00f2fe), Neon Bull Green (#00e676),
+   Laser Crimson (#ff1744), Amber Gold (#ffb300), Laser Purple (#8b5cf6)
+   ========================================================================== */
+
+:root {
+  --neon-cyan: #00f2fe;
+  --neon-green: #00e676;
+  --neon-red: #ff1744;
+  --neon-amber: #ffb300;
+  --neon-purple: #8b5cf6;
+  --neon-indigo: #6366f1;
+  --bg-terminal-card: rgba(14, 18, 30, 0.88);
+  --bg-terminal-elevated: #151a2b;
+}
+
+/* Neon Glassmorphic Cards */
+.terminal-card-glass {
+  background: var(--bg-terminal-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: all 0.25s ease;
+}
+
+.terminal-card-glass:hover {
+  border-color: rgba(0, 242, 254, 0.25);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 242, 254, 0.08);
+}
+
+/* Hero Spotlight Card (Exact match to monitor photo) */
+.terminal-hero-spotlight {
+  background: linear-gradient(135deg, rgba(20, 26, 44, 0.95) 0%, rgba(11, 15, 25, 0.98) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 18px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(99, 102, 241, 0.12);
+}
+
+.terminal-hero-spotlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Neon Badges */
+.badge-long-neon {
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.6);
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.25);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.badge-short-neon {
+  background: rgba(255, 23, 68, 0.12);
+  color: #ff1744;
+  border: 1px solid rgba(255, 23, 68, 0.6);
+  box-shadow: 0 0 12px rgba(255, 23, 68, 0.25);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.badge-wait-neon {
+  background: rgba(255, 179, 0, 0.12);
+  color: #ffb300;
+  border: 1px solid rgba(255, 179, 0, 0.6);
+  box-shadow: 0 0 12px rgba(255, 179, 0, 0.25);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.badge-score-neon {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a78bfa;
+  border: 1px solid #6366f1;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--mono);
+}
+
+/* 2x3 Parameter Execution Plan Grid */
+.plan-grid-neon {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.plan-item-neon {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.plan-item-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 3px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.plan-item-val {
+  font-size: 13.5px;
+  font-family: var(--mono);
+  font-weight: 800;
+}
+
+/* Invalidation Warning Box */
+.invalidation-box-neon {
+  background: rgba(255, 23, 68, 0.08);
+  border: 1px solid rgba(255, 23, 68, 0.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 11.5px;
+  color: #fca5a5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Market Regime Banner (Exact photo match) */
+.regime-banner-neon {
+  background: linear-gradient(135deg, rgba(20, 26, 44, 0.95) 0%, rgba(11, 15, 25, 0.98) 100%);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  border-radius: 14px;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 0 24px rgba(0, 242, 254, 0.1);
+}
+
+/* Gradient Glowing Scan Button */
+.btn-scan-neon {
+  background: linear-gradient(135deg, #00f2fe 0%, #6366f1 100%);
+  color: #030712;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 30px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 0 16px rgba(0, 242, 254, 0.4);
+  transition: all 0.2s ease;
+}
+
+.btn-scan-neon:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 24px rgba(0, 242, 254, 0.6);
+}

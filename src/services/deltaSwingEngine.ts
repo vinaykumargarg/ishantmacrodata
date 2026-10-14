@@ -106,6 +106,158 @@ export interface DeltaSwingCoin {
 // ─────────────────────────────────────────────────────────────────────────────
 export const INITIAL_DELTA_SWING_COINS: DeltaSwingCoin[] = [
   {
+    symbol: 'MUBARAK',
+    contractSymbol: 'MUBARAKUSD',
+    underlying: 'Mubarak (Delta Exchange)',
+    price: 0.0637,
+    indexPrice: 0.0638,
+    change24h: -9.29,
+    volume24h: 18450000,
+    openInterest: 9400000,
+    fundingRate: -0.0125,
+    contractType: 'perpetual_futures',
+    tickSize: 0.0001,
+    contractValue: 1.0,
+    maxLeverage: 20,
+    structure: 'BEARISH_BOS',
+    structureLabel: '4H BEARISH Structure with BEARISH EXPANSION',
+    smcZone: {
+      fvg: { type: 'BEARISH', top: 0.0735, bottom: 0.0700 },
+      orderBlock: { type: 'BEARISH', top: 0.0745, bottom: 0.0718 },
+      liquiditySweep: 'BSL_SWEPT',
+      reclaimStatus: 'RECLAIMED'
+    },
+    volumeProfile: {
+      poc: 0.0725,
+      vah: 0.0760,
+      val: 0.0632,
+      volumeBias: 'DISTRIBUTION'
+    },
+    derivatives: {
+      oiChange24h: 14.2,
+      fundingBias: 'BEARISH',
+      cvdDivergence: 'BEARISH_EXPANSION'
+    },
+    timeframeAlignment: {
+      trend1D: 'BEARISH',
+      trend4H: 'BEARISH',
+      trend1H: 'BEARISH',
+      alignedScore: 15
+    },
+    relStrengthVsBtc: {
+      ratioChange24h: -6.4,
+      status: 'WEAKER',
+      score: 10
+    },
+    scoreBreakdown: {
+      structureScore: 14,
+      smcScore: 13,
+      volumeProfileScore: 12,
+      derivativesScore: 13,
+      mtfScore: 14,
+      relStrengthScore: 9,
+      momentumScore: 7,
+      riskRewardScore: 5,
+      totalScore: 83
+    },
+    verdict: 'SHORT',
+    confidence: 88,
+    tradePlan: {
+      direction: 'SHORT',
+      entryZone: [0.0720, 0.0730],
+      stopLoss: 0.0758,
+      takeProfit1: 0.0677,
+      takeProfit2: 0.0643,
+      riskRewardRatio: 2.99,
+      recommendedLeverage: 5,
+      suggestedRiskPct: 1.5,
+      invalidationReason: 'Close above 4H swing structure'
+    },
+    investmentHorizon: {
+      decision: 'WAIT',
+      fundamentalHealth: 'MEME_SPECULATIVE',
+      accumulationRange: [0.0500, 0.0550],
+      catalystNotes: 'High volatility speculative contract. Strictly trade 4H swing expansion with ATR stop.',
+      target90D: 0.0950
+    }
+  },
+  {
+    symbol: 'SOXLB',
+    contractSymbol: 'SOXLBUSD',
+    underlying: 'SOXL Bull',
+    price: 38.45,
+    indexPrice: 38.40,
+    change24h: 4.12,
+    volume24h: 42100000,
+    openInterest: 21500000,
+    fundingRate: 0.0055,
+    contractType: 'perpetual_futures',
+    tickSize: 0.01,
+    contractValue: 0.1,
+    maxLeverage: 25,
+    structure: 'BULLISH_BOS',
+    structureLabel: '4H BULLISH Structure with FVG Reclaim',
+    smcZone: {
+      fvg: { type: 'BULLISH', top: 38.10, bottom: 37.40 },
+      orderBlock: { type: 'BULLISH', top: 37.80, bottom: 36.90 },
+      liquiditySweep: 'SSL_SWEPT',
+      reclaimStatus: 'RECLAIMED'
+    },
+    volumeProfile: {
+      poc: 37.60,
+      vah: 41.20,
+      val: 36.50,
+      volumeBias: 'ACCUMULATION'
+    },
+    derivatives: {
+      oiChange24h: 8.5,
+      fundingBias: 'BULLISH',
+      cvdDivergence: 'BULLISH_ABSORPTION'
+    },
+    timeframeAlignment: {
+      trend1D: 'BULLISH',
+      trend4H: 'BULLISH',
+      trend1H: 'BULLISH',
+      alignedScore: 14
+    },
+    relStrengthVsBtc: {
+      ratioChange24h: 2.3,
+      status: 'STRONGER',
+      score: 10
+    },
+    scoreBreakdown: {
+      structureScore: 13,
+      smcScore: 13,
+      volumeProfileScore: 13,
+      derivativesScore: 13,
+      mtfScore: 14,
+      relStrengthScore: 9,
+      momentumScore: 7,
+      riskRewardScore: 5,
+      totalScore: 82
+    },
+    verdict: 'LONG',
+    confidence: 86,
+    tradePlan: {
+      direction: 'LONG',
+      entryZone: [37.50, 38.00],
+      stopLoss: 36.20,
+      takeProfit1: 41.00,
+      takeProfit2: 44.50,
+      riskRewardRatio: 3.10,
+      recommendedLeverage: 5,
+      suggestedRiskPct: 1.5,
+      invalidationReason: 'Close below 4H swing low $36.20'
+    },
+    investmentHorizon: {
+      decision: 'STRONG_ACCUMULATE',
+      fundamentalHealth: 'HIGH_GROWTH_L1_L2',
+      accumulationRange: [35.00, 37.00],
+      catalystNotes: 'Semiconductor ETF proxy with strong institutional call skew.',
+      target90D: 52.00
+    }
+  },
+  {
     symbol: 'BTC',
     contractSymbol: 'BTCUSD_PERP',
     underlying: 'Bitcoin',

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Calendar, Clock, ShieldAlert, Target, Zap, Activity,
+  Clock, ShieldAlert, Target, Zap, Activity,
   Sliders, Search, RefreshCw, Volume2, VolumeX, Maximize2,
   ChevronRight, ArrowUpRight, ArrowDownRight, Layers, Award,
   Compass, Radio, Flame, CheckCircle2, AlertTriangle, Play,
-  Pause, Globe, TrendingUp, TrendingDown, HelpCircle, MessageSquare
+  Pause, Globe, TrendingUp, TrendingDown, HelpCircle, MessageSquare, BookOpen, Cpu
 } from 'lucide-react';
 import {
   MacroEventData,
@@ -26,7 +26,6 @@ export default function EventImpactEngineView({ onNavigate }: Props) {
   const [langMode, setLangMode] = useState<'hinglish' | 'hindi' | 'english'>('hinglish');
   const [activeFaq, setActiveFaq] = useState<VoiceQueryFaq>(VOICE_FAQS[0]);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [customVoiceQuestion, setCustomVoiceQuestion] = useState<string>('');
 
   // Countdown timer simulation
   const [secondsRemaining, setSecondsRemaining] = useState<number>(selectedEvent.countdownSeconds);
@@ -75,435 +74,534 @@ export default function EventImpactEngineView({ onNavigate }: Props) {
       ? selectedEvent.scenarios.inLine
       : selectedEvent.scenarios.aboveForecast;
 
+  const currentBtcForecast = currentOutcome.outcome.btcForecast;
+  const currentGoldForecast = currentOutcome.outcome.goldForecast;
+
   return (
     <div className="space-y-6">
       {/* ── TOP HERO HEADER & EVENT COUNTDOWN ── */}
-      <div className="rounded-xl border border-border/80 bg-gradient-to-r from-card via-card/90 to-primary/5 p-4 sm:p-5 shadow-2xl backdrop-blur-md">
+      <div className="card p-5">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-500/10 px-2.5 py-1 text-xs font-bold text-rose-400 border border-rose-500/20">
-                <Radio className="h-3.5 w-3.5 animate-pulse text-rose-400" />
-                HIGH-IMPACT EVENT ENGINE
-              </span>
-              <span className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary border border-primary/20">
-                3-SCENARIO PROJECTIONS
-              </span>
-              <span className="rounded-md bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-400 border border-amber-500/20">
-                GOLD & BITCOIN TRANSMISSION
-              </span>
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-accent-fg font-black text-2xl shrink-0">
+              🌍
             </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
-              Market News & Event Impact Engine
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-3xl">
-              Algorithmic pre-event scenario modeling for CPI, FOMC, NFP, and GDP. Predicts instantaneous transmission to DXY, US 10Y Yields, Bitcoin, and Gold with institutional News Trap alerts.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-heading text-text">
+                  GLOBAL MACRO // EVENT IMPACT & NEWS ENGINE
+                </h1>
+              </div>
+              <div className="label text-text-muted font-bold mt-1">
+                INSTITUTIONAL TRANSMISSION • BITCOIN & GOLD MOMENTUM RADAR
+              </div>
+            </div>
           </div>
 
-          {/* Language Selector */}
-          <div className="flex items-center gap-2 bg-background/60 p-2.5 rounded-lg border border-border">
-            <span className="text-xs text-muted-foreground font-semibold">AI Voice Dialect:</span>
-            <div className="flex items-center rounded-md bg-card p-0.5 border border-border text-xs">
+          {/* Telemetry Chips & Voice Selector */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 rounded-full border border-down/30 bg-down-bg px-3 py-1.5 label font-bold text-down">
+              <span className="h-2 w-2 rounded-full bg-down animate-pulse" />
+              HIGH-IMPACT VOLATILITY ENGINE
+            </div>
+
+            {/* Language Selector */}
+            <div className="flex items-center rounded-full bg-surface-2 border border-border p-1 text-xs">
               <button
                 onClick={() => setLangMode('hinglish')}
-                className={`px-2 py-1 rounded ${langMode === 'hinglish' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'}`}
+                className={`px-3 py-1 rounded-full cursor-pointer transition-all ${
+                  langMode === 'hinglish' ? 'btn-primary' : 'text-text-muted hover:text-text'
+                }`}
               >
                 Hinglish
               </button>
               <button
                 onClick={() => setLangMode('hindi')}
-                className={`px-2 py-1 rounded ${langMode === 'hindi' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'}`}
+                className={`px-3 py-1 rounded-full cursor-pointer transition-all ${
+                  langMode === 'hindi' ? 'btn-primary' : 'text-text-muted hover:text-text'
+                }`}
               >
                 हिंदी
               </button>
               <button
                 onClick={() => setLangMode('english')}
-                className={`px-2 py-1 rounded ${langMode === 'english' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'}`}
+                className={`px-3 py-1 rounded-full cursor-pointer transition-all ${
+                  langMode === 'english' ? 'btn-primary' : 'text-text-muted hover:text-text'
+                }`}
               >
-                Eng
+                English
               </button>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Next High Impact Release Countdown Bar */}
-        <div className="mt-4 pt-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <Calendar className="h-5 w-5 text-amber-400" />
-            <div>
-              <div className="text-xs text-muted-foreground font-bold">NEXT MAJOR MACRO EVENT:</div>
-              <div className="text-sm font-black text-foreground">{selectedEvent.name} ({selectedEvent.country})</div>
+      {/* ── NEXT HIGH IMPACT RELEASE COUNTDOWN BANNER ── */}
+      <div className="regime-banner-neon p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="badge-wait flex items-center gap-2 shrink-0">
+            <span className="h-2 w-2 rounded-full bg-gold animate-pulse" />
+            NEXT UPCOMING EVENT
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-text">
+              {selectedEvent.name} ({selectedEvent.country})
+            </h3>
+            <p className="text-sm text-text-muted mt-0.5">
+              Release: {selectedEvent.releaseDate} • Bias: {selectedEvent.historicalSurpriseBias}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 shrink-0 text-right">
+          <div className="card px-4 py-2 border border-gold/40 font-mono font-bold text-lg text-gold num">
+            {formatCountdown(secondsRemaining)}
+          </div>
+          <div className="hidden md:block border-l border-border pl-4">
+            <div className="label text-text-muted">Consensus Forecast</div>
+            <div className="text-sm font-mono font-bold text-accent mt-0.5 num">
+              {selectedEvent.consensusForecast}
             </div>
           </div>
-
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-background/80 px-4 py-2 border border-border font-mono font-black text-base text-amber-400">
-              {formatCountdown(secondsRemaining)}
-            </div>
-            <div className="text-xs text-right text-muted-foreground hidden md:block">
-              <div>Consensus: <span className="font-bold text-foreground">{selectedEvent.consensusForecast}</span></div>
-              <div>Previous: <span className="font-bold text-foreground">{selectedEvent.previousValue}</span></div>
+          <div className="hidden lg:block border-l border-border pl-4">
+            <div className="label text-text-muted">Previous Print</div>
+            <div className="text-sm font-mono font-bold text-text mt-0.5 num">
+              {selectedEvent.previousValue}
             </div>
           </div>
         </div>
       </div>
 
       {/* ── EVENT SELECTOR TABS ── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2.5">
         {events.map(ev => (
           <button
             key={ev.id}
             onClick={() => setSelectedEvent(ev)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
               ev.id === selectedEvent.id
-                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                : 'bg-card border border-border text-muted-foreground hover:text-foreground'
+                ? 'btn-primary'
+                : 'card hover:bg-surface-2 text-text-muted hover:text-text'
             }`}
           >
-            <Clock className="h-3.5 w-3.5" />
+            <Clock className="h-4 w-4" />
             <span>{ev.name.split('(')[0]}</span>
-            <span className="text-[10px] rounded px-1.5 py-0.5 bg-black/20 text-white font-extrabold">
+            <span className="label rounded px-2 py-0.5 bg-surface-2 text-text font-bold">
               {ev.importance}
             </span>
           </button>
         ))}
       </div>
 
+      {/* ── EDUCATIONAL & FUNDAMENTAL PURPOSE: YEH EVENT KYA HAI AUR KYON AATA HAI? ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Card 1: What is this event? */}
+        <div className="card p-5 space-y-2.5">
+          <div className="flex items-center gap-2 text-accent">
+            <BookOpen className="h-5 w-5" />
+            <h3 className="text-base font-bold text-text">
+              1. Yeh Event Kya Hai? (What is it?)
+            </h3>
+          </div>
+          <p className={`text-sm text-text leading-relaxed ${langMode === 'hindi' ? 'font-hi' : ''}`}>
+            {langMode === 'hindi'
+              ? selectedEvent.whatIsEvent.hindi
+              : langMode === 'hinglish'
+              ? selectedEvent.whatIsEvent.hinglish
+              : selectedEvent.whatIsEvent.english}
+          </p>
+        </div>
+
+        {/* Card 2: Why does it exist and matter? */}
+        <div className="card p-5 space-y-2.5">
+          <div className="flex items-center gap-2 text-gold">
+            <Cpu className="h-5 w-5" />
+            <h3 className="text-base font-bold text-text">
+              2. Yeh Kyon Aati Hai? (Why it Matters)
+            </h3>
+          </div>
+          <p className={`text-sm text-text leading-relaxed ${langMode === 'hindi' ? 'font-hi' : ''}`}>
+            {langMode === 'hindi'
+              ? selectedEvent.whyItExists.hindi
+              : langMode === 'hinglish'
+              ? selectedEvent.whyItExists.hinglish
+              : selectedEvent.whyItExists.english}
+          </p>
+        </div>
+
+        {/* Card 3: Market Reaction Mechanism */}
+        <div className="card p-5 space-y-2.5">
+          <div className="flex items-center gap-2 text-up">
+            <Activity className="h-5 w-5" />
+            <h3 className="text-base font-bold text-text">
+              3. Market Reaction Chain (Kampan Ka Karan)
+            </h3>
+          </div>
+          <p className={`text-sm text-text leading-relaxed ${langMode === 'hindi' ? 'font-hi' : ''}`}>
+            {langMode === 'hindi'
+              ? selectedEvent.marketReactionMechanism.hindi
+              : langMode === 'hinglish'
+              ? selectedEvent.marketReactionMechanism.hinglish
+              : selectedEvent.marketReactionMechanism.english}
+          </p>
+        </div>
+      </div>
+
       {/* ── 3-SCENARIO ANALYSIS MATRIX ── */}
-      <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-card via-card/95 to-primary/10 p-5 shadow-2xl">
+      <div className="card p-6 space-y-5 border-2 border-accent/30">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border">
           <div>
-            <div className="text-xs font-bold text-primary uppercase tracking-wider">Algorithmic Reaction Engine</div>
-            <h2 className="text-lg font-black text-foreground">{selectedEvent.name} — 3-Scenario Blueprint</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">{selectedEvent.historicalSurpriseBias}</p>
+            <div className="label text-accent font-bold">Algorithmic Confluence Engine</div>
+            <h2 className="text-xl font-bold tracking-heading text-text">
+              {selectedEvent.name} — 3-Scenario Projection
+            </h2>
+            <p className="text-sm text-text-muted mt-1">{selectedEvent.historicalSurpriseBias}</p>
           </div>
 
           {/* Scenario Tabs Switcher */}
-          <div className="flex rounded-lg bg-background border border-border p-1 gap-1 text-xs">
+          <div className="flex rounded-xl bg-surface-2 border border-border p-1 gap-1 text-xs">
             <button
               onClick={() => setSelectedScenario('below')}
-              className={`px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg font-bold transition-all cursor-pointer ${
                 selectedScenario === 'below'
-                  ? 'bg-emerald-500 text-white shadow-md'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-up text-accent-fg'
+                  : 'text-text-muted hover:text-text'
               }`}
             >
-              1. Below Forecast (Cool)
+              1. Below Forecast (Cool / Disinflation)
             </button>
             <button
               onClick={() => setSelectedScenario('inline')}
-              className={`px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg font-bold transition-all cursor-pointer ${
                 selectedScenario === 'inline'
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-md'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-gold text-accent-fg'
+                  : 'text-text-muted hover:text-text'
               }`}
             >
-              2. In-Line (Consensus)
+              2. In-Line (Consensus Baseline)
             </button>
             <button
               onClick={() => setSelectedScenario('above')}
-              className={`px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg font-bold transition-all cursor-pointer ${
                 selectedScenario === 'above'
-                  ? 'bg-rose-500 text-white shadow-md'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-down text-white'
+                  : 'text-text-muted hover:text-text'
               }`}
             >
-              3. Above Forecast (Hot)
+              3. Above Forecast (Hot / Hawkish Shock)
             </button>
           </div>
         </div>
 
         {/* Selected Scenario Condition Banner */}
-        <div className="my-4 rounded-lg bg-background/60 p-3 border border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-xs font-black text-primary">
-              i
+        <div className="rounded-xl bg-surface-2 p-3.5 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent">
+              ℹ
             </span>
-            <span className="font-bold text-xs text-foreground">{currentOutcome.condition}</span>
+            <span className="font-bold text-sm text-text">{currentOutcome.condition}</span>
           </div>
-          <span className="text-[11px] text-primary font-semibold">Institutional Playbook Ready</span>
+          <span className="label text-accent font-bold">Active Quantitative Blueprint</span>
         </div>
 
         {/* 5-Asset Projected Direction Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {/* US Dollar (DXY) */}
-          <div className="rounded-xl border border-border bg-background/70 p-3.5 space-y-2">
+          <div className="card p-4 space-y-2 bg-surface-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">US Dollar (DXY)</span>
+              <span className="text-sm font-bold text-text">US Dollar (DXY)</span>
               <span
-                className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                className={`label font-bold px-2 py-0.5 rounded ${
                   currentOutcome.outcome.dxy.dir === 'UP'
-                    ? 'bg-emerald-500/10 text-emerald-400'
+                    ? 'bg-up-bg text-up'
                     : currentOutcome.outcome.dxy.dir === 'DOWN'
-                    ? 'bg-rose-500/10 text-rose-400'
-                    : 'bg-amber-500/10 text-amber-400'
+                    ? 'bg-down-bg text-down'
+                    : 'bg-gold/15 text-gold'
                 }`}
               >
                 {currentOutcome.outcome.dxy.dir}
               </span>
             </div>
-            <div className="text-lg font-black text-foreground">{currentOutcome.outcome.dxy.pct}</div>
-            <p className="text-[11px] text-muted-foreground leading-tight">{currentOutcome.outcome.dxy.note}</p>
+            <div className="text-lg font-mono font-bold text-text num">{currentOutcome.outcome.dxy.pct}</div>
+            <p className="text-xs text-text-muted leading-relaxed">{currentOutcome.outcome.dxy.note}</p>
           </div>
 
           {/* US 10Y Yields */}
-          <div className="rounded-xl border border-border bg-background/70 p-3.5 space-y-2">
+          <div className="card p-4 space-y-2 bg-surface-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">10Y Treasury Yield</span>
+              <span className="text-sm font-bold text-text">10Y Treasury Yield</span>
               <span
-                className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                className={`label font-bold px-2 py-0.5 rounded ${
                   currentOutcome.outcome.yields10Y.dir === 'UP'
-                    ? 'bg-emerald-500/10 text-emerald-400'
+                    ? 'bg-up-bg text-up'
                     : currentOutcome.outcome.yields10Y.dir === 'DOWN'
-                    ? 'bg-rose-500/10 text-rose-400'
-                    : 'bg-amber-500/10 text-amber-400'
+                    ? 'bg-down-bg text-down'
+                    : 'bg-gold/15 text-gold'
                 }`}
               >
                 {currentOutcome.outcome.yields10Y.dir}
               </span>
             </div>
-            <div className="text-lg font-black text-foreground">{currentOutcome.outcome.yields10Y.bps}</div>
-            <p className="text-[11px] text-muted-foreground leading-tight">{currentOutcome.outcome.yields10Y.note}</p>
+            <div className="text-lg font-mono font-bold text-text num">{currentOutcome.outcome.yields10Y.bps}</div>
+            <p className="text-xs text-text-muted leading-relaxed">{currentOutcome.outcome.yields10Y.note}</p>
           </div>
 
           {/* Bitcoin (BTC) */}
-          <div className="rounded-xl border border-border bg-background/70 p-3.5 space-y-2">
+          <div className="card p-4 space-y-2 bg-surface-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">Bitcoin (BTC/USD)</span>
+              <span className="text-sm font-bold text-text">Bitcoin (BTC/USD)</span>
               <span
-                className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                className={`label font-bold px-2 py-0.5 rounded ${
                   currentOutcome.outcome.bitcoin.dir === 'UP'
-                    ? 'bg-emerald-500/10 text-emerald-400'
+                    ? 'bg-up-bg text-up'
                     : currentOutcome.outcome.bitcoin.dir === 'DOWN'
-                    ? 'bg-rose-500/10 text-rose-400'
-                    : 'bg-amber-500/10 text-amber-400'
+                    ? 'bg-down-bg text-down'
+                    : 'bg-gold/15 text-gold'
                 }`}
               >
                 {currentOutcome.outcome.bitcoin.dir}
               </span>
             </div>
-            <div className="text-lg font-black text-foreground">{currentOutcome.outcome.bitcoin.pct}</div>
-            <p className="text-[11px] text-muted-foreground leading-tight">{currentOutcome.outcome.bitcoin.note}</p>
+            <div className="text-lg font-mono font-bold text-text num">{currentOutcome.outcome.bitcoin.pct}</div>
+            <p className="text-xs text-text-muted leading-relaxed">{currentOutcome.outcome.bitcoin.note}</p>
           </div>
 
           {/* Gold (XAU/USD) */}
-          <div className="rounded-xl border border-border bg-background/70 p-3.5 space-y-2">
+          <div className="card p-4 space-y-2 bg-surface-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">Spot Gold (XAU/USD)</span>
+              <span className="text-sm font-bold text-text">Spot Gold (XAU/USD)</span>
               <span
-                className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                className={`label font-bold px-2 py-0.5 rounded ${
                   currentOutcome.outcome.gold.dir === 'UP'
-                    ? 'bg-emerald-500/10 text-emerald-400'
+                    ? 'bg-up-bg text-up'
                     : currentOutcome.outcome.gold.dir === 'DOWN'
-                    ? 'bg-rose-500/10 text-rose-400'
-                    : 'bg-amber-500/10 text-amber-400'
+                    ? 'bg-down-bg text-down'
+                    : 'bg-gold/15 text-gold'
                 }`}
               >
                 {currentOutcome.outcome.gold.dir}
               </span>
             </div>
-            <div className="text-lg font-black text-foreground">{currentOutcome.outcome.gold.pct}</div>
-            <p className="text-[11px] text-muted-foreground leading-tight">{currentOutcome.outcome.gold.note}</p>
+            <div className="text-lg font-mono font-bold text-text num">{currentOutcome.outcome.gold.pct}</div>
+            <p className="text-xs text-text-muted leading-relaxed">{currentOutcome.outcome.gold.note}</p>
           </div>
 
           {/* Equities (S&P / QQQ) */}
-          <div className="rounded-xl border border-border bg-background/70 p-3.5 space-y-2">
+          <div className="card p-4 space-y-2 bg-surface-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">US Equities (QQQ/SPY)</span>
+              <span className="text-sm font-bold text-text">US Equities (QQQ/SPY)</span>
               <span
-                className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                className={`label font-bold px-2 py-0.5 rounded ${
                   currentOutcome.outcome.equities.dir === 'UP'
-                    ? 'bg-emerald-500/10 text-emerald-400'
+                    ? 'bg-up-bg text-up'
                     : currentOutcome.outcome.equities.dir === 'DOWN'
-                    ? 'bg-rose-500/10 text-rose-400'
-                    : 'bg-amber-500/10 text-amber-400'
+                    ? 'bg-down-bg text-down'
+                    : 'bg-gold/15 text-gold'
                 }`}
               >
                 {currentOutcome.outcome.equities.dir}
               </span>
             </div>
-            <div className="text-lg font-black text-foreground">{currentOutcome.outcome.equities.pct}</div>
-            <p className="text-[11px] text-muted-foreground leading-tight">{currentOutcome.outcome.equities.note}</p>
+            <div className="text-lg font-mono font-bold text-text num">{currentOutcome.outcome.equities.pct}</div>
+            <p className="text-xs text-text-muted leading-relaxed">{currentOutcome.outcome.equities.note}</p>
           </div>
         </div>
 
-        {/* Institutional Playbook Footer */}
-        <div className="mt-4 pt-3 border-t border-border flex items-start gap-2.5 bg-background/40 p-3 rounded-lg">
-          <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <div className="text-xs">
-            <span className="font-bold text-foreground">Execution Protocol: </span>
-            <span className="text-muted-foreground">{currentOutcome.outcome.institutionalPlaybook}</span>
+        {/* Institutional Playbook Banner */}
+        <div className="p-4 rounded-xl bg-surface-2 border border-border flex items-start gap-3">
+          <Target className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <span className="font-bold text-text">Institutional Execution Playbook: </span>
+            <span className="text-text-muted">{currentOutcome.outcome.institutionalPlaybook}</span>
           </div>
         </div>
       </div>
 
-      {/* ── DEDICATED GOLD & BITCOIN TRANSMISSION PANELS ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Gold Transmission Model */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 text-xs font-black">
-                G
-              </span>
-              Gold (XAU/USD) Macro Transmission
-            </h3>
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              {selectedEvent.goldTransmission.directionalBias}
-            </span>
-          </div>
-
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {selectedEvent.goldTransmission.realYieldDriver}
-          </p>
-
-          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border">
-            <div className="rounded bg-background p-2 border border-border">
-              <div className="text-[10px] text-muted-foreground">Expected Range:</div>
-              <div className="font-mono font-bold text-foreground">
-                ${selectedEvent.goldTransmission.expectedRange[0]} – ${selectedEvent.goldTransmission.expectedRange[1]}
-              </div>
-            </div>
-            <div className="rounded bg-background p-2 border border-border">
-              <div className="text-[10px] text-muted-foreground">Key Breakout Trigger:</div>
-              <div className="font-mono font-bold text-primary">
-                ${selectedEvent.goldTransmission.keyTriggerLevel}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bitcoin Transmission Model */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-black">
+      {/* ── DEDICATED BITCOIN & GOLD MOMENTUM RADAR (CORE USER REQUIREMENT) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* BITCOIN (BTC/USD) DEEP MOMENTUM RADAR */}
+        <div className="card p-6 space-y-4 border-2 border-accent/40">
+          <div className="flex items-center justify-between pb-3 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-accent text-accent-fg flex items-center justify-center font-bold text-xl">
                 ₿
-              </span>
-              Bitcoin (BTC/USD) Liquidity Transmission
-            </h3>
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              {selectedEvent.bitcoinTransmission.directionalBias}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-text">Bitcoin (BTC/USD) Momentum Forecast</h3>
+                <div className="label text-text-muted">Scenario: {currentOutcome.condition.split('(')[0]}</div>
+              </div>
+            </div>
+
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                currentBtcForecast.direction === 'BULLISH_PUMP'
+                  ? 'bg-up-bg text-up border border-up'
+                  : currentBtcForecast.direction === 'BEARISH_DUMP'
+                  ? 'bg-down-bg text-down border border-down'
+                  : 'bg-gold/15 text-gold border border-gold'
+              }`}
+            >
+              {currentBtcForecast.direction.replace('_', ' ')}
             </span>
           </div>
 
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {selectedEvent.bitcoinTransmission.liquidityDriver}
-          </p>
+          {/* Key Metrics Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="plan-item">
+              <div className="plan-item-label">Expected Momentum Move</div>
+              <div className="plan-item-val text-accent text-base">{currentBtcForecast.expectedMove}</div>
+            </div>
+            <div className="plan-item">
+              <div className="plan-item-label">Target Range (Post-News)</div>
+              <div className="plan-item-val text-text text-base">{currentBtcForecast.targetRange}</div>
+            </div>
+            <div className="plan-item">
+              <div className="plan-item-label">Key Support / Pivot</div>
+              <div className="plan-item-val text-gold text-base">{currentBtcForecast.keyPivot}</div>
+            </div>
+            <div className="plan-item">
+              <div className="plan-item-label">Setup Invalidation Level</div>
+              <div className="plan-item-val text-down text-base">{currentBtcForecast.invalidation}</div>
+            </div>
+          </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border">
-            <div className="rounded bg-background p-2 border border-border">
-              <div className="text-[10px] text-muted-foreground">Expected Range:</div>
-              <div className="font-mono font-bold text-foreground">
-                ${selectedEvent.bitcoinTransmission.expectedRange[0].toLocaleString()} – ${selectedEvent.bitcoinTransmission.expectedRange[1].toLocaleString()}
+          {/* Transmission Catalyst Explanation */}
+          <div className="p-3.5 rounded-xl bg-surface-2 border border-border text-sm">
+            <div className="label text-accent font-bold mb-1">Market Catalyst & Liquidity Transmission:</div>
+            <p className="text-text-muted leading-relaxed">{currentBtcForecast.catalystExplanation}</p>
+          </div>
+        </div>
+
+        {/* SPOT GOLD (XAU/USD) DEEP MOMENTUM RADAR */}
+        <div className="card p-6 space-y-4 border-2 border-gold/40">
+          <div className="flex items-center justify-between pb-3 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-gold text-accent-fg flex items-center justify-center font-bold text-xl">
+                🥇
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-text">Spot Gold (XAU/USD) Momentum Forecast</h3>
+                <div className="label text-text-muted">Scenario: {currentOutcome.condition.split('(')[0]}</div>
               </div>
             </div>
-            <div className="rounded bg-background p-2 border border-border">
-              <div className="text-[10px] text-muted-foreground">Key Breakout Trigger:</div>
-              <div className="font-mono font-bold text-primary">
-                ${selectedEvent.bitcoinTransmission.keyTriggerLevel.toLocaleString()}
-              </div>
+
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                currentGoldForecast.direction === 'BULLISH_SURGE'
+                  ? 'bg-up-bg text-up border border-up'
+                  : currentGoldForecast.direction === 'BEARISH_DROP'
+                  ? 'bg-down-bg text-down border border-down'
+                  : 'bg-gold/15 text-gold border border-gold'
+              }`}
+            >
+              {currentGoldForecast.direction.replace('_', ' ')}
+            </span>
+          </div>
+
+          {/* Key Metrics Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="plan-item">
+              <div className="plan-item-label">Expected Momentum Move</div>
+              <div className="plan-item-val text-gold text-base">{currentGoldForecast.expectedMove}</div>
             </div>
+            <div className="plan-item">
+              <div className="plan-item-label">Target Range (Post-News)</div>
+              <div className="plan-item-val text-text text-base">{currentGoldForecast.targetRange}</div>
+            </div>
+            <div className="plan-item">
+              <div className="plan-item-label">Key Support / Pivot</div>
+              <div className="plan-item-val text-accent text-base">{currentGoldForecast.keyPivot}</div>
+            </div>
+            <div className="plan-item">
+              <div className="plan-item-label">Setup Invalidation Level</div>
+              <div className="plan-item-val text-down text-base">{currentGoldForecast.invalidation}</div>
+            </div>
+          </div>
+
+          {/* Transmission Catalyst Explanation */}
+          <div className="p-3.5 rounded-xl bg-surface-2 border border-border text-sm">
+            <div className="label text-gold font-bold mb-1">Real Yield Transmission & Bullion Inflows:</div>
+            <p className="text-text-muted leading-relaxed">{currentGoldForecast.catalystExplanation}</p>
           </div>
         </div>
       </div>
 
-      {/* ── NEWS TRAP DETECTOR ── */}
-      <div className="rounded-xl border border-rose-500/30 bg-gradient-to-r from-card via-card/90 to-rose-500/5 p-4 shadow-xl">
-        <div className="flex items-start gap-3">
-          <ShieldAlert className="h-6 w-6 text-rose-400 shrink-0 mt-1" />
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-black text-rose-400 uppercase tracking-wider">
-                News Trap Detector & Whipsaw Warning
-              </h3>
-              <span className="rounded bg-rose-500/20 text-rose-400 px-2 py-0.5 text-[10px] font-bold">
-                {selectedEvent.trapWarning.trapType.replace(/_/g, ' ')}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {selectedEvent.trapWarning.mechanism}
-            </p>
-            <div className="text-xs font-bold text-foreground flex items-center gap-1.5 pt-1">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              <span>Safe Execution Protocol: {selectedEvent.trapWarning.safeExecutionWindow}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── AI VOICE QUERY ASSISTANT (HINDI, HINGLISH, ENGLISH) ── */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+      {/* ── NEWS TRAP WARNING & 15-MINUTE EXECUTION RULE ── */}
+      <div className="invalidation-box flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
+        <div className="flex items-center gap-3">
+          <AlertTriangle className="h-6 w-6 text-down shrink-0" />
           <div>
-            <h2 className="text-base font-black text-foreground flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              AI Voice Macro Assistant (Hindi / Hinglish / English)
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Ask or select common questions about macro event impacts and listen to real-time audio answers.
-            </p>
+            <h4 className="text-base font-bold text-down">
+              Institutional Trap Warning: {selectedEvent.trapWarning.trapType.replace(/_/g, ' ')}
+            </h4>
+            <p className="text-sm text-text-muted mt-1">{selectedEvent.trapWarning.mechanism}</p>
           </div>
         </div>
 
-        {/* Preset Questions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="shrink-0 bg-surface px-4 py-2 rounded-xl border border-border text-center">
+          <div className="label text-text-muted">Execution Window</div>
+          <div className="text-sm font-bold text-accent mt-0.5">{selectedEvent.trapWarning.safeExecutionWindow}</div>
+        </div>
+      </div>
+
+      {/* ── AI VOICE QUERY & AUDIO ASSISTANT (HINDI / HINGLISH / ENGLISH) ── */}
+      <div className="card p-6 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent text-accent-fg flex items-center justify-center font-bold text-xl">
+              🎙️
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text">AI Macro Audio Assistant (Hindi / Hinglish / English)</h3>
+              <p className="text-sm text-text-muted">Ask questions about market impact and receive instant spoken institutional briefings.</p>
+            </div>
+          </div>
+
+          <div className="label text-text-muted font-bold">Voice Synthesis Active</div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
           {VOICE_FAQS.map(faq => (
             <div
               key={faq.id}
-              onClick={() => setActiveFaq(faq)}
-              className={`rounded-xl border p-3.5 transition-all cursor-pointer space-y-2.5 ${
-                faq.id === activeFaq.id
-                  ? 'border-primary bg-primary/5 shadow-md'
-                  : 'border-border bg-background/50 hover:border-primary/40'
+              onClick={() => {
+                setActiveFaq(faq);
+                handleSpeakFaq(faq);
+              }}
+              className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                activeFaq.id === faq.id
+                  ? 'border-accent bg-surface-2 shadow-lg shadow-accent/10'
+                  : 'border-border bg-surface hover:bg-surface-2'
               }`}
             >
-              <div className="text-xs font-bold text-foreground">
-                {langMode === 'hindi' ? faq.questionHindi : langMode === 'hinglish' ? faq.questionHinglish : faq.questionEnglish}
-              </div>
-
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[10px] text-muted-foreground">Instant Audio Analysis</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveFaq(faq);
-                    handleSpeakFaq(faq);
-                  }}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-primary-foreground text-[10px] font-bold hover:bg-primary/90 cursor-pointer"
-                >
-                  <Volume2 className="h-3 w-3" />
-                  Listen
+              <div className="flex items-center justify-between mb-2">
+                <span className="label text-accent font-bold">Question {faq.id.toUpperCase()}</span>
+                <button className="flex items-center justify-center h-8 w-8 rounded-full bg-accent text-accent-fg">
+                  {isSpeaking && activeFaq.id === faq.id ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4 ml-0.5" />
+                  )}
                 </button>
               </div>
+
+              <h4 className="text-sm font-bold text-text mb-2">
+                {langMode === 'hindi'
+                  ? faq.questionHindi
+                  : langMode === 'hinglish'
+                  ? faq.questionHinglish
+                  : faq.questionEnglish}
+              </h4>
+
+              <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">
+                {langMode === 'hindi'
+                  ? faq.answerHindi
+                  : langMode === 'hinglish'
+                  ? faq.answerHinglish
+                  : faq.answerEnglish}
+              </p>
             </div>
           ))}
-        </div>
-
-        {/* Active Question Audio Answer Box */}
-        <div className="rounded-xl bg-background/70 border border-border p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-primary flex items-center gap-1.5">
-              <Volume2 className="h-4 w-4" />
-              AI Voice Answer ({langMode.toUpperCase()}):
-            </span>
-            <button
-              onClick={() => handleSpeakFaq(activeFaq)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                isSpeaking
-                  ? 'bg-rose-500 text-white animate-pulse'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
-              }`}
-            >
-              {isSpeaking ? <VolumeX className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-              {isSpeaking ? 'Stop Audio' : 'Play Voice Answer'}
-            </button>
-          </div>
-
-          <p className="text-xs sm:text-sm text-foreground leading-relaxed bg-card p-3 rounded-lg border border-border/60">
-            {langMode === 'hindi' ? activeFaq.answerHindi : langMode === 'hinglish' ? activeFaq.answerHinglish : activeFaq.answerEnglish}
-          </p>
         </div>
       </div>
     </div>
