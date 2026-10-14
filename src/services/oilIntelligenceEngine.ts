@@ -221,16 +221,16 @@ export const SUPPORTED_OIL_INSTRUMENTS: OilInstrument[] = [
     ticker: 'CL (Front-Month)',
     exchange: 'NYMEX / CME Group',
     brokerSource: 'Official CME Market Data',
-    contractExpiry: 'Nov 2026 / Dec 2026 Roll',
+    contractExpiry: 'Front-Month Active',
     quoteCurrency: 'USD',
     contractSize: '1,000 US Barrels (42,000 Gallons)',
     multiplier: 1000,
     tickSize: 0.01,
-    price: 76.84,
-    change24h: 1.42,
-    changePct: 1.88,
-    high24h: 77.40,
-    low24h: 75.15,
+    price: 94.45,
+    change24h: 0.31,
+    changePct: 0.33,
+    high24h: 95.41,
+    low24h: 93.97,
     volume: '348,290 Contracts',
     openInterest: '1,842,500 Contracts',
     dataTimestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -242,16 +242,16 @@ export const SUPPORTED_OIL_INSTRUMENTS: OilInstrument[] = [
     ticker: 'B (Front-Month)',
     exchange: 'ICE Europe',
     brokerSource: 'Intercontinental Exchange (ICE)',
-    contractExpiry: 'Dec 2026 Active',
+    contractExpiry: 'Front-Month Active',
     quoteCurrency: 'USD',
     contractSize: '1,000 US Barrels',
     multiplier: 1000,
     tickSize: 0.01,
-    price: 80.95,
-    change24h: 1.55,
-    changePct: 1.95,
-    high24h: 81.50,
-    low24h: 79.20,
+    price: 98.85,
+    change24h: 0.42,
+    changePct: 0.43,
+    high24h: 99.60,
+    low24h: 98.20,
     volume: '292,100 Contracts',
     openInterest: '1,420,100 Contracts',
     dataTimestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -268,11 +268,11 @@ export const SUPPORTED_OIL_INSTRUMENTS: OilInstrument[] = [
     contractSize: '100 Barrels (Mini CFD)',
     multiplier: 100,
     tickSize: 0.01,
-    price: 76.80,
-    change24h: 1.40,
-    changePct: 1.86,
-    high24h: 77.35,
-    low24h: 75.10,
+    price: 94.42,
+    change24h: 0.30,
+    changePct: 0.32,
+    high24h: 95.38,
+    low24h: 93.95,
     volume: 'High Liquidity Feed',
     openInterest: 'N/A (Cash CFD)',
     dataTimestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -289,11 +289,11 @@ export const SUPPORTED_OIL_INSTRUMENTS: OilInstrument[] = [
     contractSize: '100 Barrels (Mini CFD)',
     multiplier: 100,
     tickSize: 0.01,
-    price: 80.90,
-    change24h: 1.52,
-    changePct: 1.91,
-    high24h: 81.45,
-    low24h: 79.15,
+    price: 98.80,
+    change24h: 0.40,
+    changePct: 0.41,
+    high24h: 99.55,
+    low24h: 98.15,
     volume: 'High Liquidity Feed',
     openInterest: 'N/A (Cash CFD)',
     dataTimestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -310,11 +310,11 @@ export const SUPPORTED_OIL_INSTRUMENTS: OilInstrument[] = [
     contractSize: '42,000 Gallons',
     multiplier: 42000,
     tickSize: 0.0001,
-    price: 2.2450,
-    change24h: 0.042,
-    changePct: 1.91,
-    high24h: 2.2680,
-    low24h: 2.1980,
+    price: 2.4450,
+    change24h: 0.038,
+    changePct: 1.58,
+    high24h: 2.4880,
+    low24h: 2.3980,
     volume: '68,400 Contracts',
     openInterest: '310,000 Contracts',
     dataTimestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -331,11 +331,11 @@ export const SUPPORTED_OIL_INSTRUMENTS: OilInstrument[] = [
     contractSize: '10,000 MMBtu',
     multiplier: 10000,
     tickSize: 0.001,
-    price: 2.840,
-    change24h: -0.065,
-    changePct: -2.24,
-    high24h: 2.920,
-    low24h: 2.810,
+    price: 2.920,
+    change24h: 0.045,
+    changePct: 1.56,
+    high24h: 2.980,
+    low24h: 2.870,
     volume: '142,300 Contracts',
     openInterest: '1,150,000 Contracts',
     dataTimestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -349,31 +349,31 @@ export const INITIAL_OIL_SMC_STRUCTURE: SMCStructure = {
   marketStructure: 'BOS_BULLISH',
   orderBlock: {
     type: 'BULLISH_DEMAND',
-    priceRange: [75.40, 75.95],
+    priceRange: [92.80, 93.60],
     volumeConfirmed: true
   },
   fairValueGap: {
     type: 'BULLISH_FVG',
-    range: [76.10, 76.45],
+    range: [93.80, 94.20],
     tested: false
   },
   liquidityPools: {
-    buySideLiquidity: 77.65,
-    sellSideLiquidity: 74.80,
-    lastSweepStatus: 'Asian Session Sell-Side Liquidity Swept at $75.15'
+    buySideLiquidity: 95.80,
+    sellSideLiquidity: 92.40,
+    lastSweepStatus: 'Asian Session Sell-Side Liquidity Swept at $93.97'
   },
   volumeProfile: {
-    poc: 76.50,
-    vah: 77.20,
-    val: 75.60
+    poc: 94.20,
+    vah: 95.10,
+    val: 93.40
   },
   keyLevels: {
-    pdh: 77.10,
-    pdl: 74.90,
-    pwh: 78.40,
-    pwl: 73.80,
-    support: 75.40,
-    resistance: 78.20
+    pdh: 95.41,
+    pdl: 93.97,
+    pwh: 96.80,
+    pwl: 91.50,
+    support: 93.80,
+    resistance: 96.50
   }
 };
 
@@ -534,16 +534,16 @@ export const INITIAL_AI_TRADE_PLAN: TradePlan = {
   confidenceScore: 88,
   timeHorizon: 'SWING_4H',
   marketRegime: 'SUPPLY_DEFICIT',
-  entryZone: [76.10, 76.50],
-  stopLoss: 74.85,
-  takeProfit1: 77.80,
-  takeProfit2: 79.40,
-  takeProfit3: 81.50,
-  riskRewardRatio: 3.08,
-  invalidationPrice: 74.65,
-  invalidationReason: '4H candle close below $74.65 sweeps Asian low and invalidates daily bullish order block structure.',
+  entryZone: [93.80, 94.20],
+  stopLoss: 92.40,
+  takeProfit1: 95.80,
+  takeProfit2: 98.20,
+  takeProfit3: 101.50,
+  riskRewardRatio: 2.71,
+  invalidationPrice: 92.15,
+  invalidationReason: '4H candle close below $92.15 sweeps Asian session demand low and invalidates daily bullish order block structure.',
   confirmationConditions: [
-    'Price retesting 4H Fair Value Gap ($76.10–$76.45) with declining sell volume.',
+    'Price retesting 4H Fair Value Gap ($93.80–$94.20) with declining sell volume.',
     'Cumulative Volume Delta (CVD) showing aggressive limit absorption by institutional buyers.',
     'Term structure remaining in backwardation with prompt calendar spread > +$3.50/bbl.',
     'DXY holding below 102.20 without hawkish Fed disruption.'
@@ -567,25 +567,25 @@ export const OIL_SCENARIOS_PROBABILITY: ScenarioProbability[] = [
   {
     scenario: 'BULLISH',
     probability: 62,
-    priceTarget: '$80.50 – $83.00 (WTI) / $84.50 – $87.00 (Brent)',
-    triggerCondition: '4H candle close above $77.65 resistance with EIA inventory draw > 1.8M barrels.',
-    invalidation: 'Break below $74.85 swing low.',
+    priceTarget: '$98.00 – $102.50 (WTI) / $102.00 – $106.50 (Brent)',
+    triggerCondition: '4H candle close above $95.50 resistance with EIA inventory draw > 1.8M barrels.',
+    invalidation: 'Break below $92.40 swing low.',
     keyDriver: 'OPEC+ supply tightness + Middle East maritime risk premium + US SPR refill demand.'
   },
   {
     scenario: 'NEUTRAL',
     probability: 23,
-    priceTarget: '$75.00 – $77.50 Rangebound Chop',
+    priceTarget: '$93.50 – $95.50 Rangebound Chop',
     triggerCondition: 'EIA inventory prints in-line (±0.5M) and DXY consolidates between 101.50 and 102.50.',
-    invalidation: 'Breakout above $77.80 or breakdown below $74.60.',
+    invalidation: 'Breakout above $96.00 or breakdown below $92.50.',
     keyDriver: 'High refinery runs balanced against resilient US shale production.'
   },
   {
     scenario: 'BEARISH',
     probability: 15,
-    priceTarget: '$71.50 – $73.20 (WTI) / $75.00 – $77.00 (Brent)',
+    priceTarget: '$89.50 – $91.50 (WTI) / $93.50 – $95.50 (Brent)',
     triggerCondition: 'EIA crude build > +3.5M barrels combined with Middle East ceasefire or OPEC+ quota cheating.',
-    invalidation: 'Reclaim of $77.20.',
+    invalidation: 'Reclaim of $95.20.',
     keyDriver: 'Global demand slowdown fears and surging non-OPEC+ supply (Guyana, Brazil, US).'
   }
 ];
@@ -679,10 +679,10 @@ export class OilIntelligenceEngineService {
     const requiredMargin = positionNotionalValue / brokerLeverage;
     const estimatedTradingCosts = recommendedContracts * estimatedFees;
 
-    // Potential profit targets (TP1: 77.80, TP2: 79.40, TP3: 81.50)
-    const tp1Dist = Math.abs(77.80 - entryPrice);
-    const tp2Dist = Math.abs(79.40 - entryPrice);
-    const tp3Dist = Math.abs(81.50 - entryPrice);
+    // Potential profit targets (TP1: 95.80, TP2: 98.20, TP3: 101.50)
+    const tp1Dist = Math.abs(95.80 - entryPrice);
+    const tp2Dist = Math.abs(98.20 - entryPrice);
+    const tp3Dist = Math.abs(101.50 - entryPrice);
 
     const profitTP1 = recommendedContracts * tp1Dist * multiplier;
     const profitTP2 = recommendedContracts * tp2Dist * multiplier;
@@ -728,11 +728,11 @@ export class OilIntelligenceEngineService {
    */
   public generateBriefingText(lang: 'hindi' | 'hinglish' | 'english'): string {
     if (lang === 'hindi') {
-      return `क्रूड ऑयल इंटेलिजेंस एंड ट्रेडिंग टर्मिनल डेली ब्रीफिंग। डब्ल्यूटीआई क्रूड 76 डॉलर 84 सेंट्स और ब्रेंट 80 डॉलर 95 सेंट्स पर ट्रेड कर रहा है। मुख्य ट्रेड निर्णय लॉन्ग है, जिसका कॉन्फिडेंस स्कोर 88 प्रतिशत है। एंट्री ज़ोन 76 डॉलर 10 सेंट्स से 76 डॉलर 50 सेंट्स के बीच है, और स्टॉप लॉस 74 डॉलर 85 सेंट्स रहेगा। पहला टारगेट 77 डॉलर 80 सेंट्स और मुख्य टारगेट 79 डॉलर 40 सेंट्स है। ओपेक प्लस की 2.2 मिलियन बैरल प्रतिदिन की सप्लाई कटौती और मिडिल ईस्ट का 4 डॉलर 50 सेंट्स का रिस्क प्रीमियम कच्चे तेल को मजबूत सपोर्ट दे रहा है। 74 डॉलर 65 सेंट्स के नीचे 4-ऑवर कैंडल क्लोज़ ट्रेड को इनवैलिडेट कर देगा।`;
+      return `क्रूड ऑयल इंटेलिजेंस एंड ट्रेडिंग टर्मिनल डेली ब्रीफिंग। डब्ल्यूटीआई क्रूड 94 डॉलर 45 सेंट्स और ब्रेंट 98 डॉलर 85 सेंट्स पर ट्रेड कर रहा है। मुख्य ट्रेड निर्णय लॉन्ग है, जिसका कॉन्फिडेंस स्कोर 88 प्रतिशत है। एंट्री ज़ोन 93 डॉलर 80 सेंट्स से 94 डॉलर 20 सेंट्स के बीच है, और स्टॉप लॉस 92 डॉलर 40 सेंट्स रहेगा। पहला टारगेट 95 डॉलर 80 सेंट्स और मुख्य टारगेट 98 डॉलर 20 सेंट्स है। ओपेक प्लस की 2.2 मिलियन बैरल प्रतिदिन की सप्लाई कटौती और मिडिल ईस्ट का रिस्क प्रीमियम कच्चे तेल को मजबूत सपोर्ट दे रहा है। 92 डॉलर 15 सेंट्स के नीचे 4-ऑवर कैंडल क्लोज़ ट्रेड को इनवैलिडेट कर देगा।`;
     } else if (lang === 'hinglish') {
-      return `Dhyan se suno bhai! Crude Oil Intelligence Terminal ka live decision LONG hai with 88% confidence. WTI Crude $76.84 aur Brent Crude $80.95 par strong bullish structure bana rahe hain. Optimal entry zone $76.10 se $76.50 ke 4H Fair Value Gap par hai. Stop loss strictly $74.85 par maintain karein. Target 1 $77.80 aur Target 2 $79.40 hai with 3 to 1 risk reward. Fundamental front par OPEC+ cuts aur US SPR refill demand market ko tight rakh rahe hain. Jab tak WTI $74.65 ke upar hai, dip buying institutional preference rahegi!`;
+      return `Dhyan se suno bhai! Crude Oil Intelligence Terminal ka live decision LONG hai with 88% confidence. WTI Crude $94.45 aur Brent Crude $98.85 par strong bullish structure bana rahe hain. Optimal entry zone $93.80 se $94.20 ke 4H Fair Value Gap par hai. Stop loss strictly $92.40 par maintain karein. Target 1 $95.80 aur Target 2 $98.20 hai with over 2.7 to 1 risk reward. Fundamental front par OPEC+ cuts aur US SPR refill demand market ko tight rakh rahe hain. Jab tak WTI $92.15 ke upar hai, dip buying institutional preference rahegi!`;
     } else {
-      return `Institutional Crude Oil Intelligence and Trading Briefing. WTI Crude is trading at $76.84 and Brent Crude at $80.95 with an active LONG bias at 88% confidence. Optimal entry zone spans $76.10 to $76.50 within the 4H Fair Value Gap. Stop-loss is positioned at $74.85, targeting $77.80 for TP1 and $79.40 for TP2, delivering a 3.08 risk-to-reward ratio. Supply deficit of 800,000 barrels per day and extended OPEC+ quotas provide robust structural support. Invalidation occurs on a 4H candle close below $74.65.`;
+      return `Institutional Crude Oil Intelligence and Trading Briefing. WTI Crude is trading at $94.45 and Brent Crude at $98.85 with an active LONG bias at 88% confidence. Optimal entry zone spans $93.80 to $94.20 within the 4H Fair Value Gap. Stop-loss is positioned at $92.40, targeting $95.80 for TP1 and $98.20 for TP2, delivering a 2.71 risk-to-reward ratio. Supply deficit of 800,000 barrels per day and extended OPEC+ quotas provide robust structural support. Invalidation occurs on a 4H candle close below $92.15.`;
     }
   }
 
