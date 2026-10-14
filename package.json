@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "telegram:bot": "python server/telegram_alert_daemon.py",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
