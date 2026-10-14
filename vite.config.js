@@ -6,6 +6,9 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
     proxy: {
       '/api/delta': {
         target: 'https://api.india.delta.exchange',
