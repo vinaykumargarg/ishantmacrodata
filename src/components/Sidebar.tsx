@@ -11,7 +11,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     title: 'AI Decision & Live Chart',
     icon: '⚡',
     items: [
-      { id: 'telegram-alerts', label: 'Telegram AI Alerts 📲⭐ (Live Bot)', icon: '📲' },
       { id: 'gold', label: 'Gold Macro Overview 🥇', icon: '🥇' },
       { id: 'news', label: 'Financial News 📰', icon: '📰' },
       { id: 'jarvis-voice-ai', label: 'Jarvis AI Market Voice Expert 🎙️⭐ (Hindi/Hinglish/Eng)', icon: '🎙️' },
@@ -162,8 +161,14 @@ export const NAV_CATEGORIES: NavCategory[] = [
     icon: '👤',
     items: [
       { id: 'pricing', label: 'Pricing & Plans (₹)', icon: '💎' },
-      { id: 'telegram-alerts', label: 'Telegram AI Alerts 📲', icon: '🔔' },
       { id: 'account', label: 'My Account', icon: '👤' }
+    ]
+  },
+  {
+    title: 'Telegram & Alerts',
+    icon: '📲',
+    items: [
+      { id: 'telegram-alerts', label: 'Telegram AI Alerts 📲⭐ (Live Bot)', icon: '🔔' }
     ]
   }
 ];
