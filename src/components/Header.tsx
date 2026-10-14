@@ -15,6 +15,7 @@ interface HeaderProps {
   onNavigateDeltaSwing?: () => void;
   onNavigateUsaSwing?: () => void;
   onNavigateEventImpact?: () => void;
+  onNavigateOil?: () => void;
   onSearch?: (query: string) => void;
 }
 
@@ -29,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateDeltaSwing,
   onNavigateUsaSwing,
   onNavigateEventImpact,
+  onNavigateOil,
   onSearch,
   onOpenAccount
 }) => {
@@ -149,6 +151,18 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <span>🌊</span>
             <span className="hidden lg:inline">Liquidity Sweep Pro</span>
+          </button>
+        )}
+
+        {/* Oil Intelligence Terminal Launcher */}
+        {onNavigateOil && (
+          <button
+            onClick={onNavigateOil}
+            className="rounded-md border border-amber-500/50 bg-gradient-to-r from-amber-500/20 to-orange-500/20 px-2.5 py-1.5 text-xs font-bold text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ring-1 ring-amber-500/30"
+            title="Open Institutional Crude Oil Intelligence & Trading Terminal"
+          >
+            <span>🛢️</span>
+            <span className="hidden md:inline">Oil AI</span>
           </button>
         )}
 

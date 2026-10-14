@@ -66,6 +66,16 @@ export const NAV_CATEGORIES: NavCategory[] = [
     ]
   },
   {
+    title: 'Crude Oil Intelligence & AI Terminal ⭐',
+    icon: '🛢️',
+    items: [
+      { id: 'oil-trading-ai', label: 'Oil Intelligence & AI Terminal ⭐ (WTI / Brent)', icon: '🛢️' },
+      { id: 'oil-inventory-engine', label: 'EIA & API Inventory Event Radar 📊', icon: '⏱️' },
+      { id: 'oil-geopolitical-radar', label: 'Oil Geopolitics & OPEC+ Radar 🌍', icon: '🔥' },
+      { id: 'oil-position-sizer', label: 'Oil Institutional Risk Sizer 📐', icon: '🧮' }
+    ]
+  },
+  {
     title: 'Crypto Engines',
     icon: '🧬',
     items: [
