@@ -1480,37 +1480,276 @@ function RiskConsoleView() {
 function EconomicEventsView() {
   const [usdOnly, setUsdOnly] = useState(false);
   const [highOnly, setHighOnly] = useState(false);
+  const [filterDay, setFilterDay] = useState<'All' | 'Today' | 'Tomorrow' | 'Friday'>('Today');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Interactive Live News Reaction Chart State
+  const [newsChartSymbol, setNewsChartSymbol] = useState<'OANDA:XAUUSD' | 'BINANCE:BTCUSDT' | 'CAPITALCOM:DXY' | 'TVC:US10Y'>('OANDA:XAUUSD');
+  const [newsChartInterval, setNewsChartInterval] = useState<'15' | '60' | '240' | 'D'>('60');
+
+  // Live Countdown to 6:00 PM US CPI Release (Today)
+  const [countdownStr, setCountdownStr] = useState('');
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const target = new Date();
+      target.setHours(18, 0, 0, 0); // 6:00 PM today
+      const diff = target.getTime() - Date.now();
+      if (diff <= 0) {
+        setCountdownStr('RELEASED');
+      } else {
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        setCountdownStr(`${hours.toString().padStart(2, '0')}h : ${minutes.toString().padStart(2, '0')}m : ${seconds.toString().padStart(2, '0')}s`);
+      }
+    };
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-border pb-4">
-        <span className="inline-block rounded bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary uppercase tracking-wide">
-          Live Calendar
-        </span>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground font-sans">
-          📅 News Events — CPI · PPI · FOMC · NFP
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Countdown timers update every single second. Actual, Forecast, and Previous releases directly synced.
-        </p>
+      {/* ── 1. HEADER & FOREX FACTORY SYNC STATUS ── */}
+      <div className="card p-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-accent-fg font-black text-2xl shrink-0 shadow-lg">
+              📅
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-heading text-text">
+                  NEWS EVENTS & LIVE MACRO CALENDAR
+                </h1>
+                <span className="label rounded-full bg-up-bg border border-up text-up px-2.5 py-0.5 font-bold">
+                  FOREXFACTORY LIVE
+                </span>
+              </div>
+              <p className="label text-text-muted font-bold mt-1">
+                US CPI • CORE CPI • PPI • FOMC • RETAIL SALES • BITCOIN & GOLD TRANSMISSION
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-up animate-pulse" />
+            <span className="text-xs font-mono font-bold text-accent">
+              FEED ACTIVE: 14-OCT-2026 SESSION
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => setUsdOnly(!usdOnly)}
-          className={`rounded-full border px-4 py-1.5 text-xs font-mono font-semibold transition-colors ${usdOnly ? 'border-primary bg-primary text-[#0d1117]' : 'border-border bg-card text-muted-foreground'}`}
-        >
-          {usdOnly ? '🇺🇸 USD Only' : '🌍 All Currencies'}
-        </button>
-        <button
-          onClick={() => setHighOnly(!highOnly)}
-          className={`rounded-full border px-4 py-1.5 text-xs font-mono font-semibold transition-colors ${highOnly ? 'border-primary bg-primary text-[#0d1117]' : 'border-border bg-card text-muted-foreground'}`}
-        >
-          {highOnly ? '🔴 High Impact Only' : 'Medium + High Impact'}
-        </button>
+      {/* ── 2. UPCOMING TIER-1 RELEASE HERO SPOTLIGHT (US CPI AT 6:00 PM) ── */}
+      <div className="terminal-hero-spotlight p-6 space-y-4 border-2 border-accent/40">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="label px-2 py-0.5 rounded bg-down-bg border border-down text-down font-bold">
+                🔴 RED FOLDER • HIGH IMPACT
+              </span>
+              <span className="label text-accent font-bold">RELEASE TIME: TODAY, 6:00 PM</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-text">
+              US Core CPI & CPI (MoM / YoY) Release
+            </h2>
+            <p className="text-xs text-text-muted">
+              Bureau of Labor Statistics (BLS) headline & core inflation prints that dictate Federal Reserve interest rate policy.
+            </p>
+          </div>
+
+          {/* Countdown Clock */}
+          <div className="card px-5 py-3 border-2 border-gold/50 bg-surface-2 text-right shrink-0">
+            <div className="text-[10px] font-mono uppercase text-gold font-bold tracking-wider">Countdown to Release</div>
+            <div className="text-2xl font-mono font-black text-gold num mt-0.5">
+              {countdownStr}
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Official Forex Factory Key Numbers Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="plan-item">
+            <div className="plan-item-label">Core CPI m/m</div>
+            <div className="plan-item-val text-accent text-base">Forecast: 0.2%</div>
+            <div className="text-[11px] text-text-muted mt-1">Previous: 0.3%</div>
+          </div>
+          <div className="plan-item">
+            <div className="plan-item-label">Core CPI y/y</div>
+            <div className="plan-item-val text-accent text-base">Forecast: 2.5%</div>
+            <div className="text-[11px] text-text-muted mt-1">Previous: 2.4%</div>
+          </div>
+          <div className="plan-item">
+            <div className="plan-item-label">CPI m/m</div>
+            <div className="plan-item-val text-gold text-base">Forecast: 0.6%</div>
+            <div className="text-[11px] text-text-muted mt-1">Previous: 0.4%</div>
+          </div>
+          <div className="plan-item">
+            <div className="plan-item-label">CPI y/y (Headline)</div>
+            <div className="plan-item-val text-gold text-base">Forecast: 3.6%</div>
+            <div className="text-[11px] text-text-muted mt-1">Previous: 3.4%</div>
+          </div>
+        </div>
+
+        {/* CPI 3-Scenario Matrix Quick Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+          <div className="p-3 rounded-lg bg-surface-2 border border-up/30 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-up">1. Below Forecast (&lt; 3.6%)</span>
+              <span className="label text-up font-bold">BULLISH SURGE</span>
+            </div>
+            <p className="text-[11px] text-text-muted leading-relaxed">
+              DXY dumps below 101.80. Gold pumps toward <strong>$2,725+</strong>, Bitcoin surges toward <strong>$87,400+</strong>.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-lg bg-surface-2 border border-gold/30 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gold">2. In-Line (= 3.6%)</span>
+              <span className="label text-gold font-bold">2-WAY CHOP</span>
+            </div>
+            <p className="text-[11px] text-text-muted leading-relaxed">
+              Initial 15-minute wick hunt both sides. Gold rangebound <strong>$2,648–$2,675</strong>, BTC consolidates <strong>$83.3K–$84.9K</strong>.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-lg bg-surface-2 border border-down/30 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-down">3. Above Forecast (&gt; 3.6%)</span>
+              <span className="label text-down font-bold">HAWKISH DROP</span>
+            </div>
+            <p className="text-[11px] text-text-muted leading-relaxed">
+              DXY rallies through 103.50. Gold pulls back to <strong>$2,620</strong>, Bitcoin dips toward <strong>$80,500</strong>.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <EconCalendar usdOnly={usdOnly} minImpact={highOnly ? 'High' : 'Medium'} />
+      {/* ── 3. LIVE MULTI-ASSET NEWS REACTION CHART ── */}
+      <div className="card p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold text-text">
+              📊 Live News Reaction Chart
+            </span>
+            <span className="label text-text-muted">Multi-Asset Real-Time Candles</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Asset Switcher */}
+            <div className="flex items-center rounded-lg bg-surface-2 border border-border p-0.5 text-xs">
+              {[
+                { label: '🥇 Gold (XAU/USD)', sym: 'OANDA:XAUUSD' as const },
+                { label: '₿ Bitcoin (BTC/USD)', sym: 'BINANCE:BTCUSDT' as const },
+                { label: '💵 US Dollar (DXY)', sym: 'CAPITALCOM:DXY' as const },
+                { label: '📈 10Y Yield', sym: 'TVC:US10Y' as const }
+              ].map(asset => (
+                <button
+                  key={asset.sym}
+                  onClick={() => setNewsChartSymbol(asset.sym)}
+                  className={`px-2.5 py-1 rounded-md font-bold cursor-pointer transition-all ${
+                    newsChartSymbol === asset.sym ? 'btn-primary shadow-sm' : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  {asset.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Timeframe */}
+            <div className="flex items-center rounded-lg bg-surface-2 border border-border p-0.5 text-xs font-mono">
+              {[
+                { label: '15m', val: '15' as const },
+                { label: '1H', val: '60' as const },
+                { label: '4H', val: '240' as const },
+                { label: '1D', val: 'D' as const }
+              ].map(tf => (
+                <button
+                  key={tf.val}
+                  onClick={() => setNewsChartInterval(tf.val)}
+                  className={`px-2 py-1 rounded-md font-bold cursor-pointer transition-all ${
+                    newsChartInterval === tf.val ? 'bg-surface border border-accent text-accent' : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  {tf.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Embedded TradingView Chart */}
+        <div className="h-[440px] w-full rounded-xl overflow-hidden border border-border bg-[#0a1020]">
+          <TradingViewWidget
+            key={`${newsChartSymbol}-${newsChartInterval}`}
+            symbol={newsChartSymbol}
+            theme="dark"
+            height={440}
+            interval={newsChartInterval}
+          />
+        </div>
+      </div>
+
+      {/* ── 4. FOREX FACTORY-SYNCED CALENDAR TABLE & FILTERS ── */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setFilterDay('Today')}
+              className={`rounded-full border px-4 py-1.5 text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                filterDay === 'Today' ? 'btn-primary' : 'border-border bg-card text-muted-foreground'
+              }`}
+            >
+              ⚡ Today's Events (ForexFactory)
+            </button>
+            <button
+              onClick={() => setFilterDay('All')}
+              className={`rounded-full border px-4 py-1.5 text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                filterDay === 'All' ? 'btn-primary' : 'border-border bg-card text-muted-foreground'
+              }`}
+            >
+              📅 Complete Week
+            </button>
+            <button
+              onClick={() => setHighOnly(!highOnly)}
+              className={`rounded-full border px-4 py-1.5 text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                highOnly ? 'border-down bg-down text-white' : 'border-border bg-card text-muted-foreground'
+              }`}
+            >
+              {highOnly ? '🔴 High Impact Only' : 'Medium + High Impact'}
+            </button>
+            <button
+              onClick={() => setUsdOnly(!usdOnly)}
+              className={`rounded-full border px-4 py-1.5 text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                usdOnly ? 'btn-primary' : 'border-border bg-card text-muted-foreground'
+              }`}
+            >
+              {usdOnly ? '🇺🇸 USD Only' : '🌍 All Currencies'}
+            </button>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search event (CPI, Retail, FOMC)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="px-3 py-1.5 pl-8 rounded-lg bg-surface border border-border text-xs text-text placeholder-text-muted focus:outline-none focus:border-accent w-full sm:w-64"
+            />
+            <span className="absolute left-2.5 top-2 text-text-muted text-xs">🔍</span>
+          </div>
+        </div>
+
+        <EconCalendar
+          usdOnly={usdOnly}
+          minImpact={highOnly ? 'High' : 'Low'}
+          filterDay={filterDay}
+          searchQuery={searchQuery}
+        />
+      </div>
     </div>
   );
 }

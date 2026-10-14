@@ -130,11 +130,11 @@ export const MACRO_EVENTS_REGISTRY: MacroEventData[] = [
     country: 'US',
     category: 'INFLATION',
     importance: 'CRITICAL',
-    releaseDate: 'Thursday, 08:30 AM EST (18:00 IST)',
+    releaseDate: 'Wednesday, 08:30 AM EST (18:00 IST)',
     frequency: 'Monthly (Bureau of Labor Statistics)',
-    countdownSeconds: 15420,
-    previousValue: '2.5%',
-    consensusForecast: '2.3%',
+    countdownSeconds: 120,
+    previousValue: '3.4% YoY (Core 2.4%)',
+    consensusForecast: '3.6% YoY (Core 2.5%)',
     historicalSurpriseBias: 'Downside surprise probability 55%, In-line 35%, Upside 10%',
 
     whatIsEvent: {
@@ -157,7 +157,7 @@ export const MACRO_EVENTS_REGISTRY: MacroEventData[] = [
 
     scenarios: {
       belowForecast: {
-        condition: 'Actual CPI < 2.3% (Soft / Disinflationary Print — Massive Dovish Surprise)',
+        condition: 'Actual CPI < 3.6% (Soft / Disinflationary Print — Massive Dovish Surprise)',
         outcome: {
           dxy: { dir: 'DOWN', pct: '-0.75% to -1.20%', note: 'DXY dumps below 101.80 as Fed rate cut odds surge to 98%' },
           yields10Y: { dir: 'DOWN', bps: '-10 to -16 bps', note: '10Y Yield dives below 3.96% as duration is aggressively bought' },
@@ -186,7 +186,7 @@ export const MACRO_EVENTS_REGISTRY: MacroEventData[] = [
         }
       },
       inLine: {
-        condition: 'Actual CPI = 2.3% (Matches Consensus Exactly — Fully Priced Baseline)',
+        condition: 'Actual CPI = 3.6% (Matches Consensus Exactly — Fully Priced Baseline)',
         outcome: {
           dxy: { dir: 'CHOP', pct: '±0.20%', note: 'DXY consolidates in tight range around 102.50' },
           yields10Y: { dir: 'CHOP', bps: '±3 bps', note: 'Yields remain static as rate expectations are fully priced' },
@@ -215,7 +215,7 @@ export const MACRO_EVENTS_REGISTRY: MacroEventData[] = [
         }
       },
       aboveForecast: {
-        condition: 'Actual CPI > 2.4% (Hot / Sticky Inflation Shock — Hawkish Delay of Rate Cuts)',
+        condition: 'Actual CPI > 3.6% (Hot / Sticky Inflation Shock — Hawkish Delay of Rate Cuts)',
         outcome: {
           dxy: { dir: 'UP', pct: '+0.85% to +1.45%', note: 'DXY spikes through 103.50 as Fed cut expectations get deferred' },
           yields10Y: { dir: 'UP', bps: '+12 to +18 bps', note: '10Y Yield spikes to 4.25% putting severe pressure on risk assets' },
