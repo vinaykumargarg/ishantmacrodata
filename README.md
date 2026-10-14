@@ -1,16 +1,44 @@
-# React + Vite
+# IshantMacro.Ai — Institutional Global Macro & Trading Intelligence Terminal
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvinaykumargarg%2Fishantmacrodata&project-name=ishantmacro-ai&repository-name=ishantmacrodata)
 
-Currently, two official plugins are available:
+AI-Powered Institutional Global Macro, Crypto, US Stocks & Indian Market Intelligence Terminal by Ishant Jakhenia.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🚀 1-Click Live Production Deployment (Vercel)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Click the **Deploy with Vercel** button above or follow these 2 simple steps to get a clean public URL like `https://ishantmacro-ai.vercel.app`:
 
-## Expanding the Oxlint configuration
+1. Open [Vercel New Project](https://vercel.com/new).
+2. Import this repository: `vinaykumargarg/ishantmacrodata`.
+3. Set Project Name to `ishantmacro-ai` (or your preferred name) and click **Deploy**.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Within 30 seconds, your site will be live on a dedicated, clean domain with 24/7 uptime, global edge CDN, and automated updates on every `git push`.
+
+---
+
+## ⚡ Key Features
+
+- **📲 Official Telegram AI Alerts Bot (@Researchsomething_bot):** 2-way conversational market assistant, breaking news scraper, real-time liquidation clusters, and volatility alerts.
+- **🎙️ Jarvis Voice AI Market Expert:** Multi-lingual voice analysis in Hindi, Hinglish, and English.
+- **🌊 Liquidity Sweep Pro & Liquidation Map:** Institutional order flow and liquidation heatmaps.
+- **🔄 BTC–USDT Momentum Prediction Engine:** Multi-factor relationship and volume confluence.
+- **📊 7 Live Markets:** Real-time spot and derivatives feeds for BTC, ETH, SOL, Gold (LBMA & Delta Exchange India), Silver, DXY, and USDT.D.
+- **🇮🇳 Indian Stocks AI & 🇺🇸 USA Top 1000 AI:** Institutional sector scans and volume profiles.
+
+---
+
+## 🛠️ Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run Vite dev server
+npm run dev
+
+# Build production bundle
+npm run build
+```
+
