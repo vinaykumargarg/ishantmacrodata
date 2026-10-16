@@ -17,7 +17,12 @@ import {
   Layers,
   MapPin,
   Shield,
-  Target
+  Target,
+  Palette,
+  Check,
+  Zap,
+  ArrowDownRight,
+  ArrowUpRight
 } from 'lucide-react';
 
 interface VolumeProfileChartProps {
@@ -28,7 +33,9 @@ interface VolumeProfileChartProps {
   currentPrice: number;
   profileType: ProfileType;
   vaPct: number;
+  isManualMode?: boolean;
   onRangeChange?: (startIndex: number, endIndex: number) => void;
+  onToggleManualMode?: (manual: boolean) => void;
   height?: number;
 }
 
@@ -40,16 +47,26 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
   currentPrice,
   profileType,
   vaPct,
+  isManualMode = false,
   onRangeChange,
-  height = 540
+  onToggleManualMode,
+  height = 560
 }) => {
-  // View options & indicators
+  // Display Options
   const [showPoc, setShowPoc] = useState<boolean>(true);
   const [showVa, setShowVa] = useState<boolean>(true);
+  const [showVaShading, setShowVaShading] = useState<boolean>(true);
+  const [showOverboughtOversoldZones, setShowOverboughtOversoldZones] = useState<boolean>(true);
   const [showHvnsLvns, setShowHvnsLvns] = useState<boolean>(true);
   const [showTradeLevels, setShowTradeLevels] = useState<boolean>(true);
+  const [showPositionBox, setShowPositionBox] = useState<boolean>(true);
   const [showVolumeBars, setShowVolumeBars] = useState<boolean>(true);
-  const [colorMode, setColorMode] = useState<'BUY_SELL_DELTA' | 'VALUE_AREA'>('BUY_SELL_DELTA');
+
+  // Profile Rendering Style: OVERLAY_ON_CANDLES (CoinGlass / FRVP style) vs RIGHT_COLUMN
+  const [profileStyle, setProfileStyle] = useState<'OVERLAY_ON_CANDLES' | 'RIGHT_COLUMN'>('OVERLAY_ON_CANDLES');
+
+  // Color Theme: COINGLASS (Blue / Orange) vs CLASSIC (Green / Pink)
+  const [colorTheme, setColorTheme] = useState<'COINGLASS' | 'CLASSIC'>('COINGLASS');
 
   // Interactive FRVP Range Sliders (indices)
   const [rangeStart, setRangeStart] = useState<number>(0);
@@ -62,7 +79,7 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
   // Synchronize range when candle length changes
   useEffect(() => {
     if (candles.length > 0) {
-      if (profileType === 'FRVP') {
+      if (profileType === 'FRVP' || isManualMode) {
         setRangeStart(Math.max(0, candles.length - 48));
         setRangeEnd(candles.length - 1);
       } else {
@@ -70,9 +87,9 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
         setRangeEnd(candles.length - 1);
       }
     }
-  }, [candles.length, profileType]);
+  }, [candles.length, profileType, isManualMode]);
 
-  // Compute price scales
+  // Compute visible candle slice
   const visibleCandles = useMemo(() => {
     if (candles.length === 0) return [];
     const start = Math.max(0, Math.min(rangeStart, candles.length - 2));
@@ -80,6 +97,7 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
     return candles.slice(start, end);
   }, [candles, rangeStart, rangeEnd]);
 
+  // Price coordinate bounds
   const { minPrice, maxPrice, priceRange, maxVol } = useMemo(() => {
     if (visibleCandles.length === 0) {
       return { minPrice: 1, maxPrice: 10, priceRange: 9, maxVol: 1 };
@@ -94,31 +112,36 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
       if (c.v > maxV) maxV = c.v;
     }
 
-    // Include decision trade levels so they never get clipped
-    if (showTradeLevels) {
+    // Include VAH, VAL, and decision trade levels so they never get clipped
+    if (profile.vah > 0 && profile.vah > max) max = profile.vah;
+    if (profile.val > 0 && profile.val < min) min = profile.val;
+
+    if (showTradeLevels && decision.status !== 'NO TRADE / DATA UNAVAILABLE') {
       if (decision.stopLoss < min) min = decision.stopLoss;
+      if (decision.stopLoss > max) max = decision.stopLoss;
+      if (decision.tp2 < min) min = decision.tp2;
       if (decision.tp2 > max) max = decision.tp2;
     }
 
-    const padding = (max - min) * 0.04 || 1;
+    const padding = (max - min) * 0.05 || 1;
     return {
       minPrice: min - padding,
       maxPrice: max + padding,
       priceRange: max - min + padding * 2,
       maxVol: maxV
     };
-  }, [visibleCandles, showTradeLevels, decision]);
+  }, [visibleCandles, showTradeLevels, decision, profile.vah, profile.val]);
 
   // SVG Dimension Constants
   const width = 1000;
   const chartHeight = height;
   const paddingLeft = 16;
-  const paddingRight = 140; // Dedicated right column for Volume Profile histogram & price axis
-  const paddingTop = 24;
+  const paddingRight = profileStyle === 'RIGHT_COLUMN' ? 140 : 80;
+  const paddingTop = 28;
   const paddingBottom = 40;
   const plotWidth = width - paddingLeft - paddingRight;
   const plotHeight = chartHeight - paddingTop - paddingBottom;
-  const volumeBarMaxHeight = plotHeight * 0.22;
+  const volumeBarMaxHeight = plotHeight * 0.18;
 
   // Coordinate transforms
   const getY = (p: number) => {
@@ -130,13 +153,13 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
     return minPrice + ratio * priceRange;
   };
 
-  const candleWidth = visibleCandles.length > 0 ? Math.max(2, (plotWidth / visibleCandles.length) * 0.72) : 6;
+  const candleWidth = visibleCandles.length > 0 ? Math.max(2.5, (plotWidth / visibleCandles.length) * 0.72) : 6;
   const candleSpacing = visibleCandles.length > 0 ? plotWidth / visibleCandles.length : 10;
 
   // Format helper
   const fmt = (val: number) => {
     if (val >= 1000) {
-      return `$${val.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`;
+      return `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     return `$${val.toFixed(2)}`;
   };
@@ -165,90 +188,141 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
     setCrosshair(null);
   };
 
+  // Colors based on theme (CoinGlass vs Classic)
+  const buyBarColor = colorTheme === 'COINGLASS' ? '#2563eb' : '#10b981';
+  const sellBarColor = colorTheme === 'COINGLASS' ? '#ea580c' : '#ec4899';
+
   return (
     <div className="relative flex flex-col rounded-xl border border-slate-800 bg-[#070b14] p-3 text-slate-200 shadow-2xl">
       {/* ── TOP CHART CONTROLS & TELEMETRY STRIP ── */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5 text-xs font-mono">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 font-bold text-sky-400">
-            <Activity className="size-3.5 text-sky-400 animate-pulse" />
+          <span className="flex items-center gap-1.5 font-black text-cyan-400">
+            <Activity className="size-3.5 text-cyan-400 animate-pulse" />
             <span>VOLUME PROFILE ENGINE</span>
           </span>
-          <span className="rounded bg-sky-500/10 px-2 py-0.5 text-[11px] font-semibold text-sky-300 border border-sky-500/20">
-            {profileType} (VA: {vaPct}%)
+
+          {/* Mode Badge */}
+          <span className={`rounded px-2.5 py-0.5 text-[11px] font-black border ${
+            isManualMode
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+              : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-[0_0_10px_rgba(0,242,254,0.2)]'
+          }`}>
+            {isManualMode ? '🖐️ MANUAL FRVP (CUSTOM ANCHOR)' : '🤖 AUTOMATIC (VISIBLE RANGE VPVR)'}
           </span>
-          <span className="rounded bg-purple-500/10 px-2 py-0.5 text-[11px] font-bold text-purple-300 border border-purple-500/20">
+
+          <span className="rounded bg-rose-500/20 px-2 py-0.5 text-[11px] font-bold text-rose-300 border border-rose-500/40">
             POC: {profile.pocFormatted}
           </span>
-          <span className="rounded bg-teal-500/10 px-2 py-0.5 text-[11px] font-semibold text-teal-300 border border-teal-500/20">
-            VAH: {profile.vahFormatted}
+          <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[11px] font-semibold text-cyan-300 border border-cyan-500/40">
+            VAH: {profile.vahFormatted} (70%)
           </span>
-          <span className="rounded bg-teal-500/10 px-2 py-0.5 text-[11px] font-semibold text-teal-300 border border-teal-500/20">
-            VAL: {profile.valFormatted}
+          <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[11px] font-semibold text-cyan-300 border border-cyan-500/40">
+            VAL: {profile.valFormatted} (70%)
           </span>
         </div>
 
         {/* Display Toggles */}
         <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Overlay Style Switcher */}
+          <button
+            onClick={() => setProfileStyle(profileStyle === 'OVERLAY_ON_CANDLES' ? 'RIGHT_COLUMN' : 'OVERLAY_ON_CANDLES')}
+            className={`px-2 py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
+              profileStyle === 'OVERLAY_ON_CANDLES'
+                ? 'bg-cyan-500 text-slate-950 font-black'
+                : 'bg-slate-900 border-slate-700 text-slate-300'
+            }`}
+            title="Toggle between CoinGlass/FRVP Over-Candle overlay and Right-Axis layout"
+          >
+            {profileStyle === 'OVERLAY_ON_CANDLES' ? '📊 Chart Overlay (CoinGlass)' : '📑 Right Column'}
+          </button>
+
+          {/* Color Theme Switcher */}
+          <button
+            onClick={() => setColorTheme(colorTheme === 'COINGLASS' ? 'CLASSIC' : 'COINGLASS')}
+            className="px-2 py-1 rounded text-[10px] font-bold border border-slate-700 bg-slate-900 text-slate-300 hover:text-white cursor-pointer"
+            title="Toggle color theme"
+          >
+            {colorTheme === 'COINGLASS' ? '🎨 Blue/Orange' : '🎨 Green/Pink'}
+          </button>
+
+          {/* POC Toggle */}
           <button
             onClick={() => setShowPoc(!showPoc)}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
               showPoc
-                ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
+                ? 'bg-rose-500/25 border-rose-500 text-rose-300 font-black'
                 : 'bg-slate-900 border-slate-800 text-slate-500'
             }`}
           >
             POC Line
           </button>
+
+          {/* VAH / VAL Toggle */}
           <button
             onClick={() => setShowVa(!showVa)}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
               showVa
-                ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300'
+                ? 'bg-cyan-500/25 border-cyan-500 text-cyan-300 font-black'
                 : 'bg-slate-900 border-slate-800 text-slate-500'
             }`}
           >
             VAH / VAL
           </button>
+
+          {/* 70% Value Area Shading Toggle */}
           <button
-            onClick={() => setShowHvnsLvns(!showHvnsLvns)}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
-              showHvnsLvns
-                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+            onClick={() => setShowVaShading(!showVaShading)}
+            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+              showVaShading
+                ? 'bg-indigo-500/25 border-indigo-500 text-indigo-300 font-black'
                 : 'bg-slate-900 border-slate-800 text-slate-500'
             }`}
           >
-            HVN / LVN
+            70% VA Box
           </button>
+
+          {/* Overbought / Oversold Bands */}
           <button
-            onClick={() => setShowTradeLevels(!showTradeLevels)}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
-              showTradeLevels
-                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+            onClick={() => setShowOverboughtOversoldZones(!showOverboughtOversoldZones)}
+            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+              showOverboughtOversoldZones
+                ? 'bg-purple-500/25 border-purple-500 text-purple-300 font-black'
                 : 'bg-slate-900 border-slate-800 text-slate-500'
             }`}
           >
-            Entry / SL / TP
+            OB / OS Zones
           </button>
+
+          {/* Trade Setup Position Box (Long/Short Box) */}
           <button
-            onClick={() => setColorMode(colorMode === 'BUY_SELL_DELTA' ? 'VALUE_AREA' : 'BUY_SELL_DELTA')}
-            className="px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700 bg-slate-800 text-slate-300 hover:text-white"
-            title="Toggle between Buy/Sell Delta and Value Area color modes"
+            onClick={() => setShowPositionBox(!showPositionBox)}
+            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+              showPositionBox
+                ? 'bg-emerald-500/25 border-emerald-500 text-emerald-300 font-black'
+                : 'bg-slate-900 border-slate-800 text-slate-500'
+            }`}
           >
-            {colorMode === 'BUY_SELL_DELTA' ? '🎨 Delta Split' : '🎨 VA Shading'}
+            Position Tool
           </button>
         </div>
       </div>
 
-      {/* ── FRVP RANGE SLIDERS (ACTIVE WHEN FRVP PROFILE SELECTED) ── */}
-      {profileType === 'FRVP' && (
-        <div className="flex items-center gap-3 bg-[#0c1222] px-3 py-1.5 rounded-lg border border-slate-800 mt-2 text-xs font-mono">
-          <span className="text-amber-400 font-bold flex items-center gap-1 shrink-0">
-            <Sliders className="size-3" />
-            Fixed Range (FRVP):
-          </span>
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-[10px] text-slate-400">Start Bar #{rangeStart}</span>
+      {/* ── MANUAL FRVP RANGE ANCHOR CONTROLS (ACTIVE WHEN IN MANUAL MODE OR FRVP) ── */}
+      {isManualMode && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-950/25 px-3 py-2 rounded-lg border border-amber-500/40 mt-2 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-400 font-black flex items-center gap-1.5 shrink-0">
+              <Sliders className="size-3.5 text-amber-400" />
+              <span>MANUAL FRVP ANCHORS:</span>
+            </span>
+            <span className="text-[11px] text-slate-300 hidden sm:inline">
+              Drag anchors to calculate profile over custom impulse or consolidation range
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-1 max-w-xl">
+            <span className="text-[10px] text-amber-300 font-bold shrink-0">Start Bar #{rangeStart}</span>
             <input
               type="range"
               min={0}
@@ -259,9 +333,9 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
                 setRangeStart(val);
                 onRangeChange?.(val, rangeEnd);
               }}
-              className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
+              className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
             />
-            <span className="text-[10px] text-slate-400">End Bar #{rangeEnd}</span>
+            <span className="text-[10px] text-amber-300 font-bold shrink-0">End Bar #{rangeEnd}</span>
             <input
               type="range"
               min={Math.min(rangeStart + 5, candles.length - 1)}
@@ -272,8 +346,44 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
                 setRangeEnd(val);
                 onRangeChange?.(rangeStart, val);
               }}
-              className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
+              className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
             />
+          </div>
+
+          {/* Quick Presets */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                const s = Math.max(0, candles.length - 30);
+                setRangeStart(s);
+                setRangeEnd(candles.length - 1);
+                onRangeChange?.(s, candles.length - 1);
+              }}
+              className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[10px] font-bold text-amber-300 hover:text-white"
+            >
+              Last 30 Bars
+            </button>
+            <button
+              onClick={() => {
+                const s = Math.max(0, candles.length - 60);
+                setRangeStart(s);
+                setRangeEnd(candles.length - 1);
+                onRangeChange?.(s, candles.length - 1);
+              }}
+              className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[10px] font-bold text-amber-300 hover:text-white"
+            >
+              Last 60 Bars
+            </button>
+            <button
+              onClick={() => {
+                setRangeStart(0);
+                setRangeEnd(candles.length - 1);
+                onRangeChange?.(0, candles.length - 1);
+              }}
+              className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[10px] font-bold text-slate-300 hover:text-white"
+            >
+              Full Range
+            </button>
           </div>
         </div>
       )}
@@ -290,12 +400,12 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
           <defs>
             {/* Gradients for Volume Profile Bars */}
             <linearGradient id="vpBuyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.85" />
+              <stop offset="0%" stopColor={buyBarColor} stopOpacity="0.45" />
+              <stop offset="100%" stopColor={buyBarColor} stopOpacity="0.85" />
             </linearGradient>
             <linearGradient id="vpSellGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.85" />
+              <stop offset="0%" stopColor={sellBarColor} stopOpacity="0.45" />
+              <stop offset="100%" stopColor={sellBarColor} stopOpacity="0.85" />
             </linearGradient>
             <linearGradient id="vpVaGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
@@ -307,7 +417,93 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
             </linearGradient>
           </defs>
 
-          {/* Background Grid Lines (Horizontal Price Intervals) */}
+          {/* ────────────────────────────────────────────────────────────────── */}
+          {/* 1. OVERBOUGHT (> VAH) & OVERSOLD (< VAL) SHADED BACKGROUND BANDS    */}
+          {/* ────────────────────────────────────────────────────────────────── */}
+          {showOverboughtOversoldZones && profile.vah > 0 && (
+            <g>
+              {/* Overbought / Premium Zone (> VAH) */}
+              <rect
+                x={paddingLeft}
+                y={paddingTop}
+                width={plotWidth}
+                height={Math.max(0, getY(profile.vah) - paddingTop)}
+                fill="#ef4444"
+                fillOpacity="0.06"
+              />
+              <text
+                x={paddingLeft + 10}
+                y={paddingTop + 14}
+                fill="#f87171"
+                fontSize="9"
+                fontFamily="monospace"
+                fontWeight="bold"
+                letterSpacing="1"
+              >
+                🔴 OVERBOUGHT / PREMIUM ZONE (&gt; VAH) — WATCH FOR SUPPLY REJECTION
+              </text>
+            </g>
+          )}
+
+          {showOverboughtOversoldZones && profile.val > 0 && (
+            <g>
+              {/* Oversold / Discount Zone (< VAL) */}
+              <rect
+                x={paddingLeft}
+                y={getY(profile.val)}
+                width={plotWidth}
+                height={Math.max(0, paddingTop + plotHeight - getY(profile.val))}
+                fill="#10b981"
+                fillOpacity="0.06"
+              />
+              <text
+                x={paddingLeft + 10}
+                y={paddingTop + plotHeight - 8}
+                fill="#34d399"
+                fontSize="9"
+                fontFamily="monospace"
+                fontWeight="bold"
+                letterSpacing="1"
+              >
+                🟢 OVERSOLD / DISCOUNT ZONE (&lt; VAL) — WATCH FOR DEMAND RECLAIM
+              </text>
+            </g>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────────── */}
+          {/* 2. 70% VALUE AREA SHADED RECTANGLE (VAH TO VAL)                   */}
+          {/* ────────────────────────────────────────────────────────────────── */}
+          {showVaShading && profile.vah > 0 && profile.val > 0 && (
+            <g>
+              <rect
+                x={paddingLeft}
+                y={getY(profile.vah)}
+                width={plotWidth}
+                height={Math.max(0, getY(profile.val) - getY(profile.vah))}
+                fill="#06b6d4"
+                fillOpacity="0.05"
+                stroke="#06b6d4"
+                strokeWidth="1"
+                strokeDasharray="4 4"
+                strokeOpacity="0.3"
+              />
+              <text
+                x={width - paddingRight - 180}
+                y={getY(profile.vah) + 14}
+                fill="#06b6d4"
+                fontSize="8.5"
+                fontFamily="monospace"
+                fontWeight="bold"
+                opacity="0.8"
+              >
+                70% VALUE AREA (FAIR VALUE ZONE)
+              </text>
+            </g>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────────── */}
+          {/* 3. BACKGROUND GRID LINES (HORIZONTAL PRICE INTERVALS)             */}
+          {/* ────────────────────────────────────────────────────────────────── */}
           {[0.15, 0.35, 0.55, 0.75, 0.95].map((ratio, idx) => {
             const p = minPrice + ratio * priceRange;
             const y = getY(p);
@@ -336,12 +532,61 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
           })}
 
           {/* ────────────────────────────────────────────────────────────────── */}
-          {/* HORIZONTAL VOLUME PROFILE HISTOGRAM (ALIGNED ON RIGHT SIDE)        */}
+          {/* 4. MANUAL FRVP ANCHORED SELECTION RECTANGLE (WHEN MANUAL)          */}
+          {/* ────────────────────────────────────────────────────────────────── */}
+          {isManualMode && (
+            <g>
+              <rect
+                x={paddingLeft}
+                y={paddingTop}
+                width={plotWidth}
+                height={plotHeight}
+                fill="#f59e0b"
+                fillOpacity="0.02"
+                stroke="#f59e0b"
+                strokeWidth="1.2"
+                strokeDasharray="6 4"
+                strokeOpacity="0.4"
+              />
+              <line
+                x1={paddingLeft}
+                y1={paddingTop}
+                x2={paddingLeft}
+                y2={paddingTop + plotHeight}
+                stroke="#f59e0b"
+                strokeWidth="2"
+              />
+              <line
+                x1={paddingLeft + plotWidth}
+                y1={paddingTop}
+                x2={paddingLeft + plotWidth}
+                y2={paddingTop + plotHeight}
+                stroke="#f59e0b"
+                strokeWidth="2"
+              />
+              <text
+                x={paddingLeft + 6}
+                y={paddingTop + 14}
+                fill="#f59e0b"
+                fontSize="9"
+                fontFamily="monospace"
+                fontWeight="bold"
+              >
+                [ FRVP ANCHOR: BAR #{rangeStart} ]
+              </text>
+            </g>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────────── */}
+          {/* 5. VOLUME PROFILE HISTOGRAM (COINGLASS OVERLAY ON CANDLES OR RIGHT) */}
           {/* ────────────────────────────────────────────────────────────────── */}
           {profile.rows.map((row, idx) => {
             const yCenter = getY(row.priceLevel);
-            const rowHeight = Math.max(2, plotHeight / profile.rows.length);
-            const maxBarWidth = paddingRight - 35; // Maximum width available for profile histogram
+            const rowHeight = Math.max(2.2, plotHeight / profile.rows.length);
+
+            // Determine maximum width and anchor X based on profileStyle
+            const isOverlay = profileStyle === 'OVERLAY_ON_CANDLES';
+            const maxBarWidth = isOverlay ? plotWidth * 0.42 : paddingRight - 35;
             const totalBarWidth = (row.volumePct / 100) * maxBarWidth;
 
             // Buy vs Sell split widths
@@ -349,42 +594,30 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
             const buyWidth = totalBarWidth * buyRatio;
             const sellWidth = totalBarWidth * (1 - buyRatio);
 
-            const barX = width - paddingRight;
+            const barX = isOverlay ? paddingLeft : width - paddingRight;
 
             return (
               <g key={idx} className="transition-opacity hover:opacity-100">
-                {colorMode === 'BUY_SELL_DELTA' ? (
-                  <>
-                    {/* Buy Volume Bar */}
-                    <rect
-                      x={barX}
-                      y={yCenter - rowHeight / 2}
-                      width={Math.max(1, buyWidth)}
-                      height={rowHeight - 1}
-                      fill="url(#vpBuyGrad)"
-                      rx="1"
-                    />
-                    {/* Sell Volume Bar */}
-                    <rect
-                      x={barX + buyWidth}
-                      y={yCenter - rowHeight / 2}
-                      width={Math.max(1, sellWidth)}
-                      height={rowHeight - 1}
-                      fill="url(#vpSellGrad)"
-                      rx="1"
-                    />
-                  </>
-                ) : (
-                  /* Value Area Highlight Mode */
-                  <rect
-                    x={barX}
-                    y={yCenter - rowHeight / 2}
-                    width={Math.max(1, totalBarWidth)}
-                    height={rowHeight - 1}
-                    fill={row.isInValueArea ? 'url(#vpVaGrad)' : 'url(#vpNonVaGrad)'}
-                    rx="1"
-                  />
-                )}
+                {/* Buy / Up Volume Bar */}
+                <rect
+                  x={barX}
+                  y={yCenter - rowHeight / 2}
+                  width={Math.max(1, buyWidth)}
+                  height={rowHeight - 0.8}
+                  fill="url(#vpBuyGrad)"
+                  rx="1"
+                  opacity={isOverlay ? 0.75 : 0.9}
+                />
+                {/* Sell / Down Volume Bar */}
+                <rect
+                  x={barX + buyWidth}
+                  y={yCenter - rowHeight / 2}
+                  width={Math.max(1, sellWidth)}
+                  height={rowHeight - 0.8}
+                  fill="url(#vpSellGrad)"
+                  rx="1"
+                  opacity={isOverlay ? 0.75 : 0.9}
+                />
 
                 {/* POC Row Highlight Border */}
                 {row.isPoc && showPoc && (
@@ -392,10 +625,10 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
                     x={barX}
                     y={yCenter - rowHeight / 2}
                     width={totalBarWidth + 4}
-                    height={rowHeight - 1}
+                    height={rowHeight - 0.8}
                     fill="none"
-                    stroke="#f43f5e"
-                    strokeWidth="1.5"
+                    stroke="#ef4444"
+                    strokeWidth="1.8"
                   />
                 )}
               </g>
@@ -403,7 +636,7 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
           })}
 
           {/* ────────────────────────────────────────────────────────────────── */}
-          {/* VALUE AREA BOUNDARIES (VAH & VAL) & POINT OF CONTROL (POC) LINES   */}
+          {/* 6. VAH & VAL HORIZONTAL LINES (70% VALUE AREA BOUNDARIES)         */}
           {/* ────────────────────────────────────────────────────────────────── */}
           {showVa && profile.vah > 0 && (
             <g>
@@ -413,22 +646,22 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
                 x2={width}
                 y2={getY(profile.vah)}
                 stroke="#06b6d4"
-                strokeWidth="1.5"
-                strokeDasharray="4 3"
+                strokeWidth="1.8"
+                strokeDasharray="5 3"
               />
               <rect
                 x={width - paddingRight + 2}
                 y={getY(profile.vah) - 10}
-                width={80}
-                height={16}
+                width={86}
+                height={18}
                 fill="#0e7490"
                 rx="3"
               />
               <text
                 x={width - paddingRight + 6}
-                y={getY(profile.vah) + 2}
+                y={getY(profile.vah) + 3}
                 fill="#ecfeff"
-                fontSize="9"
+                fontSize="9.5"
                 fontFamily="monospace"
                 fontWeight="bold"
               >
@@ -445,22 +678,22 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
                 x2={width}
                 y2={getY(profile.val)}
                 stroke="#06b6d4"
-                strokeWidth="1.5"
-                strokeDasharray="4 3"
+                strokeWidth="1.8"
+                strokeDasharray="5 3"
               />
               <rect
                 x={width - paddingRight + 2}
                 y={getY(profile.val) - 10}
-                width={80}
-                height={16}
+                width={86}
+                height={18}
                 fill="#0e7490"
                 rx="3"
               />
               <text
                 x={width - paddingRight + 6}
-                y={getY(profile.val) + 2}
+                y={getY(profile.val) + 3}
                 fill="#ecfeff"
-                fontSize="9"
+                fontSize="9.5"
                 fontFamily="monospace"
                 fontWeight="bold"
               >
@@ -469,7 +702,9 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
             </g>
           )}
 
-          {/* POC (Point of Control) Horizon Line */}
+          {/* ────────────────────────────────────────────────────────────────── */}
+          {/* 7. POC (POINT OF CONTROL) RED LINE ACROSS PRICE AREA              */}
+          {/* ────────────────────────────────────────────────────────────────── */}
           {showPoc && profile.poc > 0 && (
             <g>
               <line
@@ -477,24 +712,25 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
                 y1={getY(profile.poc)}
                 x2={width}
                 y2={getY(profile.poc)}
-                stroke="#f43f5e"
-                strokeWidth="2.2"
+                stroke="#ef4444"
+                strokeWidth="2.5"
               />
               <rect
                 x={width - paddingRight + 2}
                 y={getY(profile.poc) - 11}
-                width={84}
-                height={18}
+                width={90}
+                height={20}
                 fill="#be123c"
                 rx="3"
+                filter="drop-shadow(0 0 6px rgba(239, 68, 68, 0.4))"
               />
               <text
                 x={width - paddingRight + 6}
-                y={getY(profile.poc) + 2}
+                y={getY(profile.poc) + 3}
                 fill="#ffffff"
                 fontSize="10"
                 fontFamily="monospace"
-                fontWeight="bold"
+                fontWeight="black"
               >
                 POC {fmt(profile.poc)}
               </text>
@@ -543,7 +779,7 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
           ))}
 
           {/* ────────────────────────────────────────────────────────────────── */}
-          {/* VOLUME HISTOGRAM BARS AT BOTTOM OF CHART                          */}
+          {/* 8. VOLUME HISTOGRAM BARS AT BOTTOM OF CHART                        */}
           {/* ────────────────────────────────────────────────────────────────── */}
           {showVolumeBars && visibleCandles.map((c, i) => {
             const x = paddingLeft + i * candleSpacing + candleSpacing / 2;
@@ -564,7 +800,7 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
           })}
 
           {/* ────────────────────────────────────────────────────────────────── */}
-          {/* CANDLESTICK RENDERING (WICKS + BODIES)                            */}
+          {/* 9. CANDLESTICK RENDERING (WICKS + BODIES)                          */}
           {/* ────────────────────────────────────────────────────────────────── */}
           {visibleCandles.map((c, i) => {
             const x = paddingLeft + i * candleSpacing + candleSpacing / 2;
@@ -603,76 +839,102 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
           })}
 
           {/* ────────────────────────────────────────────────────────────────── */}
-          {/* TRADE SETUP LEVELS OVERLAY (ENTRY, STOP-LOSS, TP1, TP2, TP3)       */}
+          {/* 10. TRADE SETUP POSITION TOOL (RISK:REWARD BOX LIKE IITIAN TRADER) */}
           {/* ────────────────────────────────────────────────────────────────── */}
-          {showTradeLevels && decision.status !== 'NO TRADE / DATA UNAVAILABLE' && (
+          {showPositionBox && decision.status !== 'NO TRADE / DATA UNAVAILABLE' && (
             <g>
-              {/* Take Profit 2 Line */}
-              <line
-                x1={paddingLeft}
-                y1={getY(decision.tp2)}
-                x2={width - paddingRight}
-                y2={getY(decision.tp2)}
-                stroke="#10b981"
-                strokeWidth="1.2"
-                strokeDasharray="4 2"
-              />
-              <text
-                x={paddingLeft + 6}
-                y={getY(decision.tp2) - 4}
-                fill="#34d399"
-                fontSize="9"
-                fontFamily="monospace"
-                fontWeight="bold"
-              >
-                TP2: {decision.tp2Formatted} ({decision.riskRewardRatio})
-              </text>
+              {(() => {
+                const isShort = decision.status === 'SHORT SETUP';
+                const entryY = getY(decision.entryPrice);
+                const slY = getY(decision.stopLoss);
+                const tpY = getY(decision.tp2 || decision.tp1);
 
-              {/* Take Profit 1 Line */}
-              <line
-                x1={paddingLeft}
-                y1={getY(decision.tp1)}
-                x2={width - paddingRight}
-                y2={getY(decision.tp1)}
-                stroke="#10b981"
-                strokeWidth="1"
-                strokeDasharray="3 3"
-              />
-              <text
-                x={paddingLeft + 6}
-                y={getY(decision.tp1) - 4}
-                fill="#34d399"
-                fontSize="9"
-                fontFamily="monospace"
-              >
-                TP1: {decision.tp1Formatted}
-              </text>
+                const boxStartX = width - paddingRight - 160;
+                const boxWidth = 150;
 
-              {/* Stop Loss Line */}
-              <line
-                x1={paddingLeft}
-                y1={getY(decision.stopLoss)}
-                x2={width - paddingRight}
-                y2={getY(decision.stopLoss)}
-                stroke="#ef4444"
-                strokeWidth="1.2"
-                strokeDasharray="4 2"
-              />
-              <text
-                x={paddingLeft + 6}
-                y={getY(decision.stopLoss) - 4}
-                fill="#f87171"
-                fontSize="9"
-                fontFamily="monospace"
-                fontWeight="bold"
-              >
-                STOP LOSS: {decision.stopLossFormatted}
-              </text>
+                // For short: SL is higher than entry (smaller Y in SVG)
+                const slBoxTop = Math.min(entryY, slY);
+                const slBoxHeight = Math.abs(slY - entryY);
+
+                // For short: TP is lower than entry (larger Y in SVG)
+                const tpBoxTop = Math.min(entryY, tpY);
+                const tpBoxHeight = Math.abs(tpY - entryY);
+
+                return (
+                  <g opacity="0.85">
+                    {/* Red Stop Loss Risk Box */}
+                    <rect
+                      x={boxStartX}
+                      y={slBoxTop}
+                      width={boxWidth}
+                      height={Math.max(2, slBoxHeight)}
+                      fill="#ef4444"
+                      fillOpacity="0.25"
+                      stroke="#ef4444"
+                      strokeWidth="1"
+                    />
+                    {/* Green Profit Target Box */}
+                    <rect
+                      x={boxStartX}
+                      y={tpBoxTop}
+                      width={boxWidth}
+                      height={Math.max(2, tpBoxHeight)}
+                      fill="#10b981"
+                      fillOpacity="0.25"
+                      stroke="#10b981"
+                      strokeWidth="1"
+                    />
+
+                    {/* Entry line divider */}
+                    <line
+                      x1={boxStartX}
+                      y1={entryY}
+                      x2={boxStartX + boxWidth}
+                      y2={entryY}
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
+                    />
+
+                    <text
+                      x={boxStartX + 4}
+                      y={slBoxTop + 10}
+                      fill="#fca5a5"
+                      fontSize="8"
+                      fontFamily="monospace"
+                      fontWeight="bold"
+                    >
+                      SL: {decision.stopLossFormatted}
+                    </text>
+
+                    <text
+                      x={boxStartX + 4}
+                      y={entryY - 3}
+                      fill="#ffffff"
+                      fontSize="8"
+                      fontFamily="monospace"
+                      fontWeight="black"
+                    >
+                      ENTRY: {fmt(decision.entryPrice)}
+                    </text>
+
+                    <text
+                      x={boxStartX + 4}
+                      y={tpBoxTop + tpBoxHeight - 4}
+                      fill="#6ee7b7"
+                      fontSize="8"
+                      fontFamily="monospace"
+                      fontWeight="bold"
+                    >
+                      TARGET: {decision.tp2Formatted} (1:{decision.riskRewardRatio})
+                    </text>
+                  </g>
+                );
+              })()}
             </g>
           )}
 
           {/* ────────────────────────────────────────────────────────────────── */}
-          {/* CURRENT LIVE PRICE DASHED RAY & PILL                               */}
+          {/* 11. CURRENT LIVE PRICE DASHED RAY & PILL                           */}
           {/* ────────────────────────────────────────────────────────────────── */}
           <g>
             <line
@@ -681,16 +943,17 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
               x2={width}
               y2={getY(currentPrice)}
               stroke="#38bdf8"
-              strokeWidth="1.2"
-              strokeDasharray="2 2"
+              strokeWidth="1.5"
+              strokeDasharray="3 2"
             />
             <rect
               x={width - paddingRight + 2}
               y={getY(currentPrice) - 10}
-              width={82}
-              height={18}
+              width={86}
+              height={19}
               fill="#0284c7"
               rx="3"
+              filter="drop-shadow(0 0 6px rgba(2, 132, 199, 0.4))"
             />
             <text
               x={width - paddingRight + 6}
@@ -698,18 +961,17 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
               fill="#ffffff"
               fontSize="10"
               fontFamily="monospace"
-              fontWeight="bold"
+              fontWeight="black"
             >
               {fmt(currentPrice)}
             </text>
           </g>
 
           {/* ────────────────────────────────────────────────────────────────── */}
-          {/* CROSSHAIR & REAL-TIME INSPECTION TOOLTIP                           */}
+          {/* 12. CROSSHAIR & REAL-TIME INSPECTION TOOLTIP                       */}
           {/* ────────────────────────────────────────────────────────────────── */}
           {crosshair && (
             <g pointerEvents="none">
-              {/* Vertical Crosshair Line */}
               <line
                 x1={crosshair.x}
                 y1={paddingTop}
@@ -719,7 +981,6 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
                 strokeWidth="0.8"
                 strokeDasharray="3 3"
               />
-              {/* Horizontal Crosshair Line */}
               <line
                 x1={paddingLeft}
                 y1={crosshair.y}
@@ -730,7 +991,6 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
                 strokeDasharray="3 3"
               />
 
-              {/* Price Tag at Crosshair Y */}
               <rect
                 x={width - paddingRight + 2}
                 y={crosshair.y - 9}
@@ -749,7 +1009,6 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
                 {fmt(crosshair.price)}
               </text>
 
-              {/* Candle Telemetry Box on Crosshair hover */}
               {crosshair.candle && (
                 <g>
                   <rect
@@ -807,21 +1066,27 @@ export const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
         </svg>
       </div>
 
-      {/* ── BOTTOM TIME SCALE / RANGE LEGEND ── */}
-      <div className="flex items-center justify-between pt-2 text-[10px] text-slate-400 font-mono">
-        <div className="flex items-center gap-3">
-          <span>{visibleCandles.length} Visible Candlesticks</span>
+      {/* ── BOTTOM TIME SCALE & VOLUME PROFILE LEGEND ── */}
+      <div className="flex flex-wrap items-center justify-between pt-2.5 text-[10px] text-slate-400 font-mono border-t border-slate-800/80 mt-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <span>{visibleCandles.length} Candles in Active Profile</span>
           <span>•</span>
-          <span className="text-emerald-400">Total Buy Vol: {profile.buyVolumeTotal.toLocaleString()}</span>
+          <span className="text-blue-400 font-bold">Buy Vol: {profile.buyVolumeTotal.toLocaleString()}</span>
           <span>•</span>
-          <span className="text-rose-400">Total Sell Vol: {profile.sellVolumeTotal.toLocaleString()}</span>
+          <span className="text-orange-400 font-bold">Sell Vol: {profile.sellVolumeTotal.toLocaleString()}</span>
           <span>•</span>
-          <span className={profile.cvdTotal >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-            Net Delta: {profile.cvdTotal >= 0 ? '+' : ''}{profile.cvdTotal.toLocaleString()}
+          <span className={profile.cvdTotal >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+            CVD Delta: {profile.cvdTotal >= 0 ? '+' : ''}{profile.cvdTotal.toLocaleString()}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-slate-400">
-          <span>Histogram scale: Total Traded Volume @ Price Bin</span>
+        <div className="flex items-center gap-2 text-slate-300 font-bold">
+          <span>RED = POC</span>
+          <span>•</span>
+          <span className="text-cyan-400">CYAN = 70% VAH/VAL</span>
+          <span>•</span>
+          <span className="text-rose-400">TOP = OVERBOUGHT</span>
+          <span>•</span>
+          <span className="text-emerald-400">BOTTOM = OVERSOLD</span>
         </div>
       </div>
     </div>

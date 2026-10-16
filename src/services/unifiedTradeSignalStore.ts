@@ -64,21 +64,21 @@ export interface UnifiedTradingSignal {
   rationaleBullets?: string[];
 }
 
-const STORAGE_KEY = 'ishantmacro_unified_trading_signals_v11_fixed_anchored_levels';
+const STORAGE_KEY = 'ishantmacro_unified_trading_signals_v12_auto_direction_engine';
 const EVENT_NAME = 'ishantmacro-unified-signal-update';
 
 // Base Reference Prices for Assets
 const BASE_PRICES: Record<string, number> = {
-  BTCUSDT: 81200,
-  BTC: 81200,
+  BTCUSDT: 84500,
+  BTC: 84500,
   PAXGUSDT: 4157.24,
   GOLD: 4157.24,
   XAUUSD: 4157.24,
   SLVUSDT: 50.8,
   SILVER: 50.8,
   XAGUSD: 50.8,
-  ETHUSDT: 2380.5,
-  ETH: 2380.5,
+  ETHUSDT: 2450.5,
+  ETH: 2450.5,
   SOLUSDT: 104.2,
   SOL: 104.2
 };
@@ -188,9 +188,9 @@ export function detectMarketRegime(
   explanation: string;
 } {
   const symbol = normalizeSymbolKey(symbolKey);
-  const price = currentPrice && currentPrice > 0 ? currentPrice : (BASE_PRICES[symbol] || 81200);
+  const price = currentPrice && currentPrice > 0 ? currentPrice : (BASE_PRICES[symbol] || 84500);
 
-  // 1. If real candle history is provided, analyze multi-bar trajectory
+  // 1. If real candle history is provided, analyze multi-bar trajectory with hysteresis
   if (candles && candles.length >= 10) {
     const recent = candles.slice(-20);
     const sumCloses = recent.reduce((acc, c) => acc + c.close, 0);
@@ -199,49 +199,60 @@ export function detectMarketRegime(
     const firstCandle = recent[0];
     const priceSlope = (lastCandle.close - firstCandle.close) / firstCandle.close;
 
-    if (priceSlope < -0.005 || (lastCandle.close < sma20 && lastCandle.close <= lastCandle.open)) {
+    // Check count of lower highs vs higher lows in recent 6 candles
+    let lowerHighsCount = 0;
+    let higherLowsCount = 0;
+    for (let i = recent.length - 6; i < recent.length; i++) {
+      if (i > 0) {
+        if (recent[i].high < recent[i - 1].high) lowerHighsCount++;
+        if (recent[i].low > recent[i - 1].low) higherLowsCount++;
+      }
+    }
+
+    // Bearish Breakdown Cascade (Market is Going Down)
+    if (priceSlope < -0.003 || (lastCandle.close < sma20 && lowerHighsCount >= 3)) {
       return {
         decision: 'SHORT',
-        regime: 'BEARISH BREAKDOWN CASCADE (LOWER HIGHS & CVD DUMP)',
+        regime: 'BEARISH BREAKDOWN CASCADE (MARKET IS GOING DOWN)',
         explanation:
-          'Market Waterfall Breakdown Mode में है — कैंडलस्टिक चार्ट पर लगातार Lower Highs और Lower Lows बन रहे हैं। USDT Dominance बढ़ रही है (+0.38%), स्मार्ट मनी कैश में शिफ्ट हो रही है। सप्लाई रिटेस्ट पर फिक्स्ड SL के साथ अनुशासित SHORT एक्टिव है।'
+          'Market Waterfall Breakdown Mode में है (मार्केट नीचे गिर रहा है) — कैंडलस्टिक चार्ट पर लगातार Lower Highs और Lower Lows बन रहे हैं। USDT Dominance बढ़ रही है (+0.38%), स्मार्ट मनी कैश में शिफ्ट हो रही है। सप्लाई रिटेस्ट पर फिक्स्ड SL के साथ अनुशासित SHORT SETUP एक्टिव है।'
       };
     }
 
-    if (priceSlope > 0.005 || (lastCandle.close > sma20 && lastCandle.close >= lastCandle.open)) {
+    // Bullish Expansion (Market is Going Up)
+    if (priceSlope > 0.003 || (lastCandle.close > sma20 && higherLowsCount >= 3)) {
       return {
         decision: 'LONG',
-        regime: 'BULLISH MOMENTUM & DEMAND ABSORPTION (USDT.D INFLOW)',
+        regime: 'BULLISH MOMENTUM & DEMAND ABSORPTION (MARKET IS GOING UP)',
         explanation:
-          'Market Uptrend में है — बायर्स हायर लोज मेंटेन कर रहे हैं और USDT Dominance गिर रही है (-0.32%)। डिमांड सपोर्ट पर फिक्स्ड SL के साथ अनुशासित LONG एक्टिव है।'
+          'Market Uptrend में है (मार्केट ऊपर जा रहा है) — बायर्स लगातार Higher Lows मेंटेन कर रहे हैं और USDT Dominance गिर रही है (-0.32%)। डिमांड सपोर्ट पर फिक्स्ड SL के साथ अनुशासित LONG SETUP एक्टिव है।'
       };
     }
 
+    // Equilibrium / Sideways Consolidation
     return {
       decision: 'WAIT',
-      regime: 'EQUILIBRIUM CONSOLIDATION (NO TRADE ZONE)',
+      regime: 'EQUILIBRIUM CONSOLIDATION (WAIT SETUP - NO TRADE ZONE)',
       explanation:
-        'Market 50% इक्विलिब्रियम चॉप जोन में कंसोलिडेट हो रहा है। ऐसे जोन में ट्रेड लेना रिटेल ट्रैप होता है। डिमांड सपोर्ट या सप्लाई रेजिस्टेंस टैप होने का WAIT करें।'
+        'Market अभी साइडवेज / कंसोलिडेशन रेंज में है (WAIT SETUP - No Trade Zone)। ऐसे जोन में ट्रेड लेना रिटेल ट्रैप होता है। डिमांड सपोर्ट या सप्लाई रेजिस्टेंस टैप होने का WAIT करें।'
     };
   }
 
   // 2. Default structural logic if candles not yet passed
   if (symbol === 'BTCUSDT') {
-    // Current market regime is Bearish Cascade below 82,000
-    if (price < 82200) {
+    if (price < 84000) {
       return {
         decision: 'SHORT',
-        regime: 'BEARISH BREAKDOWN CASCADE (TREND CONTINUATION)',
+        regime: 'BEARISH BREAKDOWN CASCADE (MARKET IS GOING DOWN)',
         explanation:
-          'Market नीचे गिर रहा है — $84,590 सप्लाई सीलिंग रिजेक्शन के बाद $82,000 सपोर्ट टूट चुका है। USDT Dominance पंप कर रही है (+0.38%), स्मार्ट मनी क्रिप्टो बेचकर कैश में शिफ्ट हो रही है। रेजिस्टेंस पुलबैक पर फिक्स्ड SL $81,950 के साथ SHORT एक्टिव है।'
+          'Market नीचे गिर रहा है — $84,590 सप्लाई सीलिंग रिजेक्शन के बाद लोअर हाइज बन रहे हैं। USDT Dominance बढ़ रही है (+0.38%), स्मार्ट मनी कैश में शिफ्ट हो रही है। फिक्स्ड SL के साथ SHORT SETUP एक्टिव है।'
       };
     }
-
     return {
       decision: 'LONG',
-      regime: 'BULLISH DEMAND EXPANSION',
+      regime: 'BULLISH DEMAND EXPANSION (MARKET IS GOING UP)',
       explanation:
-        'Market डिमांड सपोर्ट होल्ड कर रहा है। USDT Dominance गिर रही है। फिक्स्ड SL के साथ अनुशासित LONG एक्टिव है।'
+        'Market डिमांड सपोर्ट होल्ड कर रहा है। USDT Dominance गिर रही है। फिक्स्ड SL के साथ अनुशासित LONG SETUP एक्टिव है।'
     };
   }
 
@@ -249,14 +260,14 @@ export function detectMarketRegime(
     if (price >= 4180) {
       return {
         decision: 'SHORT',
-        regime: 'SUPPLY CEILING REJECTION',
-        explanation: 'Gold overhead resistance $4,185 par upper wick rejection print kar raha hai. Fixed SL ke sath SHORT active hai.'
+        regime: 'SUPPLY CEILING REJECTION (MARKET IS GOING DOWN)',
+        explanation: 'Gold overhead resistance $4,185 par upper wick rejection print kar raha hai. Fixed SL ke sath SHORT SETUP active hai.'
       };
     }
     return {
       decision: 'LONG',
-      regime: 'SOVEREIGN RESERVE ACCUMULATION',
-      explanation: 'Gold sovereign reserve buying aur real yield compression ke sath structural demand maintain kar raha hai. Fixed SL ke sath LONG active hai.'
+      regime: 'SOVEREIGN RESERVE ACCUMULATION (MARKET IS GOING UP)',
+      explanation: 'Gold sovereign reserve buying aur real yield compression ke sath structural demand maintain kar raha hai. Fixed SL ke sath LONG SETUP active hai.'
     };
   }
 
@@ -264,29 +275,29 @@ export function detectMarketRegime(
     if (price >= 51.10) {
       return {
         decision: 'SHORT',
-        regime: 'INDUSTRIAL SUPPLY REJECTION',
-        explanation: 'Silver $51.20 resistance ceiling par supply rejection print kar raha hai. Fixed SL ke sath SHORT active hai.'
+        regime: 'INDUSTRIAL SUPPLY REJECTION (MARKET IS GOING DOWN)',
+        explanation: 'Silver $51.20 resistance ceiling par supply rejection print kar raha hai. Fixed SL ke sath SHORT SETUP active hai.'
       };
     }
     return {
       decision: 'LONG',
-      regime: 'HIGH-BETA DEMAND ACCUMULATION',
-      explanation: 'Silver $50.20 demand floor absorb karke clean upside rotation bana raha hai. Fixed SL ke sath LONG active hai.'
+      regime: 'HIGH-BETA DEMAND ACCUMULATION (MARKET IS GOING UP)',
+      explanation: 'Silver $50.20 demand floor absorb karke clean upside rotation bana raha hai. Fixed SL ke sath LONG SETUP active hai.'
     };
   }
 
   if (symbol === 'ETHUSDT') {
-    if (price < 2400) {
+    if (price < 2460) {
       return {
         decision: 'SHORT',
-        regime: 'BEARISH STRUCTURE CONTINUATION',
-        explanation: 'ETH $2,420 key resistance se reject hokar lower lows print kar raha hai. Fixed SL $2,445 ke sath SHORT active hai.'
+        regime: 'BEARISH STRUCTURE CONTINUATION (MARKET IS GOING DOWN)',
+        explanation: 'ETH $2,480 key resistance se reject hokar lower lows print kar raha hai. Fixed SL ke sath SHORT SETUP active hai.'
       };
     }
     return {
       decision: 'LONG',
-      regime: 'DISCOUNT DEMAND ABSORPTION',
-      explanation: 'ETH demand floor par support hold kar raha hai. Fixed SL ke sath LONG active hai.'
+      regime: 'DISCOUNT DEMAND ABSORPTION (MARKET IS GOING UP)',
+      explanation: 'ETH demand floor par support hold kar raha hai. Fixed SL ke sath LONG SETUP active hai.'
     };
   }
 
@@ -294,14 +305,14 @@ export function detectMarketRegime(
   if (price < 105.0) {
     return {
       decision: 'SHORT',
-      regime: 'LOCAL SUPPLY RESISTANCE RETEST',
-      explanation: 'Solana local resistance ceiling par reject ho raha hai. Tight fixed SL ke sath SHORT active hai.'
+      regime: 'LOCAL SUPPLY RESISTANCE RETEST (MARKET IS GOING DOWN)',
+      explanation: 'Asset local resistance ceiling par reject ho raha hai. Tight fixed SL ke sath SHORT SETUP active hai.'
     };
   }
   return {
     decision: 'LONG',
-    regime: 'DISCOUNT REACTION',
-    explanation: 'Solana demand boundary par support respect kar raha hai. Fixed SL ke sath LONG active hai.'
+    regime: 'DISCOUNT REACTION (MARKET IS GOING UP)',
+    explanation: 'Asset demand boundary par support respect kar raha hai. Fixed SL ke sath LONG SETUP active hai.'
   };
 }
 
@@ -322,7 +333,7 @@ export function buildUnifiedSignal(
   const symbol = normalizeSymbolKey(rawSymbol);
   const detected = detectMarketRegime(symbol, livePriceOverride, candles);
   const decision: 'LONG' | 'SHORT' | 'WAIT' = preferredDecision || detected.decision;
-  const currentLive = livePriceOverride && livePriceOverride > 0 ? livePriceOverride : (BASE_PRICES[symbol] || 81200);
+  const currentLive = livePriceOverride && livePriceOverride > 0 ? livePriceOverride : (BASE_PRICES[symbol] || 84500);
 
   // ₿ BITCOIN (BTCUSDT)
   if (symbol === 'BTCUSDT') {
@@ -330,25 +341,46 @@ export function buildUnifiedSignal(
     const isLong = decision === 'LONG';
     const isWait = decision === 'WAIT';
 
-    // 100% ANCHORED FIXED STRUCTURAL LEVELS (NEVER FLOAT ON TICKS!):
-    // SHORT: Entry on Pullback to Breakdown Retest ($81,200).
-    //        Fixed Stop Loss strictly ABOVE resistance at $81,950 (NEVER moves down!).
-    //        Targets down at $80,400, $79,200, $78,900.
-    // LONG:  Entry on Deep Demand Sweep ($80,650).
-    //        Fixed Stop Loss strictly BELOW swing low at $79,850 (NEVER floats).
-    //        Targets up at $81,850, $82,600, $83,800.
-    // WAIT:  Mid-range chop awaiting clean tap.
-    const entryPrice = isShort ? 81200 : isLong ? 80650 : 81200;
-    const entryZone = isShort
-      ? '$81,200 – $81,450 (Resistance Retest / Breakdown)'
-      : isLong
-      ? '$80,450 – $80,750 (Demand Floor Liquidity Sweep)'
-      : '$80,650 (Demand) / $81,950 (Supply Ceiling)';
+    const currentPrice = currentLive;
+    let swingHigh = currentPrice * 1.012;
+    let swingLow = currentPrice * 0.988;
+    if (candles && candles.length >= 10) {
+      const recent = candles.slice(-25);
+      swingHigh = Math.max(...recent.map((c: any) => c.high));
+      swingLow = Math.min(...recent.map((c: any) => c.low));
+    }
 
-    const stopLossPrice = isShort ? 81950 : isLong ? 79850 : 81950;
-    const targetTp1 = isShort ? 80400 : 81850;
-    const targetTp2 = isShort ? 79200 : 82600;
-    const targetTp3 = isShort ? 78900 : 83800;
+    let entryPrice = Math.round(currentPrice);
+    let stopLossPrice = Math.round(currentPrice * 1.01);
+    let targetTp1 = Math.round(currentPrice * 0.985);
+    let targetTp2 = Math.round(currentPrice * 0.970);
+    let targetTp3 = Math.round(currentPrice * 0.950);
+    let entryZone = '';
+
+    if (isShort) {
+      entryPrice = Math.round(currentPrice);
+      stopLossPrice = Math.round(Math.max(swingHigh * 1.0025, currentPrice * 1.008));
+      const risk = Math.max(150, stopLossPrice - entryPrice);
+      targetTp1 = Math.round(entryPrice - risk * 1.5);
+      targetTp2 = Math.round(entryPrice - risk * 2.8);
+      targetTp3 = Math.round(entryPrice - risk * 4.5);
+      entryZone = `$${Math.round(entryPrice * 0.998).toLocaleString()} – $${Math.round(entryPrice * 1.004).toLocaleString()} (Resistance Retest)`;
+    } else if (isLong) {
+      entryPrice = Math.round(currentPrice);
+      stopLossPrice = Math.round(Math.min(swingLow * 0.9975, currentPrice * 0.992));
+      const risk = Math.max(150, entryPrice - stopLossPrice);
+      targetTp1 = Math.round(entryPrice + risk * 1.5);
+      targetTp2 = Math.round(entryPrice + risk * 2.8);
+      targetTp3 = Math.round(entryPrice + risk * 4.5);
+      entryZone = `$${Math.round(entryPrice * 0.996).toLocaleString()} – $${Math.round(entryPrice * 1.002).toLocaleString()} (Demand Support)`;
+    } else {
+      entryPrice = Math.round(currentPrice);
+      stopLossPrice = Math.round(swingHigh);
+      targetTp1 = Math.round(swingLow);
+      targetTp2 = Math.round(swingLow * 0.99);
+      targetTp3 = Math.round(swingLow * 0.98);
+      entryZone = 'Awaiting Confirmed Breakout / Key Level Retest';
+    }
 
     const risk = Math.abs(entryPrice - stopLossPrice) || 1;
     const reward = Math.abs(targetTp3 - entryPrice) || 1;
@@ -359,14 +391,14 @@ export function buildUnifiedSignal(
     const shortScore = isWait ? 50 : isShort ? 94 : 15;
 
     const hindiExplanation = isWait
-      ? 'मार्केट 50% इक्विलिब्रियम चॉप जोन में है (No Trade Zone)। यहाँ बिना कन्फर्मेशन एंट्री लेने से रिटेल ट्रेडर्स ट्रैप होते हैं। $80,650 डिमांड सपोर्ट या $81,950 सप्लाई सीलिंग टैप होने का WAIT करें।'
+      ? 'मार्केट अभी 50% साइडवेज / कंसोलिडेशन रेंज में है (WAIT SETUP - No Trade Zone)। यहाँ बिना कन्फर्मेशन एंट्री लेने से रिटेल ट्रेडर्स ट्रैप होते हैं। सही समय पर जब मार्केट किसी एक डायरेक्शन में ब्रेकआउट करेगा, AI अपने आप सटीक ट्रेड सेटअप दे देगा। अभी WAIT करें।'
       : isShort
-      ? 'मार्केट नीचे गिर रहा है (Bearish Waterfall Breakdown) — $82,000 सपोर्ट ब्रेक होने के बाद लोअर हाइज बन रहे हैं। USDT Dominance बढ़ रही है (+0.38%), स्मार्ट मनी कैश में शिफ्ट हो रही है। $81,200 रिटेस्ट पर फिक्स्ड SL $81,950 के साथ SHORT एक्टिव है।'
-      : 'मार्केट डिमांड फ्लोर से बाउंस करने की कोशिश कर रहा है — USDT Dominance गिर रही है (-0.32%)। $80,650 डिमांड जोन पर फिक्स्ड SL $79,850 के साथ LONG एक्टिव है।';
+      ? `मार्केट नीचे गिर रहा है (Bearish Waterfall Breakdown) — लगातार लोअर हाइज और डाउनवर्ड सेलिंग प्रेशर बन रहा है। USDT Dominance बढ़ रही है (+0.38%), स्मार्ट मनी कैश में शिफ्ट हो रही है। रेजिस्टेंस रिटेस्ट पर फिक्स्ड SL $${stopLossPrice.toLocaleString()} के साथ अनुशासित SHORT SETUP एक्टिव है।`
+      : `मार्केट ऊपर जा रहा है (Bullish Momentum Trend) — बायर्स लगातार हायर लोज मेंटेन कर रहे हैं। USDT Dominance गिर रही है (-0.32%), स्मार्ट मनी क्रिप्टो में कैपिटल इंजेक्ट कर रही है। डिमांड सपोर्ट पर फिक्स्ड SL $${stopLossPrice.toLocaleString()} के साथ अनुशासित LONG SETUP एक्टिव है।`;
 
     const stepByStepGuide: StepByStepTradeGuide = {
       step1Entry: isWait
-        ? 'Awaiting Key Level Tap: $80,650 डिमांड या $81,950 सप्लाई पर कन्फर्मेशन का इन्तजार करें।'
+        ? 'Awaiting Key Level Tap: कन्फर्मेशन का इन्तजार करें, जल्दबाजी में ट्रेड ना लें।'
         : isShort
         ? `Limit Sell Order ${entryZone} जोन में लगाएं। ब्रेकडाउन रिटेस्ट पर अनुशासित एंट्री लें।`
         : `Limit Buy Order ${entryZone} जोन में लगाएं। मार्केट में FOMO चेज ना करें।`,
@@ -379,24 +411,24 @@ export function buildUnifiedSignal(
 
     const rationaleBullets = isShort
       ? [
-          'मार्केट स्ट्रक्चर: 15M / 1H चार्ट पर $82,000 सपोर्ट का डाउनवर्ड ब्रेकडाउन और लोअर हाइज सीक्वेंस।',
+          'मार्केट स्ट्रक्चर: कैंडलस्टिक चार्ट पर लोअर हाइज और डाउनवर्ड ब्रेकडाउन सीक्वेंस।',
           'USDT Dominance: USDT.D +0.38% पंप हो रही है (Capital Outflow to Cash), जो फॉलिंग मार्केट को कंफर्म करता है।',
-          'ऑर्डर फ्लो (CVD): नेगेटिव टेकर डेल्टा (-$184M) लगातार एग्रेसिव सेलिंग प्रेशर दिखा रहा है।',
-          'लिक्विडिटी टारगेट: सेल-साइड लिक्विडिटी पूल ($80,400 और $78,900) डाउनवर्ड मैग्नेट की तरह काम कर रहे हैं।',
-          'फिक्स्ड रिस्क: Stop Loss स्ट्रिक्ट $81,950 पर फिक्स्ड है — नो फ्लोटिंग, नो ड्रिफ्टिंग।'
+          'ऑर्डर फ्लो (CVD): नेगेटिव टेकर डेल्टा लगातार एग्रेसिव सेलिंग प्रेशर दिखा रहा है।',
+          `लिक्विडिटी टारगेट: डाउनवर्ड मैग्नेट की तरह सेल-साइड लिक्विडिटी पूल ($${targetTp3.toLocaleString()}) ओपन है।`,
+          `फिक्स्ड रिस्क: Stop Loss स्ट्रिक्ट $${stopLossPrice.toLocaleString()} पर फिक्स्ड है — नो फ्लोटिंग, नो ड्रिफ्टिंग।`
         ]
       : isLong
       ? [
-          'मार्केट स्ट्रक्चर: $80,450 डिमांड फ्लोर पर बायर्स का अब्जॉर्प्शन और बुलिश डाइवर्जेंस।',
+          'मार्केट स्ट्रक्चर: डिमांड फ्लोर पर बायर्स का अब्जॉर्प्शन और हायर लोज कन्फर्मेशन।',
           'USDT Dominance: USDT.D -0.32% गिर रही है (Capital Inflow to Crypto)।',
           'ऑर्डर फ्लो (CVD): डिमांड जोन पर टेकर बायर्स का पॉजिटिव डेल्टा कन्फर्मेशन।',
-          'लिक्विडिटी टारगेट: ऊपर $82,600 और $83,800 के बाय-साइड स्टॉप्स ओपन हैं।',
-          'फिक्स्ड रिस्क: Stop Loss स्ट्रिक्ट $79,850 पर फिक्स्ड है।'
+          `लिक्विडिटी टारगेट: ऊपर बाय-साइड स्टॉप्स ($${targetTp3.toLocaleString()}) ओपन हैं।`,
+          `फिक्स्ड रिस्क: Stop Loss स्ट्रिक्ट $${stopLossPrice.toLocaleString()} पर फिक्स्ड है।`
         ]
       : [
-          'मार्केट इक्विलिब्रियम: प्राइस 50% मिड-रेंज चॉप में फंसा हुआ है।',
+          'मार्केट इक्विलिब्रियम: प्राइस मिड-रेंज चॉप में कंसोलिडेट हो रहा है।',
           'रिस्क रिवॉर्ड: मिड-रेंज में एंट्री लेने पर असिमेट्रिक एज नहीं है।',
-          'पेशेंस रूल: $80,650 सपोर्ट या $81,950 रेजिस्टेंस टेस्ट होने पर ही फ्रेश स्नाइपर एंट्री मिलेगी।'
+          'पेशेंस रूल: की-लेवल ब्रेकआउट होने पर ही AI अपने आप सटीक फ्रेश ट्रेड सेटअप ट्रिगर करेगा।'
         ];
 
     const confluenceFactors: UnifiedConfluenceFactor[] = [
@@ -414,8 +446,8 @@ export function buildUnifiedSignal(
         weight: 20,
         bias: isShort ? -0.9 : isLong ? 0.88 : 0,
         note: isShort
-          ? 'Bearish breakdown cascade below 15M VWAP ($82,160) & POC ($82,309).'
-          : 'Testing discount demand floor support.',
+          ? 'Bearish breakdown cascade with lower highs sequence.'
+          : 'Testing discount demand floor support with higher lows.',
         available: true
       },
       {
@@ -423,7 +455,7 @@ export function buildUnifiedSignal(
         weight: 18,
         bias: isShort ? -0.88 : isLong ? 0.82 : 0,
         note: isShort
-          ? 'POC $82,309 rejected. CVD negative aggressive market sell pressure.'
+          ? 'Overhead supply rejected. CVD negative aggressive market sell pressure.'
           : 'Taker bid absorption on support.',
         available: true
       },
@@ -432,8 +464,8 @@ export function buildUnifiedSignal(
         weight: 15,
         bias: isShort ? -0.85 : isLong ? 0.85 : 0,
         note: isShort
-          ? 'Downside sell-side liquidity vacuum open to $80,400 & $78,900.'
-          : 'Upside liquidity vacuum to $82,600.',
+          ? `Downside sell-side liquidity vacuum open to $${targetTp3.toLocaleString()}.`
+          : `Upside liquidity vacuum to $${targetTp3.toLocaleString()}.`,
         available: true
       },
       {
@@ -466,16 +498,16 @@ export function buildUnifiedSignal(
       hindiExplanation,
       stepByStepGuide,
       structureNote: isShort
-        ? 'Market waterfall breakdown mode mein hai. Lower highs sequence below $82,000 support.'
-        : 'Holding deep discount demand zone.',
+        ? 'Market waterfall breakdown mode mein hai. Lower highs sequence.'
+        : 'Holding demand support zone with higher lows.',
       liquidityNote: isShort
-        ? 'Sell-side liquidity magnet active down to $80,400 and $78,900.'
-        : 'Equal highs resting above $82,600.',
+        ? `Sell-side liquidity magnet active down to $${targetTp3.toLocaleString()}.`
+        : `Equal highs resting above $${targetTp3.toLocaleString()}.`,
       usdtMacroNote: isShort
         ? 'USDT Dominance spiking (+0.38%): Whales holding USDT cash. Bitcoin falling.'
         : 'USDT Dominance dropping (-0.32%): Capital entering Bitcoin.',
       orderFlowNote: isShort
-        ? 'Negative CVD delta cascade (-$184M). Aggressive market sellers in control.'
+        ? 'Negative CVD delta cascade. Aggressive market sellers in control.'
         : 'Demand absorption on support.',
       invalidationRule: `15M candle close ${isShort ? 'above' : 'below'} $${stopLossPrice.toLocaleString()} USD strictly invalidates the setup.`,
       status: isWait ? 'WAITING' : 'ACTIVE',
@@ -493,14 +525,28 @@ export function buildUnifiedSignal(
     const isShort = decision === 'SHORT';
     const isWait = decision === 'WAIT';
 
-    const entryPrice = isShort ? 4178.0 : 4152.5;
-    const entryZone = isShort ? '$4,174 – $4,184 (Supply Retest)' : '$4,148 – $4,156 (Demand Pullback)';
-    const stopLossPrice = isShort ? 4196.0 : 4136.0;
-    const targetTp1 = isShort ? 4152.0 : 4175.0;
-    const targetTp2 = isShort ? 4130.0 : 4198.0;
-    const targetTp3 = isShort ? 4098.0 : 4225.0;
+    const currentPrice = currentLive;
+    let swingHigh = currentPrice * 1.008;
+    let swingLow = currentPrice * 0.992;
+    if (candles && candles.length >= 10) {
+      const recent = candles.slice(-25);
+      swingHigh = Math.max(...recent.map((c: any) => c.high));
+      swingLow = Math.min(...recent.map((c: any) => c.low));
+    }
+    const entryPrice = +(currentPrice).toFixed(2);
+    const stopLossPrice = isShort
+      ? +(Math.max(swingHigh * 1.002, currentPrice * 1.006)).toFixed(2)
+      : +(Math.min(swingLow * 0.998, currentPrice * 0.994)).toFixed(2);
+    const risk = Math.max(5, Math.abs(entryPrice - stopLossPrice));
+    const targetTp1 = isShort ? +(entryPrice - risk * 1.5).toFixed(2) : +(entryPrice + risk * 1.5).toFixed(2);
+    const targetTp2 = isShort ? +(entryPrice - risk * 2.8).toFixed(2) : +(entryPrice + risk * 2.8).toFixed(2);
+    const targetTp3 = isShort ? +(entryPrice - risk * 4.5).toFixed(2) : +(entryPrice + risk * 4.5).toFixed(2);
+    const entryZone = isWait
+      ? 'Awaiting Breakout / Key Level Tap'
+      : isShort
+      ? `$${(entryPrice * 0.998).toFixed(1)} – $${(entryPrice * 1.002).toFixed(1)} (Supply Retest)`
+      : `$${(entryPrice * 0.998).toFixed(1)} – $${(entryPrice * 1.002).toFixed(1)} (Demand Pullback)`;
 
-    const risk = Math.abs(entryPrice - stopLossPrice);
     const reward = Math.abs(targetTp3 - entryPrice);
     const rr = +(reward / risk).toFixed(2);
 
@@ -522,9 +568,11 @@ export function buildUnifiedSignal(
       targetTp3,
       rewardToRisk: `1 : ${rr.toFixed(2)}`,
       rrRatio: rr,
-      hindiExplanation: isShort
-        ? `Gold $4,185 सप्लाई रेजिस्टेंस पर अपर विक रिजेक्शन प्रिंट कर रहा है। फिक्स्ड SL $${stopLossPrice.toFixed(2)} के साथ SHORT एक्टिव है।`
-        : `Gold डिमांड फ्लोर पर स्ट्रक्चरल सपोर्ट होल्ड कर रहा है। फिक्स्ड SL $${stopLossPrice.toFixed(2)} USD के साथ LONG एक्टिव है।`,
+      hindiExplanation: isWait
+        ? 'Gold 50% इक्विलिब्रियम रेंज में है (WAIT SETUP - No Trade Zone)। की-लेवल ब्रेकआउट का इन्तजार करें।'
+        : isShort
+        ? `Gold सप्लाई रेजिस्टेंस पर अपर विक रिजेक्शन प्रिंट कर रहा है (मार्केट नीचे जा रहा है)। फिक्स्ड SL $${stopLossPrice.toFixed(2)} के साथ SHORT SETUP एक्टिव है।`
+        : `Gold डिमांड फ्लोर पर स्ट्रक्चरल सपोर्ट होल्ड कर रहा है (मार्केट ऊपर जा रहा है)। फिक्स्ड SL $${stopLossPrice.toFixed(2)} USD के साथ LONG SETUP एक्टिव है।`,
       stepByStepGuide: {
         step1Entry: `Gold ${entryZone} जोन में लिमिट ऑर्डर लगाएं।`,
         step2StopLoss: `🛑 Stop Loss strict $${stopLossPrice.toFixed(2)} USD पर फिक्स्ड रहेगा।`,
@@ -553,14 +601,30 @@ export function buildUnifiedSignal(
   // 🥈 SILVER (SLVUSDT / XAGUSD)
   if (symbol === 'SLVUSDT') {
     const isShort = decision === 'SHORT';
-    const entryPrice = isShort ? 51.15 : 50.4;
-    const entryZone = isShort ? '$51.05 – $51.25' : '$50.25 – $50.55';
-    const stopLossPrice = isShort ? 51.65 : 49.85;
-    const targetTp1 = isShort ? 50.45 : 51.2;
-    const targetTp2 = isShort ? 49.80 : 51.9;
-    const targetTp3 = isShort ? 48.90 : 52.75;
+    const isWait = decision === 'WAIT';
 
-    const risk = Math.abs(entryPrice - stopLossPrice);
+    const currentPrice = currentLive;
+    let swingHigh = currentPrice * 1.010;
+    let swingLow = currentPrice * 0.990;
+    if (candles && candles.length >= 10) {
+      const recent = candles.slice(-25);
+      swingHigh = Math.max(...recent.map((c: any) => c.high));
+      swingLow = Math.min(...recent.map((c: any) => c.low));
+    }
+    const entryPrice = +(currentPrice).toFixed(2);
+    const stopLossPrice = isShort
+      ? +(Math.max(swingHigh * 1.003, currentPrice * 1.008)).toFixed(2)
+      : +(Math.min(swingLow * 0.997, currentPrice * 0.992)).toFixed(2);
+    const risk = Math.max(0.2, Math.abs(entryPrice - stopLossPrice));
+    const targetTp1 = isShort ? +(entryPrice - risk * 1.5).toFixed(2) : +(entryPrice + risk * 1.5).toFixed(2);
+    const targetTp2 = isShort ? +(entryPrice - risk * 2.8).toFixed(2) : +(entryPrice + risk * 2.8).toFixed(2);
+    const targetTp3 = isShort ? +(entryPrice - risk * 4.5).toFixed(2) : +(entryPrice + risk * 4.5).toFixed(2);
+    const entryZone = isWait
+      ? 'Awaiting Breakout'
+      : isShort
+      ? `$${(entryPrice * 0.998).toFixed(2)} – $${(entryPrice * 1.004).toFixed(2)}`
+      : `$${(entryPrice * 0.996).toFixed(2)} – $${(entryPrice * 1.002).toFixed(2)}`;
+
     const reward = Math.abs(targetTp3 - entryPrice);
     const rr = +(reward / risk).toFixed(2);
 
@@ -582,9 +646,11 @@ export function buildUnifiedSignal(
       targetTp3,
       rewardToRisk: `1 : ${rr.toFixed(2)}`,
       rrRatio: rr,
-      hindiExplanation: isShort
-        ? 'Silver $51.20 resistance ceiling par supply rejection print kar raha hai. Fixed SL $51.65 ke sath SHORT active hai.'
-        : 'Silver demand floor par institutional absorption complete kar chuki hai. Fixed SL $49.85 ke sath LONG active hai.',
+      hindiExplanation: isWait
+        ? 'Silver साइडवेज कंसोलिडेशन में है (WAIT SETUP - No Trade Zone)। ब्रेकआउट का इन्तजार करें।'
+        : isShort
+        ? `Silver resistance ceiling par supply rejection print kar raha hai (Market niche ja raha hai). Fixed SL $${stopLossPrice.toFixed(2)} ke sath SHORT SETUP active hai.`
+        : `Silver demand floor par institutional absorption complete kar chuki hai (Market upar ja raha hai). Fixed SL $${stopLossPrice.toFixed(2)} ke sath LONG SETUP active hai.`,
       stepByStepGuide: {
         step1Entry: `Silver ${entryZone} zone me limit order lagayein.`,
         step2StopLoss: `🛑 Stop Loss strict $${stopLossPrice.toFixed(2)} USD par fixed rakhein.`,
@@ -596,7 +662,7 @@ export function buildUnifiedSignal(
       usdtMacroNote: 'USDT liquidity flow impacting commodity beta.',
       orderFlowNote: 'Commercial flow tracked across major exchanges.',
       invalidationRule: `15M close ${isShort ? 'above' : 'below'} $${stopLossPrice.toFixed(2)} USD invalidates trade.`,
-      status: decision === 'WAIT' ? 'WAITING' : 'ACTIVE',
+      status: isWait ? 'WAITING' : 'ACTIVE',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       confluenceFactors: [],
@@ -613,17 +679,32 @@ export function buildUnifiedSignal(
   const isEth = symbol === 'ETHUSDT';
   const isSol = symbol === 'SOLUSDT';
   const isShort = decision === 'SHORT';
+  const isWait = decision === 'WAIT';
 
-  const entryPrice = isEth ? (isShort ? 2415 : 2330) : (isShort ? 105.8 : 99.5);
-  const entryZone = isEth
-    ? (isShort ? '$2,405 – $2,425' : '$2,315 – $2,345')
-    : (isShort ? '$105.00 – $106.50' : '$98.50 – $100.20');
-  const stopLossPrice = isEth ? (isShort ? 2465 : 2285) : (isShort ? 109.5 : 96.5);
-  const targetTp1 = isEth ? (isShort ? 2340 : 2410) : (isShort ? 101.5 : 105.5);
-  const targetTp2 = isEth ? (isShort ? 2280 : 2475) : (isShort ? 97.0 : 109.8);
-  const targetTp3 = isEth ? (isShort ? 2190 : 2550) : (isShort ? 92.5 : 115.0);
+  const currentPrice = currentLive;
+  let swingHigh = currentPrice * 1.012;
+  let swingLow = currentPrice * 0.988;
+  if (candles && candles.length >= 10) {
+    const recent = candles.slice(-25);
+    swingHigh = Math.max(...recent.map((c: any) => c.high));
+    swingLow = Math.min(...recent.map((c: any) => c.low));
+  }
 
-  const risk = Math.abs(entryPrice - stopLossPrice);
+  const entryPrice = isEth ? Math.round(currentPrice) : +(currentPrice).toFixed(2);
+  const stopLossPrice = isShort
+    ? isEth ? Math.round(Math.max(swingHigh * 1.003, currentPrice * 1.010)) : +(Math.max(swingHigh * 1.004, currentPrice * 1.012)).toFixed(2)
+    : isEth ? Math.round(Math.min(swingLow * 0.997, currentPrice * 0.990)) : +(Math.min(swingLow * 0.996, currentPrice * 0.988)).toFixed(2);
+  const risk = Math.abs(entryPrice - stopLossPrice) || 1;
+  const targetTp1 = isShort ? (isEth ? Math.round(entryPrice - risk * 1.5) : +(entryPrice - risk * 1.5).toFixed(2)) : (isEth ? Math.round(entryPrice + risk * 1.5) : +(entryPrice + risk * 1.5).toFixed(2));
+  const targetTp2 = isShort ? (isEth ? Math.round(entryPrice - risk * 2.8) : +(entryPrice - risk * 2.8).toFixed(2)) : (isEth ? Math.round(entryPrice + risk * 2.8) : +(entryPrice + risk * 2.8).toFixed(2));
+  const targetTp3 = isShort ? (isEth ? Math.round(entryPrice - risk * 4.5) : +(entryPrice - risk * 4.5).toFixed(2)) : (isEth ? Math.round(entryPrice + risk * 4.5) : +(entryPrice + risk * 4.5).toFixed(2));
+
+  const entryZone = isWait
+    ? 'Awaiting Breakout'
+    : isShort
+    ? `$${(entryPrice * 0.998).toFixed(1)} – $${(entryPrice * 1.004).toFixed(1)}`
+    : `$${(entryPrice * 0.996).toFixed(1)} – $${(entryPrice * 1.002).toFixed(1)}`;
+
   const reward = Math.abs(targetTp3 - entryPrice);
   const rr = +(reward / risk).toFixed(2);
 
@@ -649,9 +730,11 @@ export function buildUnifiedSignal(
     targetTp3,
     rewardToRisk: `1 : ${rr.toFixed(2)}`,
     rrRatio: rr,
-    hindiExplanation: isShort
-      ? `${display} supply ceiling par reject ho raha hai. Fixed SL $${stopLossPrice} ke sath sniper SHORT active hai.`
-      : `${display} demand sweep complete karke buyers absorption lead kar rahe hain. Fixed SL $${stopLossPrice} ke sath LONG active hai.`,
+    hindiExplanation: isWait
+      ? `${display} साइडवेज रेंज में है (WAIT SETUP - No Trade Zone)। सही समय पर कन्फर्म ब्रेकआउट होने पर AI ट्रेड देगा।`
+      : isShort
+      ? `${display} नीचे गिर रहा है (Bearish Structure Breakdown)। Fixed SL $${stopLossPrice} के साथ SHORT SETUP active hai.`
+      : `${display} ऊपर जा रहा है (Bullish Momentum & Demand Absorption)। Fixed SL $${stopLossPrice} के साथ LONG SETUP active hai.`,
     stepByStepGuide: {
       step1Entry: `Limit order ${entryZone} zone me lagayein.`,
       step2StopLoss: `🛑 Stop Loss $${stopLossPrice} USD strictly fixed rakhein.`,
@@ -663,7 +746,7 @@ export function buildUnifiedSignal(
     usdtMacroNote: 'USDT rotation driving market momentum.',
     orderFlowNote: 'Taker delta confirms institutional execution.',
     invalidationRule: `15M close ${isShort ? 'above' : 'below'} $${stopLossPrice} USD invalidates trade.`,
-    status: decision === 'WAIT' ? 'WAITING' : 'ACTIVE',
+    status: isWait ? 'WAITING' : 'ACTIVE',
     createdAt: Date.now(),
     updatedAt: Date.now(),
     confluenceFactors: [],
@@ -762,6 +845,21 @@ class UnifiedTradingSignalService {
     this.saveToStorage();
     this.notifyListeners(updated);
     return updated;
+  }
+
+  public cycleToWait(
+    symbol: string,
+    livePrice?: number,
+    candles?: any[]
+  ): UnifiedTradingSignal {
+    const key = normalizeSymbolKey(symbol);
+    const prev = this.cache[key];
+    const tradeNum = prev ? prev.tradeNumber : 1;
+    const waitSignal = buildUnifiedSignal(key, 'WAIT', livePrice, tradeNum, candles);
+    this.cache[key] = waitSignal;
+    this.saveToStorage();
+    this.notifyListeners(waitSignal);
+    return waitSignal;
   }
 
   public cycleNextTrade(

@@ -33,7 +33,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     items: [
       { id: 'indian-stock-ai', label: 'Indian Stocks AI ⭐ (Top 500)', icon: '🇮🇳' },
       { id: 'usa-stock-ai', label: 'USA Top 1000 AI ⭐ (INDmoney)', icon: '🇺🇸' },
-      { id: 'volume-profile-ai', label: 'Volume Profile AI ⭐ (Crypto/Gold/Silver)', icon: '📶' },
+      { id: 'volume-profile-ai', label: 'Volume Profile Pro ⭐ (VAH/VAL/POC Setup)', icon: '📶' },
       { id: 'gold-ai', label: 'Gold Trading AI ⭐', icon: '🥇' },
       { id: 'stock-ai', label: 'AI Stocks (US + NIFTY 100)', icon: '📊' },
       { id: 'global-intel', label: 'Global Intelligence', icon: '🌍' },

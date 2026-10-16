@@ -21,6 +21,7 @@ interface HeaderProps {
   onNavigateChartAnalyser?: () => void;
   onNavigateInstitutionalChart?: () => void;
   onNavigateMultiAssetEngine?: () => void;
+  onNavigateVolumeProfile?: () => void;
   onOpenProfile?: () => void;
   onSearch?: (query: string) => void;
 }
@@ -42,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateChartAnalyser,
   onNavigateInstitutionalChart,
   onNavigateMultiAssetEngine,
+  onNavigateVolumeProfile,
   onOpenProfile,
   onSearch,
   onOpenAccount
@@ -224,6 +226,18 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <span className="animate-pulse">🏛️</span>
             <span className="hidden sm:inline">Institutional Chart ⭐</span>
+          </button>
+        )}
+
+        {/* Volume Profile Pro Launcher */}
+        {onNavigateVolumeProfile && (
+          <button
+            onClick={onNavigateVolumeProfile}
+            className="rounded-md border border-cyan-400/80 bg-gradient-to-r from-blue-600/30 via-cyan-600/30 to-amber-500/30 px-2.5 py-1.5 text-xs font-black text-cyan-200 hover:brightness-125 transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.4)] ring-1 ring-cyan-400/50"
+            title="Open Volume Profile Pro Setup (VAH / VAL / POC / 70% Value Area / Auto & Manual FRVP)"
+          >
+            <span className="animate-pulse">📶</span>
+            <span className="hidden sm:inline">Volume Profile Pro ⭐</span>
           </button>
         )}
 

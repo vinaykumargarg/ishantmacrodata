@@ -343,6 +343,7 @@ function TerminalApp() {
         onNavigateChartAnalyser={() => setActiveTab('market-chart-analyse')}
         onNavigateInstitutionalChart={() => setActiveTab('institutional-chart')}
         onNavigateMultiAssetEngine={() => setActiveTab('institutional-multi-asset')}
+        onNavigateVolumeProfile={() => setActiveTab('volume-profile-ai')}
       />
 
       {/* 3. Main Workspace Row: Left Sidebar + Right Viewport */}
@@ -395,7 +396,7 @@ function TerminalApp() {
               {activeTab === 'stock-ai' && <StockAiView />}
               {(activeTab === 'indian-stock-ai' || activeTab === 'indian-stocks' || activeTab === 'nifty-500') && <IndianStockAiView />}
               {(activeTab === 'usa-stock-ai' || activeTab === 'usa-stocks' || activeTab === 'russell-1000' || activeTab === 'indmoney-us') && <UsaTop1000AiView />}
-              {(activeTab === 'volume-profile-ai' || activeTab === 'volume-profile' || activeTab === 'vp-terminal') && <VolumeProfileTerminalView />}
+              {(activeTab === 'volume-profile-ai' || activeTab === 'volume-profile' || activeTab === 'volume-profile-pro' || activeTab === 'volume-profile-setup' || activeTab === 'vp-terminal') && <VolumeProfileTerminalView />}
               {(activeTab === 'gold-ai' || activeTab === 'gold-trading-ai') && <GoldTradingAiView />}
               {activeTab === 'global-intel' && <GlobalIntelView />}
               {activeTab === 'ultra-ai' && <UltraInstitutionalDecisionEngine onNavigate={setActiveTab} />}
