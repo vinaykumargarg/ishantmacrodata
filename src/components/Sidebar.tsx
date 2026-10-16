@@ -11,6 +11,8 @@ export const NAV_CATEGORIES: NavCategory[] = [
     title: 'AI Decision & Live Chart',
     icon: '⚡',
     items: [
+      { id: 'institutional-multi-asset', label: 'Institutional Multi-Asset Engine ⭐ (BTC/ETH/Gold/Oil)', icon: '🌐' },
+      { id: 'institutional-chart', label: 'Institutional All-in-One Chart ⭐🏛️', icon: '🏛️' },
       { id: 'gold', label: 'Gold Macro Overview 🥇', icon: '🥇' },
       { id: 'news', label: 'Financial News 📰', icon: '📰' },
       { id: 'jarvis-voice-ai', label: 'Jarvis AI Market Voice Expert 🎙️⭐ (Hindi/Hinglish/Eng)', icon: '🎙️' },

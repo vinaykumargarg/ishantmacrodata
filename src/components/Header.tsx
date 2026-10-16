@@ -16,6 +16,11 @@ interface HeaderProps {
   onNavigateUsaSwing?: () => void;
   onNavigateEventImpact?: () => void;
   onNavigateOil?: () => void;
+  onNavigateDeeeprAi?: () => void;
+  onNavigateAiChart?: () => void;
+  onNavigateChartAnalyser?: () => void;
+  onNavigateInstitutionalChart?: () => void;
+  onNavigateMultiAssetEngine?: () => void;
   onSearch?: (query: string) => void;
 }
 
@@ -31,6 +36,11 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateUsaSwing,
   onNavigateEventImpact,
   onNavigateOil,
+  onNavigateDeeeprAi,
+  onNavigateAiChart,
+  onNavigateChartAnalyser,
+  onNavigateInstitutionalChart,
+  onNavigateMultiAssetEngine,
   onSearch,
   onOpenAccount
 }) => {
@@ -187,6 +197,66 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <span className="animate-pulse">🎙️</span>
             <span className="hidden sm:inline">Jarvis Voice AI</span>
+          </button>
+        )}
+
+        {/* Institutional Multi-Asset Engine Launcher */}
+        {onNavigateMultiAssetEngine && (
+          <button
+            onClick={onNavigateMultiAssetEngine}
+            className="rounded-md border border-cyan-400/80 bg-gradient-to-r from-cyan-500/30 via-indigo-600/30 to-purple-600/30 px-2.5 py-1.5 text-xs font-black text-cyan-200 hover:brightness-125 transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.45)] ring-1 ring-cyan-400/60"
+            title="Open Institutional Multi-Asset Analysis Engine (BTC, ETH, Gold, Crude Oil) — 7-Pillar Decision Support System"
+          >
+            <span className="animate-pulse">🌐</span>
+            <span className="hidden sm:inline">Multi-Asset Engine ⭐</span>
+          </button>
+        )}
+
+        {/* Advanced Institutional All-in-One Chart Launcher */}
+        {onNavigateInstitutionalChart && (
+          <button
+            onClick={onNavigateInstitutionalChart}
+            className="rounded-md border border-cyan-400/70 bg-gradient-to-r from-cyan-500/30 via-teal-500/30 to-indigo-500/30 px-2.5 py-1.5 text-xs font-black text-cyan-200 hover:brightness-125 transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.4)] ring-1 ring-cyan-400/50"
+            title="Open Advanced All-in-One Institutional Trading Chart (SMC + ICT + Order Flow + Liquidity + Volume Profile)"
+          >
+            <span className="animate-pulse">🏛️</span>
+            <span className="hidden sm:inline">Institutional Chart ⭐</span>
+          </button>
+        )}
+
+        {/* Deeepr.AI Market Structure Terminal Launcher */}
+        {onNavigateDeeeprAi && (
+          <button
+            onClick={onNavigateDeeeprAi}
+            className="rounded-md border border-cyan-500/60 bg-gradient-to-r from-cyan-600/30 via-blue-600/30 to-indigo-600/30 px-2.5 py-1.5 text-xs font-black text-cyan-300 hover:brightness-125 transition-all cursor-pointer flex items-center gap-1.5 shadow-md ring-1 ring-cyan-500/40"
+            title="Open DEEEPR.AI™ Market Structure & Key Levels Terminal (BTC, ETH, SOL, GOLD, SILVER)"
+          >
+            <span className="animate-pulse">🔮</span>
+            <span className="hidden sm:inline">Deeepr.AI Chart ⭐</span>
+          </button>
+        )}
+
+        {/* AI Sniper Chart (Long / Short / Wait) Launcher */}
+        {onNavigateAiChart && (
+          <button
+            onClick={onNavigateAiChart}
+            className="rounded-md border border-rose-500/60 bg-gradient-to-r from-rose-600/30 via-red-600/30 to-amber-600/30 px-2.5 py-1.5 text-xs font-black text-rose-300 hover:brightness-125 transition-all cursor-pointer flex items-center gap-1.5 shadow-md ring-1 ring-rose-500/40"
+            title="Open AI Chart — Long / Short / Wait (11-Factor Confluence & Liquidation Clusters)"
+          >
+            <span className="animate-pulse">📈</span>
+            <span className="hidden sm:inline">AI Chart Long/Short 🎯</span>
+          </button>
+        )}
+
+        {/* Market Chart AI Analyzer Launcher */}
+        {onNavigateChartAnalyser && (
+          <button
+            onClick={onNavigateChartAnalyser}
+            className="rounded-md border border-purple-500/60 bg-gradient-to-r from-purple-600/30 via-indigo-600/30 to-pink-600/30 px-2.5 py-1.5 text-xs font-black text-purple-300 hover:brightness-125 transition-all cursor-pointer flex items-center gap-1.5 shadow-md ring-1 ring-purple-500/40"
+            title="Open Market Chart AI Analyzer (A-to-Z Read & Deep Scanner)"
+          >
+            <span className="animate-pulse">🔬</span>
+            <span className="hidden sm:inline">AI Chart Analyse ⭐</span>
           </button>
         )}
 

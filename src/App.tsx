@@ -20,6 +20,8 @@ import { UltraInstitutionalDecisionEngine } from './components/UltraInstitutiona
 import DeltaIntelligenceEngineView from './components/DeltaIntelligenceEngineView';
 import DeeeprAiChartView from './components/DeeeprAiChartView';
 import InstitutionalAiTerminalView from './components/InstitutionalAiTerminalView';
+import AdvancedInstitutionalChart from './components/AdvancedInstitutionalChart';
+import InstitutionalMultiAssetEngineView from './components/InstitutionalMultiAssetEngineView';
 import MarketChartAnalyserTerminalView from './components/MarketChartAnalyserTerminalView';
 import CryptoWealthIntelligenceTerminalView from './components/CryptoWealthIntelligenceTerminalView';
 import {
@@ -223,6 +225,11 @@ function TerminalApp() {
         onNavigateUsaSwing={() => setActiveTab('usa-swing-scanner')}
         onNavigateEventImpact={() => setActiveTab('event-impact-engine')}
         onNavigateOil={() => setActiveTab('oil-trading-ai')}
+        onNavigateDeeeprAi={() => setActiveTab('deeepr-ai')}
+        onNavigateAiChart={() => setActiveTab('ai-chart')}
+        onNavigateChartAnalyser={() => setActiveTab('market-chart-analyse')}
+        onNavigateInstitutionalChart={() => setActiveTab('institutional-chart')}
+        onNavigateMultiAssetEngine={() => setActiveTab('institutional-multi-asset')}
       />
 
       {/* 3. Main Workspace Row: Left Sidebar + Right Viewport */}
@@ -255,6 +262,8 @@ function TerminalApp() {
 
           {/* RENDER ACTIVE TAB */}
           <ErrorBoundary key={activeTab} onReset={() => setActiveTab('market-chart-analyse')}>
+          {(activeTab === 'institutional-multi-asset' || activeTab === 'multi-asset-engine' || activeTab === 'institutional-multi-asset-engine' || activeTab === 'multi-asset-analysis') && <InstitutionalMultiAssetEngineView onNavigate={setActiveTab} />}
+          {(activeTab === 'institutional-chart' || activeTab === 'all-in-one-chart' || activeTab === 'institutional-trading-chart' || activeTab === 'smc-ict-chart') && <AdvancedInstitutionalChart />}
           {(activeTab === 'delta-swing-scanner' || activeTab === 'delta-scanner' || activeTab === 'delta-4h' || activeTab === 'delta-swing' || activeTab === 'delta-swing-top5' || activeTab === 'delta-wealth-1-3m') && <DeltaSwingScannerView onNavigate={setActiveTab} />}
           {(activeTab === 'usa-swing-scanner' || activeTab === 'usa-stocks-scanner' || activeTab === 'us-swing' || activeTab === 'usa-stock-scanner' || activeTab === 'usa-earnings-guard' || activeTab === 'usa-portfolio-builder') && <UsaStockScannerView onNavigate={setActiveTab} />}
           {(activeTab === 'event-impact-engine' || activeTab === 'news-impact' || activeTab === 'event-impact' || activeTab === 'macro-news-engine' || activeTab === 'macro-scenarios-matrix' || activeTab === 'gold-btc-transmission' || activeTab === 'voice-query-assistant') && <EventImpactEngineView onNavigate={setActiveTab} />}

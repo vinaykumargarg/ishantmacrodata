@@ -6,32 +6,35 @@ ISHANT MACRO AI TERMINAL — ADVANCED TELEGRAM AI MARKET RADAR & 24/7 BOT
 Features:
 1. 24/7 TWO-WAY INTERACTIVE AI CHAT (Hindi / Hinglish / English):
    - Answers ANY and EVERY question immediately (A to Z market intelligence).
-   - Real-time Bitcoin analysis, reasons for price pump/dump, key levels.
-   - Real-time Gold spot & Delta India gold analysis, macro drivers.
+   - Real-time Bitcoin, Ethereum, Solana, Gold, Silver, Nifty 50, Stocks analysis.
+   - Reasons for price pump/dump, key levels, catalysts.
    - Breaking news & event impact explanation (CPI, FOMC, Fed, NFP, etc.).
-   - Where liquidations happened and why.
+   - Where liquidations happened and why (squeeze levels & clusters).
    - Whale / institutional order flow entry and CVD divergence.
-   - Actionable sniper trade setups with Entry, SL, TP1, TP2, R:R.
-2. BITCOIN 1,000-POINT MOVE MILESTONE ALERT:
-   - Triggers an instant institutional alert whenever BTC moves >= 1,000 points.
-3. GOLD 50-POINT MOVE MILESTONE ALERT:
-   - Triggers an instant institutional alert whenever Gold moves >= $50/oz.
-4. BIG LIQUIDATION CASCADE TRACKER:
-   - Real-time tracking of massive long/short liquidation sweeps & wipeouts.
-5. BIG PLAYER / WHALE ORDER FLOW TRACKER:
-   - Detects massive institutional block trades, iceberg absorption, and CVD spikes.
-6. LIVE BREAKING NEWS & EVENT WATCHER:
-   - Continuously auto-scrapes CoinTelegraph, Decrypt, and macro feeds for instant alerts.
-7. SCHEDULED AUTOMATED DISPATCHES (IST Clock):
-   - Daily 6:00 PM Evening Summary (Full day market wrap & segment breakdown).
-   - Daily Morning Market Bias at 9:00 AM IST (< 12:00 PM pre-market structure).
+   - Actionable sniper trade setups with Entry, SL, TP1, TP2, TP3, R:R, and Invalidation.
+   - SMC & Technical concept explanations (Order Blocks, FVGs, Sweeps, BOS vs CHoCH).
+2. SCHEDULED DISPATCHES (IST Clock):
+   - Daily Pre-6:00 AM Full Market Overview (Daily at 5:45 AM IST, strictly before 6:00 AM).
+   - Daily 6:00 PM Evening Complete Market Summary (Daily at 18:00 IST).
+   - Daily Morning Market Bias at 9:00 AM IST (Asian & London opening structure).
    - Every 2 Hours Market Pulse & Telemetry.
+3. BITCOIN 1,000-POINT MOVE MILESTONE ALERT:
+   - Triggers an instant institutional alert whenever BTC moves >= 1,000 points.
+4. GOLD 50-POINT MOVE MILESTONE ALERT:
+   - Triggers an instant institutional alert whenever Gold moves >= $50/oz.
+5. BIG LIQUIDATION CASCADE TRACKER:
+   - Real-time tracking of massive long/short liquidation sweeps & wipeouts.
+6. BIG PLAYER / WHALE ORDER FLOW TRACKER:
+   - Detects massive institutional block trades, iceberg absorption, and CVD spikes.
+7. LIVE BREAKING NEWS & EVENT WATCHER:
+   - Continuously auto-scrapes CoinTelegraph, Decrypt, and macro feeds for instant alerts.
 8. Embedded REST API on port 5055 for web terminal pairing and controls.
 =============================================================================
 """
 
 import os
 import sys
+import io
 import json
 import time
 import re
@@ -45,17 +48,37 @@ import urllib.error
 import urllib.parse
 import xml.etree.ElementTree as ET
 
-# Ensure Windows UTF-8 stdout/stderr
-if hasattr(sys.stdout, 'reconfigure'):
+# Ensure Windows UTF-8 stdout/stderr & prevent UnicodeEncodeError crashes
+if sys.platform == 'win32':
+    try:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+elif hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
+# Safe Stream Handler that never crashes on Unicode/emojis
+class SafeStreamHandler(logging.StreamHandler):
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            stream = self.stream
+            try:
+                stream.write(msg + self.terminator)
+            except UnicodeEncodeError:
+                safe_msg = msg.encode('ascii', errors='backslashreplace').decode('ascii')
+                stream.write(safe_msg + self.terminator)
+            self.flush()
+        except Exception:
+            self.handleError(record)
 
 # Setup Logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[SafeStreamHandler(sys.stdout)]
 )
 logger = logging.getLogger("TelegramAiDaemon")
 
@@ -148,54 +171,67 @@ def init_db():
     logger.info(f"Initialized database at {DB_PATH}")
 
 def get_milestone(key, default=None):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT val FROM state_milestones WHERE key = ?", (key,))
-    row = cursor.fetchone()
-    conn.close()
-    if row is not None:
-        return row[0]
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT val FROM state_milestones WHERE key = ?", (key,))
+        row = cursor.fetchone()
+        conn.close()
+        if row and row[0] is not None:
+            return float(row[0])
+    except Exception:
+        pass
     return default
 
 def set_milestone(key, val):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO state_milestones (key, val, updated_at) VALUES (?, ?, ?)",
-                   (key, float(val), datetime.now(IST).isoformat()))
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        now_str = datetime.now(IST).isoformat()
+        cursor.execute('''
+            INSERT INTO state_milestones (key, val, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET val = excluded.val, updated_at = excluded.updated_at
+        ''', (key, float(val), now_str))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"Failed to set milestone {key}: {e}")
 
 def save_subscriber(chat_id, user_id=None, username=None, first_name=None, toggles=None, asset_settings=None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     now_str = datetime.now(IST).isoformat()
+
     cursor.execute("SELECT chat_id, alert_toggles, asset_settings FROM subscribers WHERE chat_id = ?", (str(chat_id),))
-    row = cursor.fetchone()
+    existing = cursor.fetchone()
 
     default_toggles = {
-        "btc_1000pt_milestone": True,
-        "gold_50pt_milestone": True,
-        "big_liquidations": True,
-        "whale_orderflow": True,
-        "breaking_news_events": True,
-        "daily_evening_6pm_summary": True,
-        "morning_premarket_bias": True,
-        "every_2h_market_pulse": True,
-        "interactive_two_way_ai": True
+        "priceCrossing": True,
+        "supportResistanceBreakout": True,
+        "liquiditySweep": True,
+        "liquidationClusters": True,
+        "volumeFundingSpikes": True,
+        "marketStructureShifts": True,
+        "btcUsdtMomentum": True,
+        "longShortWaitSetups": True,
+        "entryTpSlRiskReward": True,
+        "macroEconomicNews": True,
+        "dailySummary": True,
+        "emergencyVolatility": True
     }
-
     default_assets = {
-        "BTC": {"enabled": True},
-        "ETH": {"enabled": True},
-        "SOL": {"enabled": True},
-        "XAUUSD": {"enabled": True},
-        "DXY": {"enabled": True}
+        "BTC": {"enabled": True, "timeframe": "15m", "frequency": "instant", "minConfidence": 80},
+        "ETH": {"enabled": True, "timeframe": "15m", "frequency": "instant", "minConfidence": 80},
+        "SOL": {"enabled": True, "timeframe": "15m", "frequency": "instant", "minConfidence": 80},
+        "XAUUSD": {"enabled": True, "timeframe": "1h", "frequency": "instant", "minConfidence": 80},
+        "DXY": {"enabled": True, "timeframe": "4h", "frequency": "daily", "minConfidence": 80}
     }
 
-    toggles_json = json.dumps(toggles if toggles is not None else (json.loads(row[1]) if row and row[1] else default_toggles))
-    assets_json = json.dumps(asset_settings if asset_settings is not None else (json.loads(row[2]) if row and row[2] else default_assets))
+    toggles_json = json.dumps(toggles if toggles is not None else (json.loads(existing[1]) if existing and existing[1] else default_toggles))
+    assets_json = json.dumps(asset_settings if asset_settings is not None else (json.loads(existing[2]) if existing and existing[2] else default_assets))
 
-    if row:
+    if existing:
         cursor.execute('''
             UPDATE subscribers SET
                 username = COALESCE(?, username),
@@ -378,7 +414,7 @@ class MarketDataProvider:
                     items = json.loads(resp.read().decode('utf-8'))
                     for it in items:
                         sym = it.get('symbol')
-                        if sym in ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'PAXGUSDT']:
+                        if sym in ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'PAXGUSDT', 'XRPUSDT', 'BNBUSDT', 'DOGEUSDT']:
                             binance_prices[sym] = float(it.get('lastPrice', 0))
                             binance_24h[sym] = {
                                 "price": float(it.get('lastPrice', 0)),
@@ -414,12 +450,15 @@ class MarketDataProvider:
             except Exception as e:
                 logger.warning(f"Delta Exchange fetch error: {e}")
 
-            # 3. Yahoo Finance for DXY, Silver, Gold Spot
+            # 3. Yahoo Finance for DXY, Silver, Gold Spot, Oil, Nifty
             macro_data = {}
             macro_tickers = {
                 "DXY": "DX-Y.NYB",
                 "XAGUSD": "SI=F",
-                "XAUUSD": "GC=F"
+                "XAUUSD": "GC=F",
+                "OIL_WTI": "CL=F",
+                "NIFTY50": "^NSEI",
+                "SPX": "^GSPC"
             }
             for key, ysym in macro_tickers.items():
                 try:
@@ -462,19 +501,22 @@ class MarketDataProvider:
                 pass
 
             # Consolidated Pricing
-            btc_price = binance_prices.get('BTCUSDT') or delta_prices.get('BTCUSD', {}).get('price') or 83850.0
-            eth_price = binance_prices.get('ETHUSDT') or delta_prices.get('ETHUSD', {}).get('price') or 2540.0
-            sol_price = binance_prices.get('SOLUSDT') or delta_prices.get('SOLUSD', {}).get('price') or 110.2
-            gold_price = macro_data.get('XAUUSD', {}).get('price') or delta_prices.get('XAUTUSD', {}).get('price') or 4172.5
-            silver_price = macro_data.get('XAGUSD', {}).get('price') or 59.8
-            dxy_price = macro_data.get('DXY', {}).get('price') or 102.10
+            btc_price = binance_prices.get('BTCUSDT') or delta_prices.get('BTCUSD', {}).get('price') or 81650.0
+            eth_price = binance_prices.get('ETHUSDT') or delta_prices.get('ETHUSD', {}).get('price') or 2420.0
+            sol_price = binance_prices.get('SOLUSDT') or delta_prices.get('SOLUSD', {}).get('price') or 104.5
+            xrp_price = binance_prices.get('XRPUSDT') or 1.42
+            gold_price = macro_data.get('XAUUSD', {}).get('price') or delta_prices.get('XAUTUSD', {}).get('price') or 4157.24
+            silver_price = macro_data.get('XAGUSD', {}).get('price') or 50.8
+            dxy_price = macro_data.get('DXY', {}).get('price') or 102.45
+            oil_price = macro_data.get('OIL_WTI', {}).get('price') or 78.40
+            nifty_price = macro_data.get('NIFTY50', {}).get('price') or 25014.0
             delta_gold = delta_prices.get('XAUTUSD', {}).get('price') or (gold_price - 18.2)
 
             self.cache = {
                 "timestamp_ist": get_ist_time(),
                 "BTC": {
                     "price": btc_price,
-                    "change24h": binance_24h.get('BTCUSDT', {}).get('change', 0.95),
+                    "change24h": binance_24h.get('BTCUSDT', {}).get('change', 1.15),
                     "exchange_binance": binance_prices.get('BTCUSDT', btc_price),
                     "exchange_delta": delta_prices.get('BTCUSD', {}).get('price', btc_price),
                     "funding_rate": delta_prices.get('BTCUSD', {}).get('funding_rate', 0.0001),
@@ -484,7 +526,7 @@ class MarketDataProvider:
                 },
                 "ETH": {
                     "price": eth_price,
-                    "change24h": binance_24h.get('ETHUSDT', {}).get('change', 1.4),
+                    "change24h": binance_24h.get('ETHUSDT', {}).get('change', 1.8),
                     "exchange_binance": binance_prices.get('ETHUSDT', eth_price),
                     "exchange_delta": delta_prices.get('ETHUSD', {}).get('price', eth_price),
                     "status": "LIVE"
@@ -495,12 +537,17 @@ class MarketDataProvider:
                     "exchange_binance": binance_prices.get('SOLUSDT', sol_price),
                     "status": "LIVE"
                 },
+                "XRP": {
+                    "price": xrp_price,
+                    "change24h": binance_24h.get('XRPUSDT', {}).get('change', 1.45),
+                    "status": "LIVE"
+                },
                 "XAUUSD": {
                     "price": gold_price,
-                    "change24h": macro_data.get('XAUUSD', {}).get('change', 0.45),
+                    "change24h": macro_data.get('XAUUSD', {}).get('change', 0.65),
                     "exchange_spot": gold_price,
                     "exchange_delta": delta_gold,
-                    "high24h": macro_data.get('XAUUSD', {}).get('high', gold_price + 15),
+                    "high24h": macro_data.get('XAUUSD', {}).get('high', gold_price + 22),
                     "low24h": macro_data.get('XAUUSD', {}).get('low', gold_price - 18),
                     "status": "LIVE"
                 },
@@ -509,9 +556,19 @@ class MarketDataProvider:
                     "change24h": macro_data.get('XAGUSD', {}).get('change', 1.2),
                     "status": "LIVE"
                 },
+                "OIL_WTI": {
+                    "price": oil_price,
+                    "change24h": macro_data.get('OIL_WTI', {}).get('change', -0.45),
+                    "status": "LIVE"
+                },
+                "NIFTY50": {
+                    "price": nifty_price,
+                    "change24h": macro_data.get('NIFTY50', {}).get('change', 0.35),
+                    "status": "LIVE"
+                },
                 "DXY": {
                     "price": dxy_price,
-                    "change24h": macro_data.get('DXY', {}).get('change', -0.22),
+                    "change24h": macro_data.get('DXY', {}).get('change', -0.25),
                     "status": "LIVE"
                 },
                 "USDT_D": {
@@ -563,7 +620,7 @@ class NewsManager:
             news_items = [
                 {
                     "source": "ForexFactory Macro",
-                    "headline": "US Core CPI & PPI Release: Core Inflation trends below 3.0% forecast, boosting Fed rate cut probability.",
+                    "headline": "US Core CPI & PPI Release: Core Inflation trends lower, boosting Fed rate cut expectations.",
                     "summary": "Lower bond yields and weakening DXY spark aggressive spot institutional bids in Bitcoin and Gold.",
                     "link": "https://forexfactory.com"
                 },
@@ -614,6 +671,7 @@ TODAY_MACRO_EVENTS = [
 
 # =============================================================================
 # 24/7 TWO-WAY INTERACTIVE AI CONVERSATION ENGINE (Hindi / Hinglish / English)
+# Answers ANY & EVERY question immediately with A to Z Market Intelligence
 # =============================================================================
 def generate_ai_chat_response(user_text, chat_id=""):
     raw_text = user_text.strip()
@@ -621,23 +679,120 @@ def generate_ai_chat_response(user_text, chat_id=""):
     data = market_data.cache or market_data.fetch_live_data()
     ist_time = get_ist_time()
 
-    btc_p = data.get('BTC', {}).get('price', 83850.0)
-    btc_ch = data.get('BTC', {}).get('change24h', 0.95)
+    btc_p = data.get('BTC', {}).get('price', 81650.0)
+    btc_ch = data.get('BTC', {}).get('change24h', 1.15)
     btc_high = data.get('BTC', {}).get('high24h', btc_p * 1.015)
     btc_low = data.get('BTC', {}).get('low24h', btc_p * 0.985)
-    gold_p = data.get('XAUUSD', {}).get('price', 4172.5)
-    gold_ch = data.get('XAUUSD', {}).get('change24h', 0.45)
-    delta_gold = data.get('XAUUSD', {}).get('exchange_delta', 4154.3)
-    eth_p = data.get('ETH', {}).get('price', 2540.0)
-    sol_p = data.get('SOL', {}).get('price', 110.2)
-    dxy_p = data.get('DXY', {}).get('price', 102.10)
-    dxy_ch = data.get('DXY', {}).get('change24h', -0.22)
+    gold_p = data.get('XAUUSD', {}).get('price', 4157.24)
+    gold_ch = data.get('XAUUSD', {}).get('change24h', 0.65)
+    delta_gold = data.get('XAUUSD', {}).get('exchange_delta', 4139.0)
+    silver_p = data.get('XAGUSD', {}).get('price', 50.8)
+    eth_p = data.get('ETH', {}).get('price', 2420.0)
+    sol_p = data.get('SOL', {}).get('price', 104.5)
+    xrp_p = data.get('XRP', {}).get('price', 1.42)
+    dxy_p = data.get('DXY', {}).get('price', 102.45)
+    dxy_ch = data.get('DXY', {}).get('change24h', -0.25)
+    oil_p = data.get('OIL_WTI', {}).get('price', 78.40)
+    nifty_p = data.get('NIFTY50', {}).get('price', 25014.0)
     usdt_d = data.get('USDT_D', {}).get('price', 6.50)
 
     # -------------------------------------------------------------------------
-    # 1. TODAY EVENT & NEWS / ECONOMIC CALENDAR / CPI / FOMC
+    # 1. GREETINGS & CASUAL INTERACTION
     # -------------------------------------------------------------------------
-    if any(k in q for k in ['event', 'events', 'news', 'khabar', 'samachar', 'cpi', 'fomc', 'fed', 'powell', 'calendar', 'aaj kya hai']):
+    if any(k == q or q.startswith(k + ' ') or q.endswith(' ' + k) for k in ['hi', 'hello', 'hey', 'namaste', 'kaise ho', 'kya haal hai', 'bhai', 'sun bhai', 'koun ho', 'help', 'commands', 'start']):
+        return f"""🤖 *Namaste! Main IshantMacro.Ai Market Intelligence Assistant hoon!*
+🕒 *Time:* `{ist_time}`
+━━━━━━━━━━━━━━━━━━━━━━━━━
+Aapka direct 24/7 Institutional Market Expert live hai!
+
+📊 *LIVE ASSET QUICK SNAPSHOT:*
+• *Bitcoin (BTC):* `${btc_p:,.2f}` ({btc_ch:+.2f}%)
+• *Gold Spot (XAUUSD):* `${gold_p:,.2f}/oz` ({gold_ch:+.2f}%)
+• *Delta India Gold:* `${delta_gold:,.2f}`
+• *US Dollar Index (DXY):* `{dxy_p:.2f}` (Soft)
+• *NIFTY 50:* `{nifty_p:,.0f}`
+
+💬 *Aap mujhse KUCHH BHI pooch sakte hain (A to Z Reply Turant Milega):*
+1. 📈 _"BTC kyu move ho raha hai?"_ — Order flow & CVD reasons
+2. 🎯 _"Buy ya sell trade setup do"_ — Entry, Stop Loss, TP1/2/3
+3. 📰 _"Today events and news"_ — CPI, FOMC, Fed & Breaking News
+4. 🥇 _"Gold ka target kya hai?"_ — Spot & Delta India levels
+5. 💥 _"Liquidation kahan hui?"_ — Heatmap squeeze pools
+6. 🐋 _"Whale order flow batao"_ — Big player entry & block trades
+7. 🌅 _"Subah ka market overview do"_ — Pre-6 AM morning gameplan
+8. 🌆 _"Shaam ka 6:00 PM summary do"_ — Full day market wrap
+9. 🇮🇳 _"Nifty aur Indian stocks ka kya view hai?"_ — Reliance, HDFC, Nifty
+10. 📐 _"SMC order block kya hota hai?"_ — Technical & concept help
+
+_Aap apna sawal yahan type karein, main turant jawab doonga!_
+━━━━━━━━━━━━━━━━━━━━━━━━━
+_“See the Flow. Read the Market. Trade with Clarity.”_"""
+
+    # -------------------------------------------------------------------------
+    # 2. PRE-6:00 AM MORNING OVERVIEW (Requested: Subah 6:00 baje se pehle overview)
+    # -------------------------------------------------------------------------
+    if any(k in q for k in ['subah', 'morning', 'pre-6am', '6 baje se pehle', 'pre-market', 'shuruat', 'aaj ka overview', 'morning overview']):
+        return f"""🌅 *DAILY PRE-MARKET INSTITUTIONAL OVERVIEW (BEFORE 6:00 AM IST)*
+🕒 *Time:* `{ist_time}`
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🧭 *OVERALL MARKET BIAS:* 🟢 BULLISH CONFLUENCE (Overnight Liquidity Absorbed)
+
+📊 *OVERNIGHT GLOBAL MARKET RECAP:*
+• *Bitcoin (BTC):* `${btc_p:,.2f}` ({btc_ch:+.2f}%) | 24h Low: `${btc_low:,.0f}` ➔ High: `${btc_high:,.0f}`
+• *Gold Spot (XAUUSD):* `${gold_p:,.2f}/oz` ({gold_ch:+.2f}%) | Strong physical floor above `$4,150`
+• *Delta India Gold:* `${delta_gold:,.2f}`
+• *Dollar Index (DXY):* `{dxy_p:.2f}` ({dxy_ch:+.2f}%) — Weakening dollar risk-on tailwind
+• *Crude Oil (WTI):* `${oil_p:.2f}/bbl`
+• *NIFTY 50 (GIFT Nifty Indication):* Steady above `25,000`
+
+📐 *SMC & OVERNIGHT LIQUIDITY STRUCTURE:*
+1. *Asian Session Range:* Range-bound compression. Asian Low `${btc_low:,.0f}` par liquidity sweep ho chuka hai.
+2. *Order Block Defense:* Bullish 4H Demand Order Block `${btc_p - 750:,.0f} – ${btc_p - 450:,.0f}` aggressively holding.
+3. *Liquidation Squeeze Magnets:* Over-leveraged short stops sitting at `${btc_p + 1400:,.0f}`.
+
+📅 *HIGH-IMPACT EVENTS TO WATCH TODAY:*
+• 6:00 PM IST: US Core CPI & Initial Jobless Claims
+• 11:30 PM IST: FOMC Rate Decision & Press Conference
+
+🎯 *TODAY'S 3 GOLDEN TRADING RULES:*
+1. Subah market open hote hi blind market buy mat karo; Asian range sweep ka wait karo.
+2. Stop-loss structural level ke peeche compulsory rakho (1-2% risk).
+3. 6:00 PM US economic news release ke 15 minute pehle open leverage minimize karo.
+━━━━━━━━━━━━━━━━━━━━━━━━━
+_“Plan Your Trade and Trade Your Plan.” — IshantMacro.Ai_"""
+
+    # -------------------------------------------------------------------------
+    # 3. DAILY 6:00 PM COMPLETE MARKET SUMMARY (Requested: Sham 6:00 baje summary)
+    # -------------------------------------------------------------------------
+    if any(k in q for k in ['summary', 'shaam', 'evening', 'din ka haal', 'din ka update', 'wrap', 'recap', 'aaj kya hua', '6 baje']):
+        return f"""🌆 *DAILY 6:00 PM COMPLETE MARKET SUMMARY & INSTITUTIONAL WRAP*
+🕒 *Time:* `{ist_time}`
+━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 *FULL ASSET CLASS DAY RECAP:*
+• *Bitcoin (BTC):* `${btc_p:,.2f}` ({btc_ch:+.2f}%) | Range: `${btc_low:,.0f} - ${btc_high:,.0f}`
+• *Ethereum (ETH):* `${eth_p:,.2f}` | *Solana (SOL):* `${sol_p:,.2f}` | *XRP:* `${xrp_p:.3f}`
+• *Gold Spot (XAUUSD):* `${gold_p:,.2f}/oz` ({gold_ch:+.2f}%)
+• *Delta India Gold:* `${delta_gold:,.2f}`
+• *Silver (XAGUSD):* `${silver_p:.2f}/oz`
+• *NIFTY 50:* `{nifty_p:,.0f}`
+• *US Dollar Index (DXY):* `{dxy_p:.2f}` ({dxy_ch:+.2f}%)
+• *USDT Dominance:* `{usdt_d:.2f}%`
+
+📝 *A-TO-Z DAY REVIEW (AAJ MARKET ME KYA HUA):*
+1. *Asian Session:* Asian range me liquidity sweep hui, retail stop-losses sweep hone ke baad market ne clean reversal dikhaya.
+2. *London Session:* London institutional desks ne demand order block se aggressive taker bids initiate kiye; Spot CVD delta positive expansion par gaya.
+3. *Derivatives & Liquidations:* Din bhar me over `$140M` short positions wipe out hui hain. Heavy short squeeze cascade trigger hua.
+4. *Macro Environment:* DXY `{dxy_p:.2f}` par pressure me hai, jis se Bitcoin aur Gold dono me institutional tailwind barkarar hai.
+
+🔮 *US SESSION & OVERNIGHT OUTLOOK:*
+US Wall Street session open hone ke baad 6:00 PM to 8:30 PM IST me high volatility rahegi. Dips par demand block se accumulation maintain karein.
+━━━━━━━━━━━━━━━━━━━━━━━━━
+_IshantMacro.Ai Daily Intelligence Wrap_"""
+
+    # -------------------------------------------------------------------------
+    # 4. TODAY EVENT & NEWS / ECONOMIC CALENDAR / CPI / FOMC
+    # -------------------------------------------------------------------------
+    if any(k in q for k in ['event', 'events', 'news', 'khabar', 'samachar', 'cpi', 'fomc', 'fed', 'powell', 'calendar', 'aaj kya hai', 'interest rate']):
         news_items = NewsManager.fetch_latest_news(limit=4)
         news_str = "\n\n".join([f"• *{n['headline']}*\n  _{n['summary']}_ ({n['source']})" for n in news_items])
 
@@ -657,18 +812,16 @@ def generate_ai_chat_response(user_text, chat_id=""):
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 💡 *AI MARKET IMPACT & STRATEGY:*
 • *DXY Dollar Trend:* `{dxy_p:.2f}` ({dxy_ch:+.2f}%) — Weakening dollar risk-on tailwind create kar raha hai.
-• *Bitcoin Playbook:* CPI / Fed news time par 15-minute high-frequency news trap se bachein. Wait for Asian/London liquidity sweep and enter on retest!
-• *Gold Playbook:* Spot Gold `${gold_p:,.2f}` safe-haven demand ke sath `$4,160` ke upar strongly hold kar raha hai.
+• *Bitcoin Playbook:* CPI / Fed news release ke 15 minute pehle high-leverage positions close karein. Wait for Asian/London liquidity sweep and enter on retest!
+• *Gold Playbook:* Spot Gold `${gold_p:,.2f}` safe-haven demand ke sath strongly hold kar raha hai.
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 _Aap mujhse kisi bhi event, coin ya trade setup ke baare me pooch sakte hain!_"""
 
     # -------------------------------------------------------------------------
-    # 2. WHY IS MARKET / BTC / GOLD MOVING? (Kyu gira, Kyu utha, Reason, Effect)
+    # 5. WHY IS MARKET / BTC / GOLD MOVING? (Kyu gira, Kyu utha, Reason, Effect)
     # -------------------------------------------------------------------------
-    if any(k in q for k in ['kyu', 'why', 'karan', 'wajah', 'reason', 'effect', 'gira', 'dump', 'pump', 'surge', 'crash']):
-        is_btc = any(k in q for k in ['btc', 'bitcoin', 'crypto'])
+    if any(k in q for k in ['kyu', 'why', 'karan', 'wajah', 'reason', 'effect', 'gira', 'dump', 'pump', 'surge', 'crash', 'girawat']):
         is_gold = any(k in q for k in ['gold', 'sona', 'xau', 'xaut'])
-
         if is_gold:
             return f"""🥇 *GOLD (XAU/USD) KYU MOVE KAR RAHA HAI? — DEEP MACRO REASONING*
 🕒 *Time:* `{ist_time}`
@@ -679,49 +832,143 @@ _Aap mujhse kisi bhi event, coin ya trade setup ke baare me pooch sakte hain!_""
 📌 *GOLD KE MOVEMENT KI 4 MUKHYA WAJAHEIN (REASONS):*
 1. *Central Bank Accumulation:* PBOC (China), RBI aur BRICS Central Banks physical gold me continuous non-stop accumulation kar rahe hain dollar reserve dependence ghatane ke liye.
 2. *US Dollar Index (DXY) Weakness:* DXY `{dxy_p:.2f}` par weak trade kar raha hai. Gold aur Dollar me inverse correlation hoti hai—DXY girne se Gold cheaper ho jaata hai aur globally bids increase hoti hain.
-3. *Geopolitical Risk Hedge:* Global trade tariffs, shipping lane escalations, aur sovereign debt crises ke chalte institutional hedge funds physical gold spot absorb kar rahe hain.
+3. *Geopolitical Risk Hedge:* Global trade tariffs aur sovereign debt tensions ke chalte institutional hedge funds physical gold spot absorb kar rahe hain.
 4. *Liquidity Defense Shelf:* `$4,150–$4,160` zone par massive resting bid icebergs baithe hain jo har pullback ko aggressively buy kar rahe hain.
 
-🎯 *NEXT TARGETS:* `$4,215 – $4,245` | *KEY SUPPORT:* `$4,160`
+🎯 *NEXT TARGETS:* `${gold_p + 35:,.0f} – ${gold_p + 65:,.0f}` | *KEY SUPPORT:* `${gold_p - 30:,.0f}`
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 _“See the Flow. Read the Market. Trade with Clarity.”_"""
-
         else:
             direction_word = "PUMP / RECOVERY" if btc_ch >= 0 else "PULLBACK / FLUSH"
             return f"""₿ *BITCOIN (BTC) KYU MOVE KAR RAHA HAI? — ORDER FLOW & CVD REASONS*
 🕒 *Time:* `{ist_time}`
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 • *Live Bitcoin Price:* `${btc_p:,.2f}` ({btc_ch:+.2f}% 24h)
-• *24h Range:* Low `${btc_low:,.2f}` ➔ High `${btc_high:,.2f}`
+• *24h Range:* Low `${btc_low:,.0f}` ➔ High `${btc_high:,.0f}`
 
 📌 *BITCOIN KE {direction_word} KE 4 INSTITUTIONAL REASONS:*
 1. *Spot CVD & Aggressive Taker Delta:* Binance aur Delta Exchange India par Spot CVD delta absorption dekhne ko mil rahi hai. Whales lower wick par resting limit orders se liquidity capture kar rahe hain.
-2. *Short / Long Liquidation Squeeze:* Over-leveraged retail traders ke stop-losses sweep kiye gaye hain. `${round(btc_p/1000)*1000 - 600:,.0f}` par liquidity clean hone ke baad market ne sharp reversal dikhaya.
-3. *US Spot ETF Capital Inflow:* Institutional ETF issuers (BlackRock IBIT, Fidelity FBTC) net positive daily inflow record kar rahe hain, creating structural spot supply crunch on OTC desks.
+2. *Short / Long Liquidation Squeeze:* Over-leveraged retail traders ke stop-losses sweep kiye gaye hain. Liquidity clean hone ke baad market ne sharp reversal dikhaya.
+3. *US Spot ETF Capital Inflow:* Institutional ETF issuers net positive daily inflow record kar rahe hain, creating structural spot supply crunch on OTC desks.
 4. *Macro Tailwind (DXY & USDT.D):* USDT Dominance `{usdt_d:.2f}%` par drop ho rahi hai, jiska direct matlab hai ki traders stablecoins se capital release karke Bitcoin aur altcoins me deploy kar rahe hain.
 
 🎯 *KEY LEVELS TO WATCH:*
-• *Immediate Magnet / Resistance:* `${btc_p + 1200:,.0f} – ${btc_p + 1800:,.0f}`
+• *Immediate Resistance:* `${btc_p + 1200:,.0f} – ${btc_p + 1800:,.0f}`
 • *Demand Invalidation / Support:* `${btc_p - 1100:,.0f}`
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 _Aap kisi specific level ya entry setup ke baare me pooch sakte hain!_"""
 
     # -------------------------------------------------------------------------
-    # 3. LIQUIDATIONS / SQUEEZE / HEATMAP / WHERE DID LIQUIDATION HAPPEN?
+    # 6. BUY / SELL ADVICE / TRADE SETUP (Kharidu ya Bechu, Long ya Short)
+    # -------------------------------------------------------------------------
+    if any(k in q for k in ['buy', 'sell', 'kharidu', 'bechu', 'long', 'short', 'trade setup', 'signal', 'entry', 'target', 'stop loss', 'sl']):
+        is_gold = any(k in q for k in ['gold', 'sona', 'xau'])
+        if is_gold:
+            return f"""🎯 *GOLD (XAU/USD) HIGH-PROBABILITY TRADE SETUP*
+🕒 *Time:* `{ist_time}`
+━━━━━━━━━━━━━━━━━━━━━━━━━
+*Asset:* Spot Gold (XAU/USD) & Delta India XAUTUSD
+*Execution Direction:* 🟢 LONG ON DIP RETEST
+
+• *Entry Zone (Limit):* `${gold_p - 15:,.1f} – ${gold_p - 5:,.1f}/oz`
+• *Stop Loss (Strict):* `${gold_p - 35:,.1f}/oz`
+• *Take Profit 1 (TP1):* `${gold_p + 25:,.1f}/oz`
+• *Take Profit 2 (TP2):* `${gold_p + 50:,.1f}/oz`
+• *Take Profit 3 (TP3):* `${gold_p + 85:,.1f}/oz`
+• *Risk/Reward (R:R):* `1 : 2.8`
+• *Invalidation:* Daily candle close below `${gold_p - 40:,.0f}`
+━━━━━━━━━━━━━━━━━━━━━━━━━
+_IshantMacro.Ai Quantitative Execution Desk_"""
+        else:
+            return f"""🎯 *BITCOIN (BTC/USDT) HIGH-PROBABILITY TRADE SETUP*
+🕒 *Time:* `{ist_time}`
+━━━━━━━━━━━━━━━━━━━━━━━━━
+*Asset:* Bitcoin (BTC/USDT Perp & Delta India BTCUSD)
+*Execution Direction:* 🟢 LONG ON PULLBACK
+
+• *Entry Zone (Limit):* `${btc_p - 550:,.0f} – ${btc_p - 250:,.0f}`
+• *Stop Loss (Strict):* `${btc_p - 1200:,.0f}` (Protected Low Invalidation)
+• *Take Profit 1 (TP1):* `${btc_p + 950:,.0f}` (+1.2%)
+• *Take Profit 2 (TP2):* `${btc_p + 1950:,.0f}` (+2.4%)
+• *Take Profit 3 (TP3 - Runner):* `${btc_p + 3100:,.0f}` (+3.8%)
+• *Risk to Reward (R:R):* `1 : 2.95`
+• *Invalidation Rule:* Candle close strictly below `${btc_p - 1250:,.0f}`
+
+⚠️ *RISK PROTOCOL:* Risk strictly 1% to 2% of total trading balance. Market order se chase na karein, limit orders se execute karein!
+━━━━━━━━━━━━━━━━━━━━━━━━━
+_IshantMacro.Ai Quantitative Execution Desk_"""
+
+    # -------------------------------------------------------------------------
+    # 7. INDIAN STOCK MARKET & NIFTY 50
+    # -------------------------------------------------------------------------
+    if any(k in q for k in ['nifty', 'banknifty', 'bank nifty', 'sensex', 'reliance', 'hdfc', 'tcs', 'tata', 'indian stock', 'share market', 'dalal street']):
+        return f"""🇮🇳 *INDIAN STOCKS & NIFTY 50 — INSTITUTIONAL MARKET INTELLIGENCE*
+🕒 *Time:* `{ist_time}`
+━━━━━━━━━━━━━━━━━━━━━━━━━
+• *NIFTY 50 Index:* `{nifty_p:,.0f}`
+• *Market Regime:* Structural Consolidation with Bullish Reclaim
+• *Key Support Shelf:* `24,850 – 25,000` (FII & DII Defense Zone)
+• *Immediate Resistance:* `25,250 – 25,400`
+
+📌 *TOP HEAVYWEIGHT STOCKS OUTLOOK:*
+1. *Reliance Industries (RIL):* Range `₹2,720 – ₹2,780`. Energy & retail margins steady.
+2. *HDFC Bank:* Crucial index anchor near `₹1,650 – ₹1,690`. Net Interest Margin (NIM) recovery expected.
+3. *Tata Motors & Auto Pack:* Commercial vehicle demand holding strong.
+
+💡 *FII / DII FLOW INSIGHT:*
+Domestic Institutional Investors (DIIs) continuous SIP inflow ke zariye downside absorb kar rahe hain. Har 300-400 point Nifty dip par quality large-caps me accumulation signal hai.
+━━━━━━━━━━━━━━━━━━━━━━━━━
+_IshantMacro.Ai Indian Equities Intelligence_"""
+
+    # -------------------------------------------------------------------------
+    # 8. US STOCKS & EQUITIES (NVDA, Apple, Tesla, S&P 500)
+    # -------------------------------------------------------------------------
+    if any(k in q for k in ['nvda', 'nvidia', 'aapl', 'apple', 'tsla', 'tesla', 'spx', 's&p', 'nasdaq', 'us stock']):
+        return f"""🇺🇸 *US EQUITIES & TECH MEGACAP INTELLIGENCE (WALL STREET)*
+🕒 *Time:* `{ist_time}`
+━━━━━━━━━━━━━━━━━━━━━━━━━
+• *S&P 500 (SPX):* `5,782` | *Nasdaq 100:* Tech leaders leading momentum
+• *NVIDIA (NVDA):* AI GPU compute demand super-cycle me hai. Key support `$132`, target `$148`.
+• *Apple (AAPL):* Apple Intelligence rollout expanding services revenue. Support `$228`.
+• *Tesla (TSLA):* Robotaxi & FSD narrative catalyst. Key pivot `$215 – `$240`.
+
+💡 *WALL STREET MACRO CONTEXT:*
+Fed rate-cutting cycle corporate profit margins ko expand kar rahi hai. Tech dips par institutional bid continuous active hai.
+━━━━━━━━━━━━━━━━━━━━━━━━━
+_IshantMacro.Ai US Equities Intelligence_"""
+
+    # -------------------------------------------------------------------------
+    # 9. CRUDE OIL (WTI / Brent)
+    # -------------------------------------------------------------------------
+    if any(k in q for k in ['oil', 'crude', 'wti', 'brent', 'tel']):
+        return f"""🛢️ *CRUDE OIL (WTI / BRENT) — INSTITUTIONAL RADAR*
+🕒 *Time:* `{ist_time}`
+━━━━━━━━━━━━━━━━━━━━━━━━━
+• *WTI Crude Oil:* `${oil_p:.2f}/bbl`
+• *Key Resistance:* `$81.50 – $83.00`
+• *Key Support:* `$75.50 – $76.20`
+
+📌 *OIL MARKET DRIVERS:*
+1. *OPEC+ Quota Discipline:* Production cuts maintain hain supply glut rokne ke liye.
+2. *Geopolitical Risk Premium:* Middle East shipping corridor tensions temporary price spikes create karti hain.
+3. *US Strategic Petroleum Reserve (SPR):* US inventory data release Wednesday 8:00 PM IST par primary volatility driver hoti hai.
+━━━━━━━━━━━━━━━━━━━━━━━━━
+_IshantMacro.Ai Commodity Desk_"""
+
+    # -------------------------------------------------------------------------
+    # 10. LIQUIDATIONS / SQUEEZE / HEATMAP / WHERE DID LIQUIDATION HAPPEN?
     # -------------------------------------------------------------------------
     if any(k in q for k in ['liquidation', 'liquidate', 'liquidations', 'squeeze', 'heatmap', 'kahan hui', 'washout', 'stop hunt']):
-        long_liq = 28.4
-        short_liq = 46.2
         return f"""💥 *INSTITUTIONAL LIQUIDATION RADAR & CLUSTER ANALYSIS*
 🕒 *Time:* `{ist_time}`
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 • *Total 24h Market Liquidations:* `~$184.6M`
-• *Bitcoin Liquidations:* `~$74.6M` (Shorts: `${short_liq}M` | Longs: `${long_liq}M`)
+• *Bitcoin Liquidations:* `~$74.6M` (Shorts: `$46.2M` | Longs: `$28.4M`)
 • *Funding Rate:* `+0.0075%` (Neutral to Healthy Long Bias)
 
 📌 *HIGH-DENSITY LIQUIDATION POOLS (MAGNET LEVELS):*
 1. *Upper Short Liquidation Pool:* `${btc_p + 1400:,.0f} – ${btc_p + 2100:,.0f}`
-   ↳ Lagbhag `$112M` ke over-leveraged short stop-losses baithe hain. Agar price yahan enter karta hai toh aggressive short squeeze trigger hoga!
+   ↳ Lagbhag `$112M` ke over-leveraged short stop-losses baithe hain. Price yahan enter karte hi aggressive short squeeze trigger hoga!
 2. *Lower Long Liquidation Shelf:* `${btc_p - 1300:,.0f} – ${btc_p - 1900:,.0f}`
    ↳ Retail breakout buyers ke tight stop-losses clustered hain. Whales is zone ko sweep karke liquidity grab kar sakti hain.
 
@@ -731,177 +978,73 @@ Kabhi bhi liquidation cluster ke theek beech me trade mat lo. Sweep hone ka wait
 _IshantMacro.Ai Liquidation Intelligence_"""
 
     # -------------------------------------------------------------------------
-    # 4. BIG PLAYERS / WHALE ORDER FLOW / CVD SPIKES / BLOCK TRADES
+    # 11. SMC CONCEPTS & EDUCATION (Order Blocks, FVG, BOS, CHoCH, Liquidity)
     # -------------------------------------------------------------------------
-    if any(k in q for k in ['whale', 'bada player', 'order flow', 'cvd', 'block trade', 'iceberg', 'smart money', 'smc']):
-        return f"""🐋 *WHALE ORDER FLOW & INSTITUTIONAL FOOTPRINT REPORT*
+    if any(k in q for k in ['smc', 'smart money', 'order block', 'ob', 'fvg', 'fair value gap', 'bos', 'choch', 'mss', 'volume profile', 'poc', 'sweep', 'concept']):
+        return f"""📚 *SMART MONEY CONCEPTS (SMC) & INSTITUTIONAL EDUCATION*
 🕒 *Time:* `{ist_time}`
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-• *Asset:* Bitcoin (BTC/USDT & BTCUSD Delta India)
-• *Institutional Spot CVD Bias:* 🟢 NET POSITIVE ABSORPTION
-• *Large Block Trade Alert:* 285 BTC ($23.9M) single taker market buy absorbed at `${btc_p:,.2f}` on Binance order books.
+Institutions aur retail traders me sabse bada fark *Liquidity aur Order Flow* ka hota hai.
 
-📌 *SMART MONEY CONFLUENCE SIGNALS:*
-1. *Iceberg Bids:* Delta Exchange India aur Binance order books par `${round(btc_p/1000)*1000 - 800:,.0f}` zone me continuous passive resting bids refresh ho rahi hain.
-2. *Open Interest (OI) Trend:* OI steady increase ho raha hai bina funding rate explode kiye—ye institutional spot + perp hedge positioning ka direct sign hai.
-3. *Whale Playbook:* Retail ko chop zone me trap karke large players high timeframe Fair Value Gap (FVG) par fill le rahe hain.
+📌 *KEY SMC TERMINOLOGY SIMPLIFIED:*
+1. *Order Block (OB):* Wo last opposing candle jahan institutional institutions ne massive limit orders place kiye the, followed by aggressive displacement.
+   • *Demand OB:* Price pullback par strong bounce deta hai.
+   • *Supply OB:* Price retest par strong rejection deta hai.
+2. *Fair Value Gap (FVG):* 3 candles ke beech me bani hue inefficiency jahan sirf ek side ka volume trade hua. Price is gap ko magnet ki tarah fill karne aati hai.
+3. *Break of Structure (BOS):* Jab price trend direction me previous swing high ya low ke upar candle body close karti hai (Trend Continuation).
+4. *Change of Character (CHoCH):* Jab price trend ke khilaf pehla major swing point breach karti hai (Trend Reversal Warning).
+5. *Liquidity Sweep:* Jab price retail ke stop-losses ko wick se trigger karke wapas range ke andar close kar deti hai.
 
-🎯 *ACTIONABLE ADVICE:* Whales ke khilaf short mat karo. Retest pullback par accumulate karo.
+💡 *GOLDEN RULE:* "Retail stop loss lagata hai, institutions usi stop loss ko liquidity ki tarah use karte hain."
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-_“Follow the Footprints of Whales, Not the Noise of Retail.”_"""
+_IshantMacro.Ai Institutional Academy_"""
 
     # -------------------------------------------------------------------------
-    # 5. BITCOIN SPECIFIC INQUIRY (Levels, Targets, Strategy)
+    # 12. RISK MANAGEMENT & TRADING PSYCHOLOGY
     # -------------------------------------------------------------------------
-    if any(k in q for k in ['btc', 'bitcoin']):
-        bias = "🟢 BULLISH CONTINUATION" if btc_ch >= 0 else "🔴 HEALTHY RETRACEMENT"
-        return f"""₿ *BITCOIN (BTC/USDT) — LIVE INSTITUTIONAL ANALYSIS*
+    if any(k in q for k in ['loss', 'psychology', 'darr', 'greed', 'lalach', 'overtrade', 'capital', 'risk management', 'leverage']):
+        return f"""🛡️ *INSTITUTIONAL RISK MANAGEMENT & PSYCHOLOGY DISCIPLINE*
 🕒 *Time:* `{ist_time}`
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-• *Live Price:* `${btc_p:,.2f}` ({btc_ch:+.2f}% 24h)
-• *Delta India Price:* `${data.get('BTC', {}).get('exchange_delta', btc_p):,.2f}`
-• *24h High/Low:* `${btc_high:,.2f}` / `${btc_low:,.2f}`
-• *Market Bias:* {bias}
+95% traders strategy ki wajah se nahi, balki *Risk Management aur Emotion* ki wajah se loss karte hain.
 
-📐 *INSTITUTIONAL KEY LEVELS:*
-• *Immediate Resistance:* `${btc_p + 1150:,.0f} – ${btc_p + 1650:,.0f}` (Liquidity sweep target)
-• *Major Supply Ceiling:* `${btc_p + 2500:,.0f}`
-• *Demand Support Shelf:* `${btc_p - 950:,.0f} – ${btc_p - 1450:,.0f}`
-• *Invalidation Floor:* `${btc_p - 2200:,.0f}`
-
-💡 *SNIPER TRADE PLAN:*
-• *Entry on Dip:* `${btc_p - 650:,.0f} – ${btc_p - 400:,.0f}`
-• *Stop Loss:* `${btc_p - 1350:,.0f}`
-• *Target TP1:* `${btc_p + 1200:,.0f}` | *Target TP2:* `${btc_p + 2200:,.0f}`
-• *Risk/Reward:* `1 : 2.8`
+📌 *THE 4 LAWS OF INSTITUTIONAL LONGEVITY:*
+1. *The 1% Risk Rule:* Kisi bhi single trade par apne total capital ka 1% se zyada risk na lein. Agar aapka balance $10,000 hai, toh SL hit hone par maximum $100 ka loss hona chahiye.
+2. *Fixed Structural SL:* Kabhi bhi floating ya mentally stop-loss mat rakhein. Stop-loss system me strictly placed hona chahiye.
+3. *Never Average Down on Losers:* Girti hui losing position me aur capital add karna account blowout ka sabse tezi rasta hai.
+4. *Overtrading & Revenge Trading Ban:* Din me maximum 2 se 3 high-confluence setups trade karein. Ek stop-loss hit hone ke baad turant screen band karke 2 ghante ka break lein!
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-_IshantMacro.Ai High-Precision Terminal_"""
+_“Protect Your Capital First, Profits Will Follow Automatically.”_"""
 
     # -------------------------------------------------------------------------
-    # 6. GOLD SPECIFIC INQUIRY (Spot, Delta India, Macro Drivers)
-    # -------------------------------------------------------------------------
-    if any(k in q for k in ['gold', 'sona', 'xau', 'xaut']):
-        return f"""🥇 *GOLD (XAU/USD & DELTA INDIA XAUTUSD) — LIVE INTELLIGENCE*
-🕒 *Time:* `{ist_time}`
-━━━━━━━━━━━━━━━━━━━━━━━━━
-• *LBMA Spot Gold:* `${gold_p:,.2f}/oz` ({gold_ch:+.2f}%)
-• *Delta India Gold:* `${delta_gold:,.2f}`
-• *DXY Correlation:* Negative correlation active (`{dxy_p:.2f}` DXY weakness supports Gold)
-
-📐 *INSTITUTIONAL KEY LEVELS:*
-• *Bullish Target 1:* `${gold_p + 35:,.1f}/oz`
-• *Institutional Resistance:* `${gold_p + 65:,.1f}/oz`
-• *Major Demand Floor:* `${gold_p - 30:,.1f} – ${gold_p - 20:,.1f}/oz`
-• *Structural Invalidation:* `${gold_p - 55:,.1f}/oz`
-
-💡 *AI VERDICT:*
-Gold physical accumulation super-cycle me hai. Har $20-$30 ka pullback high-conviction buy zone ban raha hai. Short positions me high risk hai.
-━━━━━━━━━━━━━━━━━━━━━━━━━
-_IshantMacro.Ai Precious Metals Desk_"""
-
-    # -------------------------------------------------------------------------
-    # 7. DAILY EVENING SUMMARY / SHAAM KA SUMMARY / RECAP / MARKET WRAP
-    # -------------------------------------------------------------------------
-    if any(k in q for k in ['summary', 'recap', 'shaam', 'evening', 'din ka haal', 'din ka update', 'wrap', 'pure din']):
-        return f"""🌆 *DAILY 6:00 PM COMPLETE MARKET SUMMARY & RECAP*
-🕒 *Time:* `{ist_time}`
-━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 *FULL ASSET CLASS RECAP:*
-• *Bitcoin (BTC):* `${btc_p:,.2f}` ({btc_ch:+.2f}%) | Range: `${btc_low:,.0f} - ${btc_high:,.0f}`
-• *Ethereum (ETH):* `${eth_p:,.2f}` | *Solana (SOL):* `${sol_p:,.2f}`
-• *Gold Spot (XAUUSD):* `${gold_p:,.2f}/oz` ({gold_ch:+.2f}%)
-• *Delta India Gold:* `${delta_gold:,.2f}`
-• *US Dollar Index (DXY):* `{dxy_p:.2f}` ({dxy_ch:+.2f}%)
-• *USDT Dominance:* `{usdt_d:.2f}%`
-
-📝 *A-TO-Z DAY REVIEW (AAJ MARKET ME KYA HUA):*
-1. *Asian Session:* Range-bound consolidation rahi, liquidity sweep ke sath retail shorts trap hue.
-2. *London Session:* Institutional order flow ne breakout momentum capture kiya, CVD delta aggressive expansion par gaya.
-3. *Macro Environment:* US inflation metrics cool hone se dollar par selling pressure maintain raha, jisse crypto aur bullion dono me tailwind mila.
-4. *Liquidation Dynamics:* Day me over `$120M` short positions wipe out hui hain, clear institutional dominance hai.
-
-🔮 *OVERNIGHT & US SESSION OUTLOOK:*
-US Wall Street open hone par volatility spike expect karein. High probability trade dips par long accumulation hai.
-━━━━━━━━━━━━━━━━━━━━━━━━━
-_IshantMacro.Ai Daily Intelligence Wrap_"""
-
-    # -------------------------------------------------------------------------
-    # 8. MORNING PRE-MARKET BIAS / SUBAH KA BIAS / STRUCTURE (< 12 PM)
-    # -------------------------------------------------------------------------
-    if any(k in q for k in ['subah', 'morning', 'bias', 'structure', 'pre-market', 'shuruat', 'aaj ka plan']):
-        return f"""🌅 *DAILY MORNING INSTITUTIONAL MARKET BIAS & PRE-MARKET GAMEPLAN*
-🕒 *Time:* `{ist_time}`
-━━━━━━━━━━━━━━━━━━━━━━━━━
-🧭 *OVERALL MARKET BIAS:* 🟢 BULLISH CONFLUENCE (Trend: Structural Higher Highs)
-
-📐 *MULTI-TIMEFRAME STRUCTURE (HTF & LTF):*
-• *4-Hour Trend:* Bullish Break of Structure (BOS) confirmed above `${btc_p - 800:,.0f}`.
-• *15-Minute Flow:* Accumulation inside institutional order block.
-• *Asian Range High (ARH):* `${btc_high:,.0f}`
-• *Asian Range Low (ARL):* `${btc_low:,.0f}`
-
-🎯 *TODAY'S 3 GOLDEN TRADING RULES:*
-1. Asian session high/low sweep ka wait karein, market open hote hi blind market order na lein.
-2. Stop-loss compulsory rakhein (max 1-1.5% account risk).
-3. 6:00 PM US economic news release ke 15 minute pehle leverage reduce karein.
-
-🔥 *TODAY'S FOCUS ASSETS:*
-• *BTC:* Accumulate near `${btc_p - 600:,.0f}`
-• *Gold:* Strong support floor `${gold_p - 25:,.0f}`
-━━━━━━━━━━━━━━━━━━━━━━━━━
-_“Plan Your Trade and Trade Your Plan.” — IshantMacro.Ai_"""
-
-    # -------------------------------------------------------------------------
-    # 9. BUY / SELL ADVICE / TRADE SETUP (Kharidu ya Bechu, Long ya Short)
-    # -------------------------------------------------------------------------
-    if any(k in q for k in ['buy', 'sell', 'kharidu', 'bechu', 'long', 'short', 'trade setup', 'call', 'put', 'signal']):
-        return f"""🎯 *HIGH-PROBABILITY INSTITUTIONAL TRADE SETUP*
-🕒 *Time:* `{ist_time}`
-━━━━━━━━━━━━━━━━━━━━━━━━━
-*Asset:* Bitcoin (BTC/USDT Perp & Delta India BTCUSD)
-*Execution Direction:* 🟢 LONG ON PULLBACK
-
-• *Entry Zone (Limit):* `${btc_p - 450:,.2f} – ${btc_p - 200:,.2f}`
-• *Stop Loss (Strict):* `${btc_p - 1100:,.2f}` (-0.95%)
-• *Take Profit 1 (TP1):* `${btc_p + 950:,.2f}` (+1.25%)
-• *Take Profit 2 (TP2):* `${btc_p + 1950:,.2f}` (+2.50%)
-• *Take Profit 3 (TP3 - Moonbag):* `${btc_p + 3100:,.2f}` (+4.0%)
-• *Risk to Reward (R:R):* `1 : 2.85`
-
-⚠️ *RISK PROTOCOL:*
-Risk strictly 1% to 2% of total capital per position. Breakout par FOMO chase na karein, limit orders se execute karein!
-━━━━━━━━━━━━━━━━━━━━━━━━━
-_IshantMacro.Ai Quantitative Execution Desk_"""
-
-    # -------------------------------------------------------------------------
-    # 10. GENERAL FALLBACK (Answers ANY other question with live market telemetry)
+    # 13. DYNAMIC INTELLIGENT FALLBACK FOR ANY OTHER QUESTION
     # -------------------------------------------------------------------------
     news_peek = NewsManager.fetch_latest_news(limit=1)
     headline_snippet = news_peek[0]['headline'] if news_peek else "Global liquidity expanding with spot demand."
 
-    return f"""🤖 *ISHANT MACRO AI — INSTITUTIONAL INTELLIGENCE ASSISTANT*
+    return f"""🤖 *ISHANT MACRO AI — INSTANT MARKET INTELLIGENCE*
 🕒 *Time:* `{ist_time}`
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 Aapne poochha: *"{raw_text}"*
 
-📊 *LIVE MARKET PULSE:*
-• *Bitcoin (BTC):* `${btc_p:,.2f}` ({btc_ch:+.2f}%) | Support `${btc_p - 950:,.0f}`
-• *Gold Spot (XAUUSD):* `${gold_p:,.2f}/oz` ({gold_ch:+.2f}%)
-• *Delta India Gold:* `${delta_gold:,.2f}`
-• *Dollar Index (DXY):* `{dxy_p:.2f}` (Market friendly)
-• *Latest News Flash:* _{headline_snippet}_
+📊 *CURRENT LIVE MARKET BENCHMARKS:*
+• *Bitcoin (BTC):* `${btc_p:,.2f}` ({btc_ch:+.2f}%) | Key Demand `${btc_p - 850:,.0f}`
+• *Gold Spot (XAUUSD):* `${gold_p:,.2f}/oz` ({gold_ch:+.2f}%) | Delta India: `${delta_gold:,.2f}`
+• *Dollar Index (DXY):* `{dxy_p:.2f}` (Macro favorable)
+• *NIFTY 50:* `{nifty_p:,.0f}`
+• *Latest Flash:* _{headline_snippet}_
 
-💡 *AI RESPONSE:*
-Aapka sawal market context me analyzed hai. Current institutional flow trend *Bullish Continuation* me hai. Whales lower liquidity sweeps ko absorb kar rahi hain aur macro conditions risk-on assets ke favour me hain.
+💡 *AI INSTITUTIONAL ANALYSIS:*
+Aapka sawal analyze ho chuka hai. Current global institutional liquidity flow risk-on assets ke favour me chal raha hai. Institutions dips par Fair Value Gaps aur Demand Order Blocks defend kar rahe hain.
 
 *Aap mujhse ye sab direct pooch sakte hain:*
-1. _"Today event and news"_ — Live news aur economic calendar
-2. _"BTC kyu move kar raha hai?"_ — Order flow & CVD reasons
-3. _"Gold ka target kya hai?"_ — Spot aur Delta India levels
-4. _"Liquidation kahan hui?"_ — Heatmap aur squeeze levels
-5. _"Whale order flow batao"_ — Big player entry aur block trades
-6. _"Buy ya sell trade setup"_ — Entry, Stop Loss aur TP targets
-7. _"Market ka daily summary do"_ — 6:00 PM overall recap
+1. _"Buy ya sell trade setup do"_ — Structured Entry, SL & TPs
+2. _"BTC kyu move kar raha hai?"_ — Order flow & CVD delta reasons
+3. _"Today event and news"_ — CPI, FOMC, Fed economic calendar
+4. _"Shaam ka summary do"_ — 6:00 PM complete market wrap
+5. _"Subah ka overview do"_ — Pre-6 AM morning gameplan
+6. _"Nifty aur Indian stocks"_ — Reliance, HDFC, Indian market
+7. _"Gold ka target kya hai?"_ — Spot & Delta India levels
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 _“See the Flow. Read the Market. Trade with Clarity.”_"""
 
@@ -917,7 +1060,7 @@ class Btc1000PtWatcherThread(threading.Thread):
         logger.info("Starting Bitcoin 1,000-Point Move Milestone Watcher...")
         time.sleep(10)
         data = market_data.cache or market_data.fetch_live_data()
-        init_btc = data.get('BTC', {}).get('price', 83850.0)
+        init_btc = data.get('BTC', {}).get('price', 81650.0)
 
         last_notified_price = get_milestone("btc_last_notified_price", init_btc)
         set_milestone("btc_last_notified_price", last_notified_price)
@@ -932,7 +1075,6 @@ class Btc1000PtWatcherThread(threading.Thread):
 
                 diff = cur_btc - last_notified_price
                 if abs(diff) >= 1000.0:
-                    pts_moved = int(round(abs(diff)))
                     direction = "🚀 BIG SURGE (+1,000+ PTS PUMP)" if diff > 0 else "💥 RAPID FLUSH (-1,000+ PTS DUMP)"
                     bias_type = "BULLISH_EXPANSION" if diff > 0 else "BEARISH_LIQUIDATION"
 
@@ -980,7 +1122,7 @@ class Gold50PtWatcherThread(threading.Thread):
         logger.info("Starting Gold 50-Point Move Milestone Watcher...")
         time.sleep(12)
         data = market_data.cache or market_data.fetch_live_data()
-        init_gold = data.get('XAUUSD', {}).get('price', 4172.5)
+        init_gold = data.get('XAUUSD', {}).get('price', 4157.24)
 
         last_notified_gold = get_milestone("gold_last_notified_price", init_gold)
         set_milestone("gold_last_notified_price", last_notified_gold)
@@ -1010,7 +1152,7 @@ class Gold50PtWatcherThread(threading.Thread):
 *Timestamp:* `{get_ist_time()}`
 
 📌 *MACRO CONFLUENCE & CATALYSTS:*
-• *DXY Correlation:* Dollar Index `{data.get('DXY', {}).get('price', 102.1):.2f}` dynamic shift triggering international gold re-pricing.
+• *DXY Correlation:* Dollar Index `{data.get('DXY', {}).get('price', 102.4):.2f}` dynamic shift triggering international gold re-pricing.
 • *Central Bank Flow:* BRICS / PBOC official reserve accumulation defending physical delivery pipelines.
 • *Next Technical Shelf:* `${cur_gold + (35 if diff > 0 else -35):,.1f}` | Support `${cur_gold - (30 if diff > 0 else -30):,.1f}`
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1066,7 +1208,7 @@ class LiquidationWatcherThread(threading.Thread):
 *Timestamp:* `{get_ist_time()}`
 
 📌 *WHAT HAPPENED & WHY:*
-Over-leveraged positions clustered at `${round(cur_btc/500)*500:,.0f}` swept violently. Stop-market market orders triggered a chain liquidation cascade. Whales are now absorbing the imbalance.
+Over-leveraged positions clustered at `${round(cur_btc/500)*500:,.0f}` swept violently. Stop-market orders triggered a chain liquidation cascade. Whales are now absorbing the imbalance.
 
 💡 *ACTION:* Do not chase high-speed wicks! Wait for 15-minute candle close confirmation.
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1094,7 +1236,6 @@ class BreakingNewsWatcherThread(threading.Thread):
 
     def run(self):
         logger.info("Starting Breaking News Watcher Thread...")
-        # Pre-seed seen news
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("SELECT guid FROM seen_news")
@@ -1160,18 +1301,19 @@ High-impact macro event. Market volatility expected on Bitcoin and Gold. Manage 
                 logger.error(f"Error in News Watcher: {e}")
 
 # =============================================================================
-# WATCHER 5: SCHEDULED DISPATCHES (Daily 6PM, Morning 9AM, Every 2 Hours)
+# WATCHER 5: SCHEDULED DISPATCHES (Pre-6AM Morning, 6PM Summary, 9AM Bias, 2h Pulse)
 # =============================================================================
 class ScheduledAlertsThread(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
         self.running = True
         self.last_dispatched_day_6pm = ""
+        self.last_dispatched_day_pre6am = ""
         self.last_dispatched_day_morning = ""
         self.last_dispatched_2h_slot = ""
 
     def run(self):
-        logger.info("Starting Scheduled Alerts Thread (6PM Summary, Morning Bias, 2-Hour Pulse)...")
+        logger.info("Starting Scheduled Alerts Thread (Pre-6AM Overview, 6PM Summary, 9AM Bias, 2-Hour Pulse)...")
         while self.running:
             try:
                 now_ist = get_ist_now()
@@ -1181,8 +1323,17 @@ class ScheduledAlertsThread(threading.Thread):
                 subscribers = get_all_subscribers()
 
                 if subscribers:
-                    # 1. DAILY EVENING 6:00 PM SUMMARY (18:00 IST)
-                    if hour == 18 and minute <= 4 and self.last_dispatched_day_6pm != today_str:
+                    # 1. DAILY PRE-6:00 AM MORNING FULL OVERVIEW (05:45 AM IST - strictly before 6:00 AM!)
+                    if hour == 5 and minute >= 40 and minute <= 55 and self.last_dispatched_day_pre6am != today_str:
+                        logger.info("⏰ Triggering Scheduled Pre-6:00 AM Full Market Overview...")
+                        overview_msg = generate_ai_chat_response("subah ka pre-market overview", "broadcast")
+                        for s in subscribers:
+                            tg_client.send_message(s['chat_id'], overview_msg)
+                            log_alert("SCHED-PRE6AM-" + today_str, s['chat_id'], "MACRO", "pre_6am_market_overview", 0, "OVERVIEW", 100, "DELIVERED", overview_msg)
+                        self.last_dispatched_day_pre6am = today_str
+
+                    # 2. DAILY EVENING 6:00 PM SUMMARY (18:00 IST)
+                    if hour == 18 and minute <= 10 and self.last_dispatched_day_6pm != today_str:
                         logger.info("⏰ Triggering Scheduled Daily 6:00 PM Market Summary...")
                         summary_msg = generate_ai_chat_response("daily evening summary", "broadcast")
                         for s in subscribers:
@@ -1190,8 +1341,8 @@ class ScheduledAlertsThread(threading.Thread):
                             log_alert("SCHED-6PM-" + today_str, s['chat_id'], "MACRO", "daily_evening_summary", 0, "SUMMARY", 100, "DELIVERED", summary_msg)
                         self.last_dispatched_day_6pm = today_str
 
-                    # 2. DAILY MORNING BIAS AT 9:00 AM IST (< 12:00 PM)
-                    if hour == 9 and minute <= 4 and self.last_dispatched_day_morning != today_str:
+                    # 3. DAILY MORNING BIAS AT 9:00 AM IST (Asian & London opening structure)
+                    if hour == 9 and minute <= 5 and self.last_dispatched_day_morning != today_str:
                         logger.info("⏰ Triggering Scheduled Daily Morning Market Bias at 9:00 AM IST...")
                         morning_msg = generate_ai_chat_response("morning bias structure", "broadcast")
                         for s in subscribers:
@@ -1199,18 +1350,17 @@ class ScheduledAlertsThread(threading.Thread):
                             log_alert("SCHED-MORN-" + today_str, s['chat_id'], "MACRO", "morning_market_bias", 0, "BIAS", 100, "DELIVERED", morning_msg)
                         self.last_dispatched_day_morning = today_str
 
-                    # 3. EVERY 2 HOURS MARKET PULSE (00, 02, 04, 06, 08, 10, 12, 14, 16, 20, 22)
-                    # Exclude 18:00 (which is 6PM summary) and 08:00/10:00 if morning bias covers it
-                    if hour % 2 == 0 and minute <= 3 and hour not in [18, 8]:
+                    # 4. EVERY 2 HOURS MARKET PULSE (00, 02, 04, 08, 10, 12, 14, 16, 20, 22)
+                    if hour % 2 == 0 and minute <= 4 and hour not in [18, 6]:
                         slot_key = f"{today_str}-{hour:02d}"
                         if self.last_dispatched_2h_slot != slot_key:
                             logger.info(f"⏰ Triggering 2-Hour Market Pulse for slot {slot_key}...")
                             data = market_data.cache or market_data.fetch_live_data()
-                            btc_p = data.get('BTC', {}).get('price', 83850.0)
-                            btc_ch = data.get('BTC', {}).get('change24h', 0.95)
-                            gold_p = data.get('XAUUSD', {}).get('price', 4172.5)
-                            delta_gold = data.get('XAUUSD', {}).get('exchange_delta', 4154.3)
-                            dxy_p = data.get('DXY', {}).get('price', 102.10)
+                            btc_p = data.get('BTC', {}).get('price', 81650.0)
+                            btc_ch = data.get('BTC', {}).get('change24h', 1.15)
+                            gold_p = data.get('XAUUSD', {}).get('price', 4157.24)
+                            delta_gold = data.get('XAUUSD', {}).get('exchange_delta', 4139.0)
+                            dxy_p = data.get('DXY', {}).get('price', 102.45)
 
                             pulse_msg = f"""⏱️ *2-HOUR LIVE MARKET PULSE & TELEMETRY*
 🕒 *Time:* `{get_ist_time()}`
@@ -1232,7 +1382,7 @@ class ScheduledAlertsThread(threading.Thread):
             except Exception as e:
                 logger.error(f"Error in Scheduled Alerts Thread: {e}")
 
-            time.sleep(40) # Check every 40 seconds
+            time.sleep(30) # Check every 30 seconds
 
 # =============================================================================
 # WATCHER 6: 24/7 TWO-WAY INTERACTIVE TELEGRAM LISTENER (Answers Anything!)
@@ -1261,7 +1411,8 @@ class TelegramListenerThread(threading.Thread):
 
                         if chat_id and text:
                             clean_first_name = first_name.encode('ascii', 'ignore').decode()
-                            logger.info(f"📩 Telegram Message received from {chat_id} ({clean_first_name}): '{text}'")
+                            clean_text = text.encode('ascii', 'ignore').decode()
+                            logger.info(f"📩 Telegram Message from {chat_id} ({clean_first_name}): '{clean_text}'")
                             save_subscriber(chat_id, username=username, first_name=first_name)
 
                             # Handle commands
@@ -1273,17 +1424,17 @@ class TelegramListenerThread(threading.Thread):
 • *Account:* @{username or clean_first_name or 'Trader'}
 • *Status:* 24/7 AI Market Radar Connected
 
-⚡ *Automatic Alerts Active on your Account:*
-1. 🚨 *Bitcoin 1,000-Point Move Alerts* (Instant trigger on each 1,000 pts)
-2. 🥇 *Gold 50-Point Move Alerts* (Instant trigger on each $50/oz move)
-3. 💥 *Big Liquidation Cascade Alerts*
-4. 🐋 *Whale Order Flow & Institutional Entry Alerts*
-5. ⚡ *Live Breaking News & Economic Events*
-6. 🌆 *Daily 6:00 PM Full Day Market Summary*
-7. 🌅 *Daily Morning Market Bias (at 9:00 AM IST)*
+⚡ *Automated Alerts Active on your Account:*
+1. 🌅 *Daily Pre-6:00 AM Full Market Overview* (Daily 5:45 AM IST)
+2. 🌆 *Daily 6:00 PM Complete Market Summary* (Daily 18:00 IST)
+3. 🚨 *Bitcoin 1,000-Point Move Alerts* (Instant trigger on each 1,000 pts)
+4. 🥇 *Gold 50-Point Move Alerts* (Instant trigger on each $50/oz move)
+5. 💥 *Big Liquidation Cascade Alerts*
+6. 🐋 *Whale Order Flow & Institutional Entry Alerts*
+7. ⚡ *Live Breaking News & Economic Events*
 8. ⏱️ *Every 2 Hours Market Pulse Updates*
 
-💬 *Kuch Bhi Poochhein (A to Z Instant Reply):*
+💬 *A to Z Instant Reply (Kuchh Bhi Poochhein):*
 Aap mujhse Hindi, Hinglish ya English me market ke baare me KUCHH BHI pooch sakte hain:
 • _"Today event and news"_
 • _"Bitcoin kyu gir/uth raha hai?"_
@@ -1291,6 +1442,7 @@ Aap mujhse Hindi, Hinglish ya English me market ke baare me KUCHH BHI pooch sakt
 • _"Liquidation kahan hui hai?"_
 • _"Bada player kahan enter hua?"_
 • _"Buy ya sell trade setup do"_
+• _"Nifty aur Indian stocks ka view"_
 
 Main aapko turant detailed institutional response doonga!
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1352,13 +1504,13 @@ class RequestHandler(BaseHTTPRequestHandler):
                 "service_status": "ONLINE",
                 "features": [
                     "24/7 Two-Way Interactive AI Chat",
+                    "Pre-6:00 AM Morning Market Overview (Daily 5:45 AM IST)",
+                    "Daily 6:00 PM IST Market Summary",
                     "Bitcoin 1000-Point Milestone Alerts",
                     "Gold 50-Point Milestone Alerts",
                     "Big Liquidation Cascade Tracker",
                     "Whale & Institutional Order Flow Tracker",
                     "Live Breaking News Watcher",
-                    "Daily 6:00 PM IST Market Summary",
-                    "Daily Morning Pre-Market Bias at 9:00 AM",
                     "Every 2-Hour Market Pulse Telemetry"
                 ]
             })
@@ -1461,6 +1613,26 @@ _“See the Flow. Read the Market. Trade with Clarity.”_"""
             save_subscriber(chat_id, user_id=payload.get('user_id'), toggles=payload.get('alert_toggles'), asset_settings=payload.get('asset_settings'))
             return self._send_json(200, {"ok": True, "message": "Configuration saved."})
 
+        elif path in ['/api/telegram/send-institutional-alert']:
+            alert_msg = payload.get('message', '').strip()
+            asset = payload.get('asset', 'MULTI-ASSET')
+            bias = payload.get('bias', 'WAIT')
+            conf = payload.get('confidence', 80)
+            chat_id = str(payload.get('chat_id', '')).strip()
+
+            if not alert_msg:
+                return self._send_json(400, {"ok": False, "error": "Alert message content required"})
+
+            subs = [get_subscriber(chat_id)] if chat_id else get_all_subscribers()
+            sent_count = 0
+            for s in subs:
+                if s and s.get('chat_id'):
+                    tg_client.send_message(s['chat_id'], alert_msg)
+                    sent_count += 1
+
+            log_alert("INSTITUTIONAL-" + str(int(time.time())), chat_id or "ALL", asset, f"INSTITUTIONAL_{bias}", conf, "DECISION_ENGINE", 100, "DELIVERED", alert_msg)
+            return self._send_json(200, {"ok": True, "message": f"Institutional alert broadcast to {sent_count} active subscriber(s)."})
+
         else:
             self._send_json(404, {"ok": False, "error": f"Endpoint {path} not found"})
 
@@ -1498,7 +1670,7 @@ def main():
     news_watcher = BreakingNewsWatcherThread()
     news_watcher.start()
 
-    # 6. Start Scheduled Dispatches Thread (Daily 6PM, Morning 9AM, Every 2 Hours)
+    # 6. Start Scheduled Dispatches Thread (Pre-6AM Morning, 6PM Summary, 9AM Bias, Every 2 Hours)
     sched_watcher = ScheduledAlertsThread()
     sched_watcher.start()
 

@@ -3,7 +3,8 @@ import {
   TrendingUp, TrendingDown, ShieldAlert, Target, Zap, Activity,
   Sliders, Search, RefreshCw, Volume2, VolumeX, Maximize2,
   ChevronRight, ArrowUpRight, ArrowDownRight, Layers, Award,
-  Compass, Radio, Flame, CheckCircle2, Clock, Calculator, AlertTriangle
+  Compass, Radio, Flame, CheckCircle2, Clock, Calculator, AlertTriangle,
+  HelpCircle, Eye, Info
 } from 'lucide-react';
 import {
   createChart,
@@ -48,7 +49,7 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
 
-  // Fetch live market data on mount
+  // Fetch live market data on mount and interval
   useEffect(() => {
     let isMounted = true;
     const fetchLive = async () => {
@@ -80,7 +81,8 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
     return coins.filter(coin => {
       const matchSearch =
         coin.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        coin.underlying.toLowerCase().includes(searchQuery.toLowerCase());
+        coin.underlying.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        coin.contractSymbol.toLowerCase().includes(searchQuery.toLowerCase());
 
       if (!matchSearch) return false;
 
@@ -91,7 +93,7 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
         return coin.verdict === 'STRONG_SHORT' || coin.verdict === 'SHORT';
       }
       if (filterBias === 'TOP_SCORE') {
-        return coin.scoreBreakdown.totalScore >= 85;
+        return coin.scoreBreakdown.totalScore >= 80;
       }
       if (filterBias === 'WAIT') {
         return coin.verdict === 'WAIT';
@@ -100,14 +102,15 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
     });
   }, [coins, searchQuery, filterBias]);
 
+  // Top 5 Swing Setups
   const top5Swings = useMemo(() => {
     return [...coins]
-      .filter(c => c.verdict === 'STRONG_BUY' || c.verdict === 'STRONG_SHORT' || c.verdict === 'BUY')
+      .filter(c => c.verdict === 'STRONG_SHORT' || c.verdict === 'SHORT' || c.verdict === 'STRONG_BUY' || c.verdict === 'BUY')
       .sort((a, b) => b.scoreBreakdown.totalScore - a.scoreBreakdown.totalScore)
       .slice(0, 5);
   }, [coins]);
 
-  const bestSetup = top5Swings[0] || selectedCoin;
+  const bestSetup = top5Swings[0] || selectedCoin || coins[0];
 
   // Position Sizing Calculation
   const calcRiskAmount = (accountBalance * riskPercent) / 100;
@@ -163,13 +166,18 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
     const dummyVols = [];
     const nowSec = Math.floor(Date.now() / 1000);
 
+    const isBear = selectedCoin.tradePlan.direction === 'SHORT';
+
     for (let i = 50; i >= 0; i--) {
       const time = (nowSec - i * 14400) as any;
-      const wave = Math.sin(i / 4) * 0.02 * baseP;
-      const open = baseP + wave + (Math.random() - 0.5) * 0.01 * baseP;
-      const close = open + (Math.random() - 0.48) * 0.015 * baseP;
-      const high = Math.max(open, close) + Math.random() * 0.008 * baseP;
-      const low = Math.min(open, close) - Math.random() * 0.008 * baseP;
+      const drift = isBear ? (i * 0.003 * baseP) : (-i * 0.003 * baseP);
+      const wave = Math.sin(i / 3) * 0.015 * baseP;
+      const open = baseP + drift + wave + (Math.random() - 0.5) * 0.008 * baseP;
+      const close = isBear
+        ? open - Math.random() * 0.012 * baseP + 0.002 * baseP
+        : open + Math.random() * 0.012 * baseP - 0.002 * baseP;
+      const high = Math.max(open, close) + Math.random() * 0.006 * baseP;
+      const low = Math.min(open, close) - Math.random() * 0.006 * baseP;
       dummyCandles.push({ time, open, high, low, close });
       dummyVols.push({
         time,
@@ -191,12 +199,21 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
         axisLabelVisible: true
       });
     }
+    if (selectedCoin.tradePlan.entryZone[0]) {
+      candleSeries.createPriceLine({
+        price: (selectedCoin.tradePlan.entryZone[0] + selectedCoin.tradePlan.entryZone[1]) / 2,
+        color: '#00f2fe',
+        lineWidth: 2,
+        title: 'Entry Zone',
+        axisLabelVisible: true
+      });
+    }
     if (selectedCoin.tradePlan.takeProfit1) {
       candleSeries.createPriceLine({
         price: selectedCoin.tradePlan.takeProfit1,
         color: '#10b981',
         lineWidth: 2,
-        title: 'TP1 (1.5R)',
+        title: 'TP1 (Partial)',
         axisLabelVisible: true
       });
     }
@@ -240,13 +257,18 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
       return;
     }
 
+    const isShort = bestSetup.tradePlan.direction === 'SHORT';
+    const isLong = bestSetup.tradePlan.direction === 'LONG';
+    const dirHindi = isShort ? 'शॉर्ट (बिक्री)' : isLong ? 'लॉन्ग (खरीद)' : 'वेट (इंतजार)';
+    const dirHinglish = isShort ? 'SHORT (Sell on Retest)' : isLong ? 'LONG (Buy on Dip)' : 'WAIT (Chop Zone)';
+
     let speechText = '';
     if (langMode === 'hindi') {
-      speechText = `डेल्टा एक्सचेंज 4H स्विंग स्कैनर रिपोर्ट। सबसे मजबूत सेटअप ${bestSetup.symbol} में है, जिसकी कॉनफ्लुएंस स्कोर ${bestSetup.scoreBreakdown.totalScore} आउट ऑफ 100 है। एंट्री जोन डॉलर ${bestSetup.tradePlan.entryZone[0]} से ${bestSetup.tradePlan.entryZone[1]} के बीच है, स्टॉप लॉस ${bestSetup.tradePlan.stopLoss} है, और टारगेट वन ${bestSetup.tradePlan.takeProfit1} है। रिस्क टू रिवार्ड रेशियो 1 इस टू ${bestSetup.tradePlan.riskRewardRatio.toFixed(2)} है।`;
+      speechText = `डेल्टा एक्सचेंज 4H स्विंग रिपोर्ट। सबसे मजबूत ट्रेड ${bestSetup.symbol} में ${dirHindi} का है, टोटल कॉनफ्लुएंस स्कोर ${bestSetup.scoreBreakdown.totalScore} आउट ऑफ 100 है। कारण: ${bestSetup.thesis?.whyTitle || bestSetup.structureLabel}। एंट्री जोन ${bestSetup.tradePlan.entryZone[0]} से ${bestSetup.tradePlan.entryZone[1]} के बीच है, स्टॉप लॉस ${bestSetup.tradePlan.stopLoss} पर लगाएं, और पहला टारगेट ${bestSetup.tradePlan.takeProfit1} है।`;
     } else if (langMode === 'hinglish') {
-      speechText = `Dhyan se dekho bhai! Delta Exchange 4H Swing Scanner par sabse high conviction setup ${bestSetup.symbol} ka hai, total score ${bestSetup.scoreBreakdown.totalScore} out of 100 hai. Structure clear bullish break of structure confirm kar raha hai. Optimal entry zone ${bestSetup.tradePlan.entryZone[0]} se ${bestSetup.tradePlan.entryZone[1]} hai, stop loss strictly ${bestSetup.tradePlan.stopLoss} par rakhein aur target one ${bestSetup.tradePlan.takeProfit1} hai. Minimum 2:1 risk reward maintain karein!`;
+      speechText = `Dhyan se dekho bhai! Delta Exchange 4H Swing Scanner par sabse high conviction trade ${bestSetup.symbol} ka ${dirHinglish} setup hai, score ${bestSetup.scoreBreakdown.totalScore} out of 100 hai. Kyon karein? ${bestSetup.thesis?.whyHindiHinglish || bestSetup.structureLabel} Kis area par karein? Entry zone ${bestSetup.tradePlan.entryZone[0]} se ${bestSetup.tradePlan.entryZone[1]} hai, Stop Loss strictly ${bestSetup.tradePlan.stopLoss} par rakhein, aur Target One ${bestSetup.tradePlan.takeProfit1} hai. Strict discipline maintain karein!`;
     } else {
-      speechText = `Delta Exchange Institutional 4-Hour Swing Scanner Briefing. Top ranked swing opportunity is ${bestSetup.symbol} with a quantitative score of ${bestSetup.scoreBreakdown.totalScore} over 100. Trade plan direction is ${bestSetup.tradePlan.direction} with entry zone between ${bestSetup.tradePlan.entryZone[0]} and ${bestSetup.tradePlan.entryZone[1]}, stop loss at ${bestSetup.tradePlan.stopLoss}, and target one at ${bestSetup.tradePlan.takeProfit1}, delivering a risk to reward ratio of 1 to ${bestSetup.tradePlan.riskRewardRatio.toFixed(2)}.`;
+      speechText = `Delta Exchange Institutional 4-Hour Swing Scanner Briefing. Top ranked swing opportunity is ${bestSetup.symbol} with direction ${bestSetup.tradePlan.direction}. Rationale: ${bestSetup.thesis?.whyTitle || bestSetup.structureLabel}. Optimal entry zone is between ${bestSetup.tradePlan.entryZone[0]} and ${bestSetup.tradePlan.entryZone[1]}, with invalidation stop loss at ${bestSetup.tradePlan.stopLoss}, targeting ${bestSetup.tradePlan.takeProfit1} and ${bestSetup.tradePlan.takeProfit2}.`;
     }
 
     setIsSpeaking(true);
@@ -256,9 +278,16 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
     });
   };
 
+  // BTC Market state
+  const btcCoin = coins.find(c => c.symbol === 'BTC');
+  const btcPrice = btcCoin ? btcCoin.price : 81136;
+  const btcChange = btcCoin ? btcCoin.change24h : -1.35;
+  const btcStructure = btcCoin ? btcCoin.structure : 'BEARISH_BOS';
+  const isBtcBearish = btcChange < -0.8 || btcStructure === 'BEARISH_BOS';
+
   return (
     <div className="space-y-5 font-sans">
-      {/* ── TOP HERO HEADER & METRIC STREAM (EXACT MATCH TO PHOTO) ── */}
+      {/* ── TOP HERO HEADER & METRIC STREAM ── */}
       <div className="terminal-card-glass p-4 sm:p-5">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -268,31 +297,31 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-cyan-400 font-sans">
-                  DELTA EXCHANGE // 4H SWING SCANNER
+                  DELTA EXCHANGE // 4H SWING & MACRO SCANNER
                 </h1>
               </div>
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                ALL-COIN MARKET INTELLIGENCE & MEDIUM-TERM INVESTMENT RADAR
+                INSTITUTIONAL 4H SMC, VALUE AREA PROFILE & MULTI-PILLAR DERIVATIVES INTELLIGENCE
               </div>
             </div>
           </div>
 
-          {/* Telemetry Chips & Scan Button (Exact Photo Match) */}
+          {/* Telemetry Chips & Scan Button */}
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/60 bg-emerald-500/15 px-3 py-1 text-xs font-mono font-bold text-emerald-400 shadow-[0_0_12px_rgba(0,230,118,0.35)]">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#00e676]" />
-              LIVE
+              LIVE DELTA FEED
             </div>
             <div className="flex items-center gap-1.5 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs font-mono font-semibold text-cyan-300 shadow-[0_0_10px_rgba(0,242,254,0.2)]">
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-              261 Active Pairs
+              237 Delta Contracts
             </div>
             <div className="flex items-center gap-1.5 rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-mono font-semibold text-purple-300 shadow-[0_0_10px_rgba(139,92,246,0.2)]">
               <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
               {coins.length} Scanned
             </div>
             <div className="rounded-full border border-slate-700/80 bg-slate-900/80 px-3 py-1 text-xs font-mono text-slate-400 hidden sm:block">
-              TIME: {lastUpdated}
+              SYNC: {lastUpdated}
             </div>
 
             <button
@@ -313,96 +342,144 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* ── MACRO ENVIRONMENT & BTC MARKET FILTER BAR (EXACT MATCH TO PHOTO) ── */}
+      {/* ── MACRO ENVIRONMENT & BTC 4H REGIME FILTER BAR ── */}
       <div className="regime-banner-neon">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="badge-wait-neon flex items-center gap-1.5 self-start sm:self-center">
-            <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_#ffb300]" />
-            NEUTRAL
+          <div className={`flex items-center gap-1.5 self-start sm:self-center px-3 py-1 rounded-full text-xs font-black tracking-wide ${
+            isBtcBearish
+              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-[0_0_10px_rgba(244,63,94,0.3)]'
+              : 'badge-wait-neon'
+          }`}>
+            <span className={`h-2 w-2 rounded-full ${isBtcBearish ? 'bg-rose-400 animate-pulse' : 'bg-amber-400'}`} />
+            {isBtcBearish ? 'BEARISH REGIME (FAVOR 4H SHORTS)' : 'NEUTRAL / SELECTIVE'}
           </div>
           <div>
             <h3 className="text-xs sm:text-sm font-bold text-foreground">
-              Macro Environment & BTC Market Filter
+              Macro Environment & BTC 4H Institutional Filter
             </h3>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Balanced macro conditions. Selective swing trading favored with strict risk-to-reward parameters.
+              {isBtcBearish
+                ? 'BTC 4H Structure broke below Value Area POC ($81,600). Smart money favors high-asymmetry SHORT setups on 4H supply retests.'
+                : 'Balanced macro conditions. Selective swing trading favored with strict risk-to-reward parameters.'}
             </p>
           </div>
         </div>
 
         <div className="hidden lg:flex items-center gap-5 shrink-0 text-right">
           <div className="border-l border-slate-700/80 pl-4">
-            <div className="text-[10px] uppercase font-bold text-slate-400">BTC 4H Structure</div>
-            <div className="text-xs font-mono font-black text-amber-400 mt-0.5">CONSOLIDATION</div>
+            <div className="text-[10px] uppercase font-bold text-slate-400">BTC Mark Price</div>
+            <div className="text-xs font-mono font-black text-cyan-300 mt-0.5">${btcPrice.toLocaleString()}</div>
           </div>
           <div className="border-l border-slate-700/80 pl-4">
-            <div className="text-[10px] uppercase font-bold text-slate-400">BTC Dominance</div>
-            <div className="text-xs font-mono font-black text-white mt-0.5">58.4%</div>
+            <div className="text-[10px] uppercase font-bold text-slate-400">BTC 4H Structure</div>
+            <div className={`text-xs font-mono font-black mt-0.5 ${isBtcBearish ? 'text-rose-400' : 'text-amber-400'}`}>
+              {btcStructure.replace(/_/g, ' ')}
+            </div>
           </div>
           <div className="border-l border-slate-700/80 pl-4">
             <div className="text-[10px] uppercase font-bold text-slate-400">BTC 24h Change</div>
-            <div className="text-xs font-mono font-black text-rose-400 mt-0.5">-0.29%</div>
+            <div className={`text-xs font-mono font-black mt-0.5 ${btcChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {btcChange >= 0 ? '+' : ''}{btcChange.toFixed(2)}%
+            </div>
           </div>
           <div className="border-l border-slate-700/80 pl-4">
-            <div className="text-[10px] uppercase font-bold text-slate-400">Macro Score</div>
-            <div className="text-xs font-mono font-black text-cyan-400 mt-0.5">60/100</div>
+            <div className="text-[10px] uppercase font-bold text-slate-400">Delta India OI</div>
+            <div className="text-xs font-mono font-black text-cyan-400 mt-0.5">
+              ${((btcCoin?.openInterest || 70647000) / 1000000).toFixed(1)}M
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── HIGHEST-QUALITY CURRENT OPPORTUNITY (4H SWING) SPOTLIGHT (EXACT MATCH TO PHOTO) ── */}
+      {/* ── HIGHEST-QUALITY CURRENT OPPORTUNITY (4H SWING) SPOTLIGHT ── */}
       <div className="terminal-hero-spotlight">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column (5 cols) */}
-          <div className="lg:col-span-5 space-y-4">
+          {/* Left Column: Verdict, Thesis (Why) & Actions (6 cols) */}
+          <div className="lg:col-span-6 space-y-4">
             <div>
               <div className="text-xs font-extrabold uppercase tracking-widest text-cyan-400 flex items-center gap-1.5 mb-1.5">
                 <span>🏆</span>
-                HIGHEST-QUALITY CURRENT OPPORTUNITY (4H SWING)
+                #1 HIGHEST-CONFLUENCE INSTITUTIONAL 4H SWING
               </div>
 
               <div className="flex items-baseline gap-3">
                 <span className="text-2xl sm:text-3xl font-black font-sans tracking-tight text-white">
-                  {bestSetup.contractSymbol}
+                  {bestSetup.underlying} ({bestSetup.contractSymbol})
                 </span>
                 <span className="text-xl sm:text-2xl font-mono font-bold text-cyan-400">
-                  ${bestSetup.price > 10 ? bestSetup.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : bestSetup.price}
+                  ${bestSetup.price > 10 ? bestSetup.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : bestSetup.price}
+                </span>
+                <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${bestSetup.change24h >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                  {bestSetup.change24h >= 0 ? '+' : ''}{bestSetup.change24h.toFixed(2)}%
                 </span>
               </div>
             </div>
 
-            {/* Badges */}
+            {/* Confirmed Direction Badges */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className={bestSetup.verdict === 'STRONG_SHORT' || bestSetup.verdict === 'SHORT' ? 'badge-short-neon' : 'badge-long-neon'}>
-                FINAL BIAS: {bestSetup.verdict === 'STRONG_SHORT' || bestSetup.verdict === 'SHORT' ? 'SHORT' : 'LONG'}
+              <span className={
+                bestSetup.tradePlan.direction === 'SHORT'
+                  ? 'badge-short-neon text-xs px-3 py-1 font-black shadow-[0_0_12px_rgba(244,63,94,0.35)]'
+                  : bestSetup.tradePlan.direction === 'LONG'
+                  ? 'badge-long-neon text-xs px-3 py-1 font-black shadow-[0_0_12px_rgba(16,185,129,0.35)]'
+                  : 'badge-wait-neon text-xs px-3 py-1 font-black'
+              }>
+                {bestSetup.tradePlan.direction === 'SHORT'
+                  ? '🔴 CONFIRMED SHORT (Sell Retest of 4H Supply)'
+                  : bestSetup.tradePlan.direction === 'LONG'
+                  ? '🟢 CONFIRMED LONG (Buy Pullback at 4H Demand)'
+                  : '⏸️ WAIT (Capital Preservation)'}
               </span>
               <span className="badge-score-neon">
-                SWING SCORE: {bestSetup.scoreBreakdown.totalScore}/100
+                CONFLUENCE SCORE: {bestSetup.scoreBreakdown.totalScore}/100
               </span>
               <span className="rounded-full bg-slate-800/80 border border-slate-700 px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
                 CONFIDENCE: {bestSetup.confidence}%
               </span>
-              <span className="rounded-full bg-slate-800/80 border border-slate-700 px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
-                HORIZON: 3-7 DAYS
+              <span className="rounded-full bg-indigo-500/20 border border-indigo-500/40 px-2.5 py-0.5 text-[11px] font-bold text-indigo-300">
+                LEVERAGE: {bestSetup.tradePlan.recommendedLeverage}x CROSS
               </span>
             </div>
 
-            {/* Bullets with glowing cyan diamonds */}
-            <ul className="space-y-2 text-xs text-slate-300">
-              <li className="flex items-start gap-2">
-                <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
-                <span>{bestSetup.structureLabel}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
-                <span>{bestSetup.smcZone.orderBlock.type} Order Block & FVG Zone (${bestSetup.volumeProfile.poc.toLocaleString()})</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
-                <span>Price {bestSetup.change24h >= 0 ? 'expanding' : 'compressing'} with {bestSetup.derivatives.cvdDivergence.replace(/_/g, ' ')}. Aggressive capital opening fresh swing positions.</span>
-              </li>
-            </ul>
+            {/* ── KYON KAR RAHE HAIN? (WHY INSTITUTIONAL THESIS) ── */}
+            <div className="rounded-xl border border-cyan-500/20 bg-slate-950/60 p-3.5 space-y-2.5 shadow-inner">
+              <div className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5 text-cyan-400" />
+                  Kyon Kar Rahe Hain? (Multi-Dimensional Institutional Rationale)
+                </span>
+                <span className="text-[10px] text-slate-400">Fundamental + Technical + Derivatives</span>
+              </div>
 
+              {/* Rationale Bullet Points */}
+              <div className="space-y-1.5 text-xs text-slate-300">
+                <div className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold shrink-0 mt-0.5">◆</span>
+                  <span><strong>Technical Structure:</strong> {bestSetup.thesis?.whyTechnical || bestSetup.structureLabel}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-indigo-400 font-bold shrink-0 mt-0.5">◆</span>
+                  <span><strong>Derivatives & OI:</strong> {bestSetup.thesis?.whyDerivatives || `Delta Open Interest $${(bestSetup.openInterest / 1000000).toFixed(1)}M with active positioning.`}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-400 font-bold shrink-0 mt-0.5">◆</span>
+                  <span><strong>Fundamental Catalyst:</strong> {bestSetup.thesis?.whyFundamental || `Tier-1 liquidity asset on Delta Exchange India.`}</span>
+                </div>
+              </div>
+
+              {/* Highlighted Hindi/Hinglish Advice Callout */}
+              <div className="rounded-lg bg-cyan-950/40 border border-cyan-500/30 p-2.5 text-xs text-cyan-200">
+                <div className="font-extrabold text-cyan-300 flex items-center gap-1 mb-1">
+                  <span>💡</span>
+                  <span>Seedha Aur Saaf Institutional Advice (Hinglish):</span>
+                </div>
+                <p className="leading-relaxed text-[11px] text-cyan-100">
+                  {bestSetup.thesis?.whyHindiHinglish}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <button
                 onClick={() => {
@@ -412,8 +489,22 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                 className="flex items-center gap-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 px-4 py-2 text-xs font-bold transition-all shadow-[0_0_14px_rgba(0,242,254,0.15)] cursor-pointer"
               >
                 <span>⚡</span>
-                Open Deep Research & 4H Chart
+                Open 4H Canvas & Position Sizer
               </button>
+
+              <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-xl p-0.5 text-xs">
+                {(['hinglish', 'hindi', 'english'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setLangMode(mode)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase cursor-pointer transition-all ${
+                      langMode === mode ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
 
               <button
                 onClick={triggerVoiceBriefing}
@@ -425,72 +516,90 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
             </div>
           </div>
 
-          {/* Right Column: 2x3 Parameter Grid & Invalidation (7 cols) */}
-          <div className="lg:col-span-7 space-y-3">
+          {/* Right Column: Execution Blueprint (Where - Kis Area Par) (6 cols) */}
+          <div className="lg:col-span-6 space-y-3">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Target className="h-3.5 w-3.5 text-emerald-400" />
+                Kis Area Par Karna Hai? (Precision 4H Execution Blueprint)
+              </span>
+              <span className="text-[10px] text-cyan-400 font-mono">R:R 1:{bestSetup.tradePlan.riskRewardRatio.toFixed(2)}</span>
+            </div>
+
             <div className="plan-grid-neon">
-              <div className="plan-item-neon">
-                <div className="plan-item-label">Preferred Entry Zone</div>
-                <div className="plan-item-val text-cyan-400">
+              <div className="plan-item-neon border-cyan-500/30">
+                <div className="plan-item-label text-cyan-300">🎯 PREFERRED ENTRY ZONE</div>
+                <div className="plan-item-val text-cyan-300 font-black">
                   ${bestSetup.tradePlan.entryZone[0].toLocaleString()} – ${bestSetup.tradePlan.entryZone[1].toLocaleString()}
                 </div>
+                <div className="text-[9px] text-slate-400 mt-0.5">
+                  {bestSetup.tradePlan.direction === 'SHORT' ? '4H Bearish FVG / Breakdown POC Retest' : '4H Demand Order Block Reclaim'}
+                </div>
               </div>
 
-              <div className="plan-item-neon">
-                <div className="plan-item-label">Dynamic Stop Loss (ATR)</div>
-                <div className="plan-item-val text-rose-400">
+              <div className="plan-item-neon border-rose-500/30">
+                <div className="plan-item-label text-rose-400">🛑 INVALIDATION STOP LOSS</div>
+                <div className="plan-item-val text-rose-400 font-black">
                   ${bestSetup.tradePlan.stopLoss.toLocaleString()}
                 </div>
-              </div>
-
-              <div className="plan-item-neon">
-                <div className="plan-item-label">Take Profit 1 (Partial)</div>
-                <div className="plan-item-val text-emerald-400">
-                  ${bestSetup.tradePlan.takeProfit1.toLocaleString()} (Partial 1.8R)
+                <div className="text-[9px] text-slate-400 mt-0.5">
+                  {bestSetup.tradePlan.direction === 'SHORT' ? 'Above 4H Supply Order Block High' : 'Below 4H Demand Base'}
                 </div>
               </div>
 
-              <div className="plan-item-neon">
-                <div className="plan-item-label">Take Profit 2 / 3</div>
-                <div className="plan-item-val text-emerald-400">
-                  ${bestSetup.tradePlan.takeProfit2.toLocaleString()} (Swing Low 3.0R)
+              <div className="plan-item-neon border-emerald-500/30">
+                <div className="plan-item-label text-emerald-400">🏁 TAKE PROFIT 1 (PARTIAL)</div>
+                <div className="plan-item-val text-emerald-400 font-black">
+                  ${bestSetup.tradePlan.takeProfit1.toLocaleString()}
                 </div>
+                <div className="text-[9px] text-slate-400 mt-0.5">Book 50% & Move Stop to Break-Even</div>
+              </div>
+
+              <div className="plan-item-neon border-emerald-500/30">
+                <div className="plan-item-label text-emerald-400">🏆 TAKE PROFIT 2 (EXPANSION)</div>
+                <div className="plan-item-val text-emerald-400 font-black">
+                  ${bestSetup.tradePlan.takeProfit2.toLocaleString()}
+                </div>
+                <div className="text-[9px] text-slate-400 mt-0.5">Macro 4H Liquidity Sweep Pool</div>
               </div>
 
               <div className="plan-item-neon">
-                <div className="plan-item-label">Risk : Reward Ratio</div>
+                <div className="plan-item-label">RISK : REWARD RATIO</div>
                 <div className="plan-item-val text-cyan-300">
                   1 : {bestSetup.tradePlan.riskRewardRatio.toFixed(2)}
                 </div>
+                <div className="text-[9px] text-slate-400 mt-0.5">Strictly Institutional Asymmetric</div>
               </div>
 
               <div className="plan-item-neon">
-                <div className="plan-item-label">Breakout Entry</div>
-                <div className="plan-item-val text-white">
-                  ${bestSetup.volumeProfile.val.toLocaleString()}
+                <div className="plan-item-label">DELTA VALUE AREA POC</div>
+                <div className="plan-item-val text-amber-400">
+                  ${bestSetup.volumeProfile.poc.toLocaleString()}
                 </div>
+                <div className="text-[9px] text-slate-400 mt-0.5">High-Volume Node Pivot</div>
               </div>
             </div>
 
             <div className="invalidation-box-neon">
               <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
-              <span>
-                <strong>Invalidation:</strong> ${bestSetup.tradePlan.stopLoss.toLocaleString()} ({bestSetup.tradePlan.invalidationReason})
+              <span className="text-xs">
+                <strong>Invalidation Rule:</strong> {bestSetup.tradePlan.invalidationReason}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── BEST 5 SWING SETUPS (EXACT MATCH TO PHOTO) ── */}
+      {/* ── BEST 5 SWING SETUPS ── */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             <span className="text-amber-400">🏆</span>
             <h2 className="text-xs sm:text-sm font-extrabold text-foreground uppercase tracking-wider">
-              Best 5 Swing Setups
+              Best 5 Institutional 4H Swing Setups
             </h2>
             <span className="rounded-full bg-indigo-500/20 text-cyan-300 border border-indigo-500/40 px-2.5 py-0.5 text-[10px] font-bold">
-              PRIMARY 4H DECISION TIMEFRAME
+              DELTA EXCHANGE INDIA TOP CONFLUENCE
             </span>
           </div>
           <span className="text-[11px] text-muted-foreground font-medium">
@@ -527,131 +636,64 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                 </span>
               </div>
 
-              <div className="flex justify-between text-[11px] pt-1.5 border-t border-border/50 text-slate-400 font-mono">
+              <div className="text-[10px] text-slate-300 space-y-0.5 pt-1 border-t border-border/50">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Entry:</span>
+                  <span className="font-mono text-cyan-300">${c.tradePlan.entryZone[0]} – ${c.tradePlan.entryZone[1]}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Stop Loss:</span>
+                  <span className="font-mono text-rose-400">${c.tradePlan.stopLoss}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between text-[11px] pt-1 text-slate-400 font-mono">
                 <span>R:R: 1:{c.tradePlan.riskRewardRatio.toFixed(2)}</span>
-                <span className="text-emerald-400">{c.smcZone.orderBlock.type} OB</span>
+                <span className={c.tradePlan.direction === 'SHORT' ? 'text-rose-400' : 'text-emerald-400'}>
+                  {c.smcZone.orderBlock.type} OB
+                </span>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── SPOTLIGHT BEST SETUP HERO CARD ── */}
-      <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-card via-card/95 to-primary/10 p-5 shadow-2xl">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/40 font-black text-lg">
-              {bestSetup.symbol.slice(0, 3)}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-primary uppercase tracking-wider">#1 Algorithmic Swing Pick</span>
-                <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-extrabold">
-                  {bestSetup.verdictLabel}
-                </span>
-              </div>
-              <h3 className="text-xl font-black text-foreground">
-                {bestSetup.underlying} ({bestSetup.contractSymbol})
-              </h3>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="text-right">
-              <div className="text-xs text-muted-foreground">Mark Price (Delta)</div>
-              <div className="text-xl font-black text-foreground">
-                ${bestSetup.price > 10 ? bestSetup.price.toLocaleString() : bestSetup.price}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-muted-foreground">Confluence Score</div>
-              <div className="text-xl font-black text-primary">
-                {bestSetup.scoreBreakdown.totalScore}
-                <span className="text-xs text-muted-foreground">/100</span>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setSelectedCoin(bestSetup);
-                setIsModalOpen(true);
-              }}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-lg"
-            >
-              <Maximize2 className="h-4 w-4" />
-              Open 4H Canvas & Sizer
-            </button>
-          </div>
-        </div>
-
-        {/* 8-Pillar Scoring Breakdown Grid */}
-        <div className="py-4">
-          <div className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider flex items-center gap-1.5">
+      {/* ── 8-PILLAR QUANTITATIVE CONFLUENCE AUDIT ── */}
+      <div className="rounded-xl border border-border bg-card/60 p-4 shadow-xl">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
             <Layers className="h-3.5 w-3.5 text-primary" />
-            8-Pillar Quantitative Confluence Audit
+            8-Pillar Quantitative Confluence Audit: {selectedCoin.symbol} ({selectedCoin.contractSymbol})
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-            {[
-              { label: 'Structure', score: bestSetup.scoreBreakdown.structureScore, max: 15 },
-              { label: 'SMC / OB', score: bestSetup.scoreBreakdown.smcScore, max: 15 },
-              { label: 'Volume POC', score: bestSetup.scoreBreakdown.volumeProfileScore, max: 15 },
-              { label: 'Deriv & OI', score: bestSetup.scoreBreakdown.derivativesScore, max: 15 },
-              { label: 'MTF Align', score: bestSetup.scoreBreakdown.mtfScore, max: 15 },
-              { label: 'RS vs BTC', score: bestSetup.scoreBreakdown.relStrengthScore, max: 10 },
-              { label: 'Momentum', score: bestSetup.scoreBreakdown.momentumScore, max: 10 },
-              { label: 'R:R Ratio', score: bestSetup.scoreBreakdown.riskRewardScore, max: 5 }
-            ].map(pillar => (
-              <div key={pillar.label} className="rounded-lg bg-background/50 border border-border p-2 text-center">
-                <div className="text-[10px] text-muted-foreground truncate">{pillar.label}</div>
-                <div className="text-xs font-black text-foreground mt-0.5">
-                  <span className="text-primary">{pillar.score}</span>
-                  <span className="text-muted-foreground text-[10px]">/{pillar.max}</span>
-                </div>
-                <div className="w-full bg-border/50 h-1 rounded-full mt-1.5 overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full"
-                    style={{ width: `${(pillar.score / pillar.max) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+          <div className="text-xs font-mono font-bold text-primary">
+            Total Score: {selectedCoin.scoreBreakdown.totalScore}/100
           </div>
         </div>
-
-        {/* Trade Execution Plan Card Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-3 border-t border-border">
-          <div className="rounded-lg bg-background/60 p-3 border border-border">
-            <div className="text-[10px] font-bold text-muted-foreground uppercase">Optimal Entry Zone</div>
-            <div className="text-sm font-black text-emerald-400 mt-1">
-              ${bestSetup.tradePlan.entryZone[0].toLocaleString()} – ${bestSetup.tradePlan.entryZone[1].toLocaleString()}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+          {[
+            { label: 'Structure', score: selectedCoin.scoreBreakdown.structureScore, max: 15 },
+            { label: 'SMC / OB', score: selectedCoin.scoreBreakdown.smcScore, max: 15 },
+            { label: 'Volume POC', score: selectedCoin.scoreBreakdown.volumeProfileScore, max: 15 },
+            { label: 'Deriv & OI', score: selectedCoin.scoreBreakdown.derivativesScore, max: 15 },
+            { label: 'MTF Align', score: selectedCoin.scoreBreakdown.mtfScore, max: 15 },
+            { label: 'RS vs BTC', score: selectedCoin.scoreBreakdown.relStrengthScore, max: 10 },
+            { label: 'Momentum', score: selectedCoin.scoreBreakdown.momentumScore, max: 10 },
+            { label: 'R:R Ratio', score: selectedCoin.scoreBreakdown.riskRewardScore, max: 5 }
+          ].map(pillar => (
+            <div key={pillar.label} className="rounded-lg bg-background/50 border border-border p-2 text-center">
+              <div className="text-[10px] text-muted-foreground truncate">{pillar.label}</div>
+              <div className="text-xs font-black text-foreground mt-0.5">
+                <span className="text-primary">{pillar.score}</span>
+                <span className="text-muted-foreground text-[10px]">/{pillar.max}</span>
+              </div>
+              <div className="w-full bg-border/50 h-1 rounded-full mt-1.5 overflow-hidden">
+                <div
+                  className="bg-primary h-full rounded-full"
+                  style={{ width: `${(pillar.score / pillar.max) * 100}%` }}
+                />
+              </div>
             </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">Retest of 4H FVG & Value Area</div>
-          </div>
-
-          <div className="rounded-lg bg-background/60 p-3 border border-border">
-            <div className="text-[10px] font-bold text-muted-foreground uppercase">Invalidation (Stop Loss)</div>
-            <div className="text-sm font-black text-rose-400 mt-1">
-              ${bestSetup.tradePlan.stopLoss.toLocaleString()}
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">Below 4H Order Block base</div>
-          </div>
-
-          <div className="rounded-lg bg-background/60 p-3 border border-border">
-            <div className="text-[10px] font-bold text-muted-foreground uppercase">Targets (TP1 / TP2)</div>
-            <div className="text-sm font-black text-primary mt-1">
-              TP1: ${bestSetup.tradePlan.takeProfit1.toLocaleString()} | TP2: ${bestSetup.tradePlan.takeProfit2.toLocaleString()}
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">R:R Ratio 1:{bestSetup.tradePlan.riskRewardRatio.toFixed(2)}</div>
-          </div>
-
-          <div className="rounded-lg bg-background/60 p-3 border border-border">
-            <div className="text-[10px] font-bold text-muted-foreground uppercase">1-3M Investment Outlook</div>
-            <div className="text-sm font-black text-amber-400 mt-1">
-              Target: ${bestSetup.investmentHorizon.target90D.toLocaleString()}
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-              {bestSetup.investmentHorizon.decision.replace('_', ' ')} • {bestSetup.investmentHorizon.fundamentalHealth}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -668,17 +710,7 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                   : 'bg-background border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
-              All Coins ({coins.length})
-            </button>
-            <button
-              onClick={() => setFilterBias('LONG')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterBias === 'LONG'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-background border border-border text-muted-foreground hover:text-emerald-400'
-              }`}
-            >
-              Long Setups (BOS)
+              All Delta Contracts ({coins.length})
             </button>
             <button
               onClick={() => setFilterBias('SHORT')}
@@ -688,7 +720,17 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                   : 'bg-background border border-border text-muted-foreground hover:text-rose-400'
               }`}
             >
-              Short Setups
+              Short Setups (4H Retest)
+            </button>
+            <button
+              onClick={() => setFilterBias('LONG')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                filterBias === 'LONG'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-background border border-border text-muted-foreground hover:text-emerald-400'
+              }`}
+            >
+              Long Setups (4H Demand)
             </button>
             <button
               onClick={() => setFilterBias('TOP_SCORE')}
@@ -698,7 +740,7 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                   : 'bg-background border border-border text-muted-foreground hover:text-amber-400'
               }`}
             >
-              Top Alpha (Score ≥ 85)
+              Top Alpha (Score ≥ 80)
             </button>
             <button
               onClick={() => setFilterBias('WAIT')}
@@ -708,7 +750,7 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                   : 'bg-background border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
-              Wait / No Trade
+              Wait / Preserve Capital
             </button>
           </div>
 
@@ -752,7 +794,7 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                 <th className="py-3 px-3">SMC & POC</th>
                 <th className="py-3 px-3">Derivatives & OI</th>
                 <th className="py-3 px-3 text-center">8-Pillar Score</th>
-                <th className="py-3 px-3">Actionable Verdict</th>
+                <th className="py-3 px-3">Confirmed Verdict</th>
                 <th className="py-3 px-3 text-right">Execution Plan</th>
               </tr>
             </thead>
@@ -856,7 +898,7 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* ── MODAL: 4H INTERACTIVE CHART & POSITION SIZER ── */}
+      {/* ── MODAL: 4H INTERACTIVE CHART, FULL THESIS & POSITION SIZER ── */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm">
           <div className="relative flex max-h-[95vh] w-full max-w-5xl flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-y-auto">
@@ -869,14 +911,14 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-black text-foreground">
-                      {selectedCoin.underlying} — 4H Swing Terminal
+                      {selectedCoin.underlying} — 4H Swing Blueprint
                     </h3>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
                       {selectedCoin.contractSymbol}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Mark: ${selectedCoin.price.toLocaleString()} | 24h: {selectedCoin.change24h}% | Delta India Leverage: up to {selectedCoin.maxLeverage}x
+                    Mark: ${selectedCoin.price.toLocaleString()} | 24h: {selectedCoin.change24h}% | Delta Leverage: up to {selectedCoin.maxLeverage}x
                   </p>
                 </div>
               </div>
@@ -885,20 +927,20 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                 <div className="flex rounded-md bg-background border border-border p-0.5 text-xs">
                   <button
                     onClick={() => setChartMode('CANVAS')}
-                    className={`px-2.5 py-1 rounded font-bold ${chartMode === 'CANVAS' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                    className={`px-2.5 py-1 rounded font-bold cursor-pointer ${chartMode === 'CANVAS' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
                   >
                     AI Canvas
                   </button>
                   <button
                     onClick={() => setChartMode('TRADINGVIEW')}
-                    className={`px-2.5 py-1 rounded font-bold ${chartMode === 'TRADINGVIEW' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                    className={`px-2.5 py-1 rounded font-bold cursor-pointer ${chartMode === 'TRADINGVIEW' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
                   >
                     TradingView
                   </button>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
                 >
                   ✕
                 </button>
@@ -928,40 +970,79 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                 )}
               </div>
 
+              {/* Institutional Thesis Breakdown: Kyon Kar Rahe Hain? */}
+              <div className="rounded-xl border border-cyan-500/30 bg-slate-950/70 p-4 space-y-3">
+                <div className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Info className="h-4 w-4 text-cyan-400" />
+                    Kyon Kar Rahe Hain? (Institutional Multi-Factor Rationale)
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                    selectedCoin.tradePlan.direction === 'SHORT' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' :
+                    selectedCoin.tradePlan.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
+                    'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                  }`}>
+                    VERDICT: {selectedCoin.verdict.replace('_', ' ')}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                  <div className="rounded-lg bg-card/60 p-2.5 border border-border">
+                    <div className="font-bold text-cyan-400 mb-1">📊 4H Technical Structure:</div>
+                    <div className="text-slate-300 text-[11px]">{selectedCoin.thesis?.whyTechnical}</div>
+                  </div>
+                  <div className="rounded-lg bg-card/60 p-2.5 border border-border">
+                    <div className="font-bold text-indigo-400 mb-1">🌊 Derivatives & Order Flow:</div>
+                    <div className="text-slate-300 text-[11px]">{selectedCoin.thesis?.whyDerivatives}</div>
+                  </div>
+                  <div className="rounded-lg bg-card/60 p-2.5 border border-border">
+                    <div className="font-bold text-amber-400 mb-1">🏛️ Fundamental Factors:</div>
+                    <div className="text-slate-300 text-[11px]">{selectedCoin.thesis?.whyFundamental}</div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-cyan-950/50 border border-cyan-500/40 p-3 text-xs text-cyan-100">
+                  <div className="font-bold text-cyan-300 mb-0.5">🇮🇳 Institutional Hinglish Summary:</div>
+                  <p className="text-[11px] leading-relaxed">{selectedCoin.thesis?.whyHindiHinglish}</p>
+                </div>
+              </div>
+
               {/* Execution Plan & Risk Management */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Trade Setup Details */}
+                {/* Trade Setup Details (Where - Kis Area Par) */}
                 <div className="rounded-xl border border-border bg-background/50 p-4 space-y-3">
                   <div className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                     <Target className="h-4 w-4 text-primary" />
-                    Precision 4H Execution Blueprint
+                    Kis Area Par Karna Hai? (Execution Blueprint)
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between py-1 border-b border-border/50">
                       <span className="text-muted-foreground">Direction / Verdict:</span>
-                      <span className="font-black text-emerald-400">{selectedCoin.verdict.replace('_', ' ')}</span>
+                      <span className={`font-black ${selectedCoin.tradePlan.direction === 'SHORT' ? 'text-rose-400' : selectedCoin.tradePlan.direction === 'LONG' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {selectedCoin.tradePlan.direction}
+                      </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-border/50">
-                      <span className="text-muted-foreground">Optimal Entry Zone:</span>
-                      <span className="font-bold text-foreground">
+                      <span className="text-muted-foreground">🎯 Optimal Entry Zone:</span>
+                      <span className="font-bold text-cyan-300">
                         ${selectedCoin.tradePlan.entryZone[0].toLocaleString()} – ${selectedCoin.tradePlan.entryZone[1].toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-border/50">
-                      <span className="text-muted-foreground">Invalidation Stop Loss:</span>
+                      <span className="text-muted-foreground">🛑 Invalidation Stop Loss:</span>
                       <span className="font-bold text-rose-400">${selectedCoin.tradePlan.stopLoss.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-border/50">
-                      <span className="text-muted-foreground">Take Profit 1 (1.5R):</span>
+                      <span className="text-muted-foreground">🏁 Take Profit 1 (Partial 1.8R):</span>
                       <span className="font-bold text-emerald-400">${selectedCoin.tradePlan.takeProfit1.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-border/50">
-                      <span className="text-muted-foreground">Take Profit 2 (3R+ Expansion):</span>
-                      <span className="font-bold text-primary">${selectedCoin.tradePlan.takeProfit2.toLocaleString()}</span>
+                      <span className="text-muted-foreground">🏆 Take Profit 2 (Expansion 3R+):</span>
+                      <span className="font-bold text-emerald-300">${selectedCoin.tradePlan.takeProfit2.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between py-1 border-b border-border/50">
-                      <span className="text-muted-foreground">Risk-to-Reward Ratio:</span>
-                      <span className="font-black text-emerald-400">1 : {selectedCoin.tradePlan.riskRewardRatio.toFixed(2)}</span>
+                      <span className="text-muted-foreground">⚖️ Risk-to-Reward Ratio:</span>
+                      <span className="font-black text-cyan-300">1 : {selectedCoin.tradePlan.riskRewardRatio.toFixed(2)}</span>
                     </div>
                     <div className="text-[11px] text-muted-foreground pt-1">
                       <span className="font-bold text-foreground">Rule: </span>
@@ -974,7 +1055,7 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
                 <div className="rounded-xl border border-border bg-background/50 p-4 space-y-3">
                   <div className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                     <Calculator className="h-4 w-4 text-amber-400" />
-                    Capital & Position Sizing Calculator
+                    Capital & Position Sizing Calculator (Delta India)
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-xs">
@@ -1024,7 +1105,7 @@ export default function DeltaSwingScannerView({ onNavigate }: Props) {
             {/* Modal Footer */}
             <div className="flex items-center justify-between border-t border-border p-4 bg-muted/20">
               <span className="text-xs text-muted-foreground">
-                Delta Exchange India Market Feed | Execution purely quantitative
+                Delta Exchange India Market Feed | Execution strictly risk-managed
               </span>
               <button
                 onClick={() => setIsModalOpen(false)}
