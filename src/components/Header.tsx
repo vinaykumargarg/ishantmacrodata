@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut } from 'lucide-react';
+import { LogOut, User, ChevronDown, Sparkles, CreditCard, Bell, Settings, ShieldCheck } from 'lucide-react';
 
 interface HeaderProps {
   isDarkMode: boolean;
@@ -21,6 +21,7 @@ interface HeaderProps {
   onNavigateChartAnalyser?: () => void;
   onNavigateInstitutionalChart?: () => void;
   onNavigateMultiAssetEngine?: () => void;
+  onOpenProfile?: () => void;
   onSearch?: (query: string) => void;
 }
 
@@ -41,12 +42,14 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateChartAnalyser,
   onNavigateInstitutionalChart,
   onNavigateMultiAssetEngine,
+  onOpenProfile,
   onSearch,
   onOpenAccount
 }) => {
   const { user, openAuthModal, logout } = useAuth();
   const [clockStr, setClockStr] = useState<string>('');
   const [searchVal, setSearchVal] = useState<string>('');
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const updateTime = () => {
@@ -260,15 +263,15 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Upgrade / Pricing Button */}
+        {/* Subscription / Pricing Button */}
         {onNavigatePricing && (
           <button
             onClick={onNavigatePricing}
-            className="rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
-            title="Institutional Membership & Pricing"
+            className="rounded-md border border-cyan-500/50 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 px-2.5 py-1.5 text-xs font-bold text-cyan-400 hover:from-cyan-500/30 hover:to-blue-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ring-1 ring-cyan-500/30"
+            title="Institutional Membership & Subscription Plans"
           >
             <span>💎</span>
-            <span className="hidden sm:inline">Upgrade (₹)</span>
+            <span>Subscription</span>
           </button>
         )}
 
@@ -281,33 +284,123 @@ export const Header: React.FC<HeaderProps> = ({
           {isDarkMode ? '☀️ Light' : '🌙 Dark'}
         </button>
 
-        {/* Auth / Account Button */}
+        {/* Auth / Account Buttons & User Dropdown */}
         {user ? (
-          <div className="flex items-center gap-1.5">
+          <div className="relative">
             <button
-              onClick={onOpenAccount}
-              className="rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary transition-colors cursor-pointer flex items-center gap-1.5"
+              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              className="rounded-lg border border-slate-700 bg-slate-900/90 hover:border-cyan-500/50 px-2.5 py-1.5 text-xs font-semibold text-foreground transition-all cursor-pointer flex items-center gap-2 shadow-sm"
+              title="Open User Profile & Account Menu"
             >
-              <span>👤</span>
-              <span className="truncate max-w-[100px]">
-                {user.name || user.email?.split('@')[0] || 'Account'}
+              <div className="relative">
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className="h-5 w-5 rounded-full object-cover border border-cyan-400"
+                  />
+                ) : (
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500 text-slate-950 text-[10px] font-bold font-mono">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 border border-slate-900" />
+              </div>
+
+              <span className="truncate max-w-[90px] sm:max-w-[120px] font-mono text-xs">
+                {user.name || user.email?.split('@')[0]}
               </span>
+
+              <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
-            <button
-              onClick={logout}
-              className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
-              title="Sign Out"
-            >
-              <LogOut className="size-3.5" />
-            </button>
+
+            {/* Dropdown Menu */}
+            {isUserMenuOpen && (
+              <div
+                className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-700/80 bg-slate-950/95 p-2 shadow-2xl shadow-cyan-950/50 backdrop-blur-xl z-50 animate-slideDown font-['Plus_Jakarta_Sans',sans-serif] text-xs"
+                onClick={() => setIsUserMenuOpen(false)}
+              >
+                {/* User Info Header */}
+                <div className="p-2 border-b border-slate-800 space-y-0.5">
+                  <div className="font-bold text-white font-mono truncate">{user.name}</div>
+                  <div className="text-[11px] text-slate-400 font-mono truncate">
+                    {user.email || user.phone}
+                  </div>
+                  <div className="pt-1 flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono font-bold text-[10px] border border-cyan-500/40">
+                      {user.subscriptionTier}
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-mono">Verified ✓</span>
+                  </div>
+                </div>
+
+                {/* Navigation Options */}
+                <div className="py-1 space-y-0.5">
+                  <button
+                    onClick={() => {
+                      if (onOpenProfile) onOpenProfile();
+                      else openAuthModal('PROFILE');
+                    }}
+                    className="w-full rounded-lg px-2.5 py-1.5 text-left text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors flex items-center gap-2 cursor-pointer font-mono"
+                  >
+                    <User className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>My Profile</span>
+                  </button>
+
+                  <button
+                    onClick={onOpenAccount}
+                    className="w-full rounded-lg px-2.5 py-1.5 text-left text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors flex items-center gap-2 cursor-pointer font-mono"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Account & Security</span>
+                  </button>
+
+                  {onNavigatePricing && (
+                    <button
+                      onClick={onNavigatePricing}
+                      className="w-full rounded-lg px-2.5 py-1.5 text-left text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors flex items-center gap-2 cursor-pointer font-mono"
+                    >
+                      <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Subscription (₹)</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Sign Out */}
+                <div className="pt-1 border-t border-slate-800">
+                  <button
+                    onClick={logout}
+                    className="w-full rounded-lg px-2.5 py-1.5 text-left text-rose-300 hover:text-rose-200 hover:bg-rose-950/40 transition-colors flex items-center gap-2 cursor-pointer font-mono font-bold"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <button
-            onClick={openAuthModal}
-            className="bg-gradient-brand rounded-md px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer shadow-glow"
-          >
-            🔐 Login
-          </button>
+          <div className="flex items-center gap-1.5">
+            {/* Login Button */}
+            <button
+              onClick={() => openAuthModal('LOGIN')}
+              className="rounded-md border border-slate-700 bg-slate-900/90 px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1"
+              title="Sign in to your institutional account"
+            >
+              <span>🔐</span>
+              <span>Login</span>
+            </button>
+
+            {/* Sign Up Button */}
+            <button
+              onClick={() => openAuthModal('SIGNUP')}
+              className="rounded-md bg-gradient-to-r from-cyan-500 to-blue-600 px-3 py-1.5 text-xs font-bold text-slate-950 hover:opacity-90 transition-opacity cursor-pointer shadow-md flex items-center gap-1 font-mono"
+              title="Create new institutional account"
+            >
+              <span>✨</span>
+              <span>Sign Up</span>
+            </button>
+          </div>
         )}
       </div>
     </header>

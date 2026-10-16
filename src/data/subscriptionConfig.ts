@@ -4,7 +4,7 @@
  * Exact Plans: ₹2,999 / 1m, ₹6,999 / 3m, ₹9,999 / 6m, ₹20,000 / 12m
  */
 
-export type SubscriptionPlanId = 'free' | 'monthly' | 'quarterly' | 'half_yearly' | 'annual';
+export type SubscriptionPlanId = 'free' | 'trial_7d' | 'monthly' | 'quarterly' | 'half_yearly' | 'annual' | 'founder_passport';
 export type EntitlementTier = 'FREE' | 'PRO' | 'ELITE';
 
 export interface SubscriptionPlan {
@@ -29,6 +29,28 @@ export interface SubscriptionPlan {
 export const MONTHLY_BASE_RATE_INR = 2999;
 
 export const OFFICIAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+  {
+    id: 'trial_7d',
+    name: '7-Day Free Unlimited Trial',
+    tier: 'ELITE',
+    badge: '7-DAY FREE TRIAL',
+    durationMonths: 0.23,
+    durationLabel: '7 Days Free',
+    priceInr: 0,
+    monthlyEquivalentInr: 0,
+    savingsInr: 2999,
+    savingsPct: 100,
+    tagline: 'Start with 7 days of full unthrottled institutional AI intelligence. No credit card required.',
+    features: [
+      'Full Institutional All-in-One Trading Chart (SMC + ICT)',
+      'Multi-Asset Decision Engine (BTC, ETH, Gold, Crude Oil)',
+      'Delta Exchange India Multi-Coin Engine (231+ Coins)',
+      'Order Flow & Bookmap CVD Microstructure',
+      'Volume Profile POC / VAH / VAL Terminal',
+      'Indian Stocks AI (Nifty 500) & USA Top 1000 AI',
+      'Full 7-day unthrottled access across all modules'
+    ]
+  },
   {
     id: 'free',
     name: 'Free Starter',
@@ -103,22 +125,22 @@ export const OFFICIAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'half_yearly',
     name: 'Half-Yearly Elite',
     tier: 'ELITE',
-    badge: 'SAVE 44%',
+    badge: 'POPULAR CHOICE',
     isPopular: true,
     durationMonths: 6,
     durationLabel: '6 Months',
-    priceInr: 9999,
-    monthlyEquivalentInr: 1666,
-    savingsInr: 7995,
-    savingsPct: 44,
-    tagline: 'Best balance of cost and continuous market advantage.',
+    priceInr: 12999,
+    monthlyEquivalentInr: 2166,
+    savingsInr: 4995,
+    savingsPct: 28,
+    tagline: 'Best balance of cost and continuous market advantage for serious traders.',
     features: [
       'All Pro Plan features included',
-      'Highest configurable usage limits and API priority',
+      'Covers 2 full macro quarters and quarterly earnings cycles',
       'Advanced multi-timeframe SMC order block scanners',
       'Complete historical backtesting & token unlock calendar',
       'Direct WhatsApp / Telegram institutional alert channel',
-      'Save ₹7,995 compared to monthly renewals (44% discount)',
+      'Save ₹4,995 compared to monthly renewals (28% discount)',
       'Complimentary access to new AI model updates'
     ]
   },
@@ -134,7 +156,7 @@ export const OFFICIAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     monthlyEquivalentInr: 1667,
     savingsInr: 15988,
     savingsPct: 44,
-    tagline: 'Full year institutional command center for serious traders.',
+    tagline: 'Full year institutional command center for professional desks.',
     features: [
       'All Elite Plan features for an entire year',
       'Maximum savings of ₹15,988 vs monthly billing',
@@ -143,6 +165,30 @@ export const OFFICIAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'VIP priority server bandwidth & lowest latency',
       'Annual tax invoice & GST input credit receipt',
       'Locked-in grandfathered pricing on all future features'
+    ]
+  },
+  {
+    id: 'founder_passport',
+    name: 'Founder Lifetime Elite (Passport)',
+    tier: 'ELITE',
+    badge: 'LIFETIME MASTER ACCESS',
+    durationMonths: 1200,
+    durationLabel: 'Lifetime Access',
+    priceInr: 0,
+    monthlyEquivalentInr: 0,
+    savingsInr: 100000,
+    savingsPct: 100,
+    tagline: 'Exclusive Founder VIP Terminal access unlocked via Master Passport.',
+    features: [
+      'Unrestricted Lifetime Access to ALL AI Engines & Modules',
+      'Institutional Multi-Asset Analysis Engine (BTC, ETH, Gold, Oil)',
+      'Advanced All-in-One Institutional Trading Chart (SMC + ICT)',
+      'DEEEPR.AI Copilot & Market Structure Terminal',
+      'Delta Exchange 1-4M Wealth Intelligence Engine',
+      'Order Flow & Bookmap CVD Microstructure',
+      'Indian Stocks AI (Top 500) & USA Top 1000 AI',
+      '24/7 Telegram AI Bot Alerts & VIP Channel',
+      'Grandfathered Zero-Cost Access Forever'
     ]
   }
 ];

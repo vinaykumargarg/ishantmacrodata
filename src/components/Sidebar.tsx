@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { isTabPremium, isFounderPassportActive } from '../services/subscriptionEntitlementService';
+import { Lock } from 'lucide-react';
 
 export interface NavCategory {
   title: string;
@@ -200,7 +202,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     title: 'Account',
     icon: '👤',
     items: [
-      { id: 'pricing', label: 'Pricing & Plans (₹)', icon: '💎' },
+      { id: 'pricing', label: 'Subscription & Plans (₹)', icon: '💎' },
       { id: 'account', label: 'My Account', icon: '👤' }
     ]
   },
@@ -220,6 +222,40 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    if (isFounderPassportActive()) return true;
+    try {
+      const raw = localStorage.getItem('ISHANT_CURRENT_SUB');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return parsed.status === 'ACTIVE' && new Date(parsed.expiryDate) > new Date();
+      }
+    } catch (e) {}
+    return false;
+  });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      if (isFounderPassportActive()) {
+        setIsUnlocked(true);
+        return;
+      }
+      try {
+        const raw = localStorage.getItem('ISHANT_CURRENT_SUB');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setIsUnlocked(parsed.status === 'ACTIVE' && new Date(parsed.expiryDate) > new Date());
+          return;
+        }
+      } catch (e) {}
+      setIsUnlocked(false);
+    };
+
+    window.addEventListener('subscription_updated', handleUpdate);
+    return () => window.removeEventListener('subscription_updated', handleUpdate);
+  }, []);
+
   return (
     <nav
       aria-label="Terminal navigation"
@@ -239,23 +275,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
           <ul className="space-y-0.5">
             {cat.items.map((item) => {
               const isActive = activeTab === item.id;
+              const isLocked = isTabPremium(item.id) && !isUnlocked;
+
               return (
                 <li key={item.id}>
                   <button
                     onClick={() => onSelectTab(item.id)}
-                    className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-[13px] transition-all text-left cursor-pointer ${
+                    className={`flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-[13px] transition-all text-left cursor-pointer ${
                       isActive
                         ? 'border-cyan-400/60 bg-gradient-to-r from-cyan-500/20 to-indigo-500/15 font-bold text-cyan-300 shadow-[0_0_16px_rgba(0,242,254,0.3)] ring-1 ring-cyan-400/40'
                         : 'border-transparent text-sidebar-foreground/75 hover:border-cyan-500/30 hover:bg-slate-800/60 hover:text-white hover:shadow-sm'
                     }`}
                   >
-                    <span
-                      aria-hidden="true"
-                      className="flex size-5 items-center justify-center text-[13px] leading-none shrink-0"
-                    >
-                      {item.icon}
-                    </span>
-                    <span className="truncate">{item.label}</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        aria-hidden="true"
+                        className="flex size-5 items-center justify-center text-[13px] leading-none shrink-0"
+                      >
+                        {item.icon}
+                      </span>
+                      <span className="truncate">{item.label}</span>
+                    </div>
+
+                    {isLocked && (
+                      <span
+                        title="Institutional Premium Feature — Requires Subscription or Passport Key"
+                        className="shrink-0 text-amber-400/80 hover:text-amber-300 ml-1.5"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                      </span>
+                    )}
                   </button>
                 </li>
               );

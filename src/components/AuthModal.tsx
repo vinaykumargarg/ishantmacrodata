@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { X, Lock, Mail, Phone, CheckCircle2, AlertCircle, RefreshCw, Shield, ArrowRight, Settings, Database, Key } from 'lucide-react';
+import {
+  X,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  ArrowRight,
+  ShieldCheck,
+  Check
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   signInWithGoogle,
@@ -9,7 +19,7 @@ import {
   sendPhoneOtp,
   verifyPhoneOtp,
 } from '../lib/supabaseClient';
-import { BrandLogo } from './BrandLogo';
+import { activate7DayTrial } from '../services/subscriptionEntitlementService';
 
 interface CountryCodeOption {
   code: string;
@@ -33,39 +43,50 @@ export const AuthModal: React.FC = () => {
     isAuthModalOpen,
     closeAuthModal,
     user,
-    logout,
-    isBackendConnected,
-    saveBackendCredentials,
-    supabaseUrl: currentUrl,
+    initialAuthMode,
+    showOtpToast,
   } = useAuth();
 
-  // Active Method: 'GOOGLE' | 'EMAIL' | 'PHONE'
-  const [authMethod, setAuthMethod] = useState<'GOOGLE' | 'EMAIL' | 'PHONE'>('GOOGLE');
-  const [emailMode, setEmailMode] = useState<'LOGIN' | 'SIGNUP' | 'FORGOT'>('LOGIN');
+  // Mode: 'SIGNUP' | 'LOGIN_EMAIL' | 'LOGIN_PHONE' | 'VERIFY_OTP' | 'FORGOT'
+  const [viewMode, setViewMode] = useState<'SIGNUP' | 'LOGIN_EMAIL' | 'LOGIN_PHONE' | 'VERIFY_OTP' | 'FORGOT'>('SIGNUP');
 
-  // Form State: Email
+  // Form Fields
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [countryCode, setCountryCode] = useState('+91');
+  const [phone, setPhone] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(true);
 
-  // Form State: Phone OTP
-  const [selectedCountryCode, setSelectedCountryCode] = useState('+91');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  // OTP Verification
   const [otpCode, setOtpCode] = useState('');
-  const [isOtpSent, setIsOtpSent] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
+  const [pendingPhone, setPendingPhone] = useState('');
+  const [pendingPurpose, setPendingPurpose] = useState<'SIGNUP' | 'LOGIN'>('SIGNUP');
 
-  // Status & UI States
+  // Status & Loaders
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Supabase Backend Key Setup Form (Inside modal)
-  const [showBackendSetup, setShowBackendSetup] = useState(false);
-  const [inputUrl, setInputUrl] = useState(currentUrl || '');
-  const [inputKey, setInputKey] = useState('');
+  // Sync initial mode
+  useEffect(() => {
+    if (isAuthModalOpen) {
+      if (initialAuthMode === 'LOGIN') {
+        setViewMode('LOGIN_EMAIL');
+      } else if (initialAuthMode === 'FORGOT') {
+        setViewMode('FORGOT');
+      } else {
+        setViewMode('SIGNUP');
+      }
+      setErrorMessage(null);
+      setSuccessMessage(null);
+    }
+  }, [isAuthModalOpen, initialAuthMode]);
 
-  // Countdown timer for Phone OTP resend
+  // Countdown for OTP resend
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (otpCountdown > 0) {
@@ -74,628 +95,762 @@ export const AuthModal: React.FC = () => {
     return () => clearTimeout(timer);
   }, [otpCountdown]);
 
-  // Reset errors when switching tabs
-  useEffect(() => {
+  if (!isAuthModalOpen || user) return null;
+
+  // Handle Signup Submit -> Send Verification Code
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
-  }, [authMethod, emailMode]);
 
-  if (!isAuthModalOpen) return null;
-
-  // 1. Google OAuth Flow
-  const handleGoogleSignIn = async () => {
-    if (!isBackendConnected) {
-      setErrorMessage('Please connect your Supabase project keys before initiating Google OAuth.');
-      setShowBackendSetup(true);
+    if (!name.trim()) {
+      setErrorMessage('Please enter your name.');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    if (!password || password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters with letters, numbers & symbols.');
+      return;
+    }
+    if (!phone.trim() || phone.replace(/\D/g, '').length < 10) {
+      setErrorMessage('Please enter a valid 10-digit WhatsApp mobile number.');
+      return;
+    }
+    if (!agreeTerms) {
+      setErrorMessage('Please agree to the Terms of Use and Privacy Policy.');
       return;
     }
 
     setLoading(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
+    const fullPhone = `${countryCode}${phone.replace(/\D/g, '')}`;
+    setPendingPhone(fullPhone);
+    setPendingPurpose('SIGNUP');
 
-    const res = await signInWithGoogle();
+    // 1. Dispatch SMS/WhatsApp OTP
+    const otpRes = await sendPhoneOtp(fullPhone);
     setLoading(false);
 
-    if (!res.success) {
-      setErrorMessage(res.error || 'Google authentication encountered an error.');
+    if (otpRes.success) {
+      setViewMode('VERIFY_OTP');
+      setOtpCountdown(60);
+      setSuccessMessage(`Verification code dispatched to ${fullPhone}.`);
+      if (otpRes.data?.simulatedCode) {
+        showOtpToast(fullPhone, otpRes.data.simulatedCode, 60);
+      }
+    } else {
+      setErrorMessage(otpRes.error || 'Failed to dispatch verification code. Please check your number.');
     }
   };
 
-  // 2. Email Sign In / Sign Up / Forgot Password
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  // Handle Login with Email
+  const handleLoginEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isBackendConnected) {
-      setErrorMessage('Please connect your Supabase project keys before authenticating.');
-      setShowBackendSetup(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (!email.trim() || !password) {
+      setErrorMessage('Email and password are required.');
       return;
     }
 
     setLoading(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    if (emailMode === 'FORGOT') {
-      const res = await sendPasswordResetEmail(email);
-      setLoading(false);
-      if (res.success) {
-        setSuccessMessage(res.message || 'Password reset link sent to your email.');
-      } else {
-        setErrorMessage(res.error || 'Failed to send reset email.');
-      }
-      return;
-    }
-
-    if (emailMode === 'SIGNUP') {
-      const res = await signUpWithEmail(email, password, fullName);
-      setLoading(false);
-      if (res.success) {
-        setSuccessMessage(res.message || 'Verification email sent. Please check your inbox.');
-        if (res.data?.user && !res.data.emailConfirmationRequired) {
-          setTimeout(closeAuthModal, 800);
-        }
-      } else {
-        setErrorMessage(res.error || 'Registration failed.');
-      }
-      return;
-    }
-
-    // Default: LOGIN
     const res = await signInWithEmail(email, password);
     setLoading(false);
-    if (res.success && res.data?.user) {
-      setSuccessMessage('Welcome back to Ishant Macro Data.');
-      setTimeout(closeAuthModal, 800);
+
+    if (res.success) {
+      setSuccessMessage(`Welcome back! Authenticated successfully.`);
+      setTimeout(() => {
+        closeAuthModal();
+      }, 600);
     } else {
       setErrorMessage(res.error || 'Invalid email or password.');
     }
   };
 
-  // 3. Phone OTP Dispatch
-  const handleSendOtp = async (e: React.FormEvent) => {
+  // Handle Login with Phone -> Send Code
+  const handleLoginPhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneNumber.trim()) {
-      setErrorMessage('Please enter your mobile phone number.');
-      return;
-    }
-
-    if (!isBackendConnected) {
-      setErrorMessage('Please connect your Supabase project keys before requesting SMS OTP.');
-      setShowBackendSetup(true);
-      return;
-    }
-
-    const fullPhone = `${selectedCountryCode}${phoneNumber.replace(/\D/g, '')}`;
-    setLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
+
+    if (!phone.trim() || phone.replace(/\D/g, '').length < 10) {
+      setErrorMessage('Please enter your 10-digit registered mobile number.');
+      return;
+    }
+
+    setLoading(true);
+    const fullPhone = `${countryCode}${phone.replace(/\D/g, '')}`;
+    setPendingPhone(fullPhone);
+    setPendingPurpose('LOGIN');
 
     const res = await sendPhoneOtp(fullPhone);
     setLoading(false);
 
     if (res.success) {
-      setIsOtpSent(true);
-      setOtpCountdown(res.data?.retryAfterSeconds || 60);
-      setSuccessMessage(res.message || 'Real SMS OTP dispatched to your mobile phone.');
+      setViewMode('VERIFY_OTP');
+      setOtpCountdown(60);
+      setSuccessMessage(`Verification code sent to ${fullPhone}.`);
+      if (res.data?.simulatedCode) {
+        showOtpToast(fullPhone, res.data.simulatedCode, 60);
+      }
     } else {
-      setErrorMessage(res.error || 'Failed to dispatch SMS OTP. Check your SMS provider setup in Supabase.');
+      setErrorMessage(res.error || 'Failed to send verification code.');
     }
   };
 
-  // 3B. Verify Real OTP Code
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  // Handle OTP Verification -> Complete Registration & Activate 7-Day Free Trial
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otpCode.length !== 6) {
-      setErrorMessage('Please enter the complete 6-digit OTP code received via SMS.');
-      return;
-    }
-
-    const fullPhone = `${selectedCountryCode}${phoneNumber.replace(/\D/g, '')}`;
-    setLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const res = await verifyPhoneOtp(fullPhone, otpCode);
-    setLoading(false);
+    if (otpCode.trim().length !== 6) {
+      setErrorMessage('Please enter the 6-digit verification code.');
+      return;
+    }
 
-    if (res.success && res.data?.user) {
-      setSuccessMessage('Mobile phone authenticated successfully!');
-      setTimeout(closeAuthModal, 800);
+    setLoading(true);
+
+    if (pendingPurpose === 'SIGNUP') {
+      // 1. Create account
+      const signupRes = await signUpWithEmail(email, password, name);
+      if (!signupRes.success) {
+        setLoading(false);
+        setErrorMessage(signupRes.error || 'Registration failed.');
+        return;
+      }
+
+      // 2. Verify phone OTP
+      const verifyRes = await verifyPhoneOtp(pendingPhone, otpCode, signupRes.data?.user);
+      setLoading(false);
+
+      if (verifyRes.success) {
+        // 3. Automatically Activate 7-Day Free Unlimited Trial
+        const trialResult = activate7DayTrial(verifyRes.data?.user);
+        setSuccessMessage(`Account verified! ${trialResult.message}`);
+
+        setTimeout(() => {
+          closeAuthModal();
+        }, 900);
+      } else {
+        setErrorMessage(verifyRes.error || 'Invalid verification code.');
+      }
     } else {
-      setErrorMessage(res.error || 'Invalid or expired OTP code entered.');
+      // LOGIN via phone OTP
+      const verifyRes = await verifyPhoneOtp(pendingPhone, otpCode);
+      setLoading(false);
+
+      if (verifyRes.success) {
+        setSuccessMessage('Welcome back! Successfully authenticated.');
+        setTimeout(() => {
+          closeAuthModal();
+        }, 600);
+      } else {
+        setErrorMessage(verifyRes.error || 'Invalid verification code.');
+      }
     }
   };
 
-  // Save Supabase credentials directly
-  const handleSaveBackendKeys = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputUrl.startsWith('https://')) {
-      setErrorMessage('Supabase URL must start with https://');
-      return;
-    }
-    if (!inputKey || inputKey.length < 20) {
-      setErrorMessage('Please enter a valid Supabase anon public key.');
-      return;
-    }
-    const ok = saveBackendCredentials(inputUrl, inputKey);
-    if (ok) {
-      setSuccessMessage('Connected to Supabase project! Reloading...');
+  // Google OAuth
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    const res = await signInWithGoogle();
+    setLoading(false);
+    if (res.success) {
+      // Grant 7-day trial if brand new
+      activate7DayTrial(res.data?.user);
+      closeAuthModal();
+    } else {
+      setErrorMessage(res.error || 'Google login failed.');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4 overflow-y-auto animate-fade-in">
-      <div className="relative w-full max-w-md rounded-2xl border border-slate-700/80 bg-gradient-to-b from-[#0c1426] via-[#080d1a] to-[#040710] p-5 sm:p-7 shadow-[0_0_50px_rgba(0,212,255,0.15)] text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn overflow-y-auto">
+      <div className="relative w-full max-w-[460px] my-auto rounded-3xl border border-[#262c3e] bg-[#141823] p-6 sm:p-8 text-slate-100 shadow-[0_20px_60px_rgba(0,0,0,0.85)] font-['Plus_Jakarta_Sans',sans-serif] space-y-5">
         {/* Close Button */}
         <button
           onClick={closeAuthModal}
-          className="absolute top-4 right-4 rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
-          aria-label="Close authentication modal"
+          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+          aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* ── BRAND HEADER & LOGO ── */}
-        <div className="text-center space-y-2 mb-5">
-          <div className="flex justify-center">
-            <BrandLogo size={52} />
-          </div>
-
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black text-white font-['Outfit',sans-serif] tracking-wider uppercase flex items-center justify-center gap-1.5">
-              <span>ISHANT</span>
-              <span className="text-slate-100">MACRO DATA</span>
-              <span className="text-xs font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 font-extrabold border border-cyan-400/40">
-                AI
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
-              “See the Flow. Read the Market. Trade with Clarity.”
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-mono border border-cyan-500/30 bg-cyan-950/40 text-cyan-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            Institutional Access Control · End-to-End Encrypted
-          </div>
-        </div>
-
-        {/* ── BACKEND CONNECTION WARNING BANNER IF MISSING ── */}
-        {!isBackendConnected && (
-          <div className="mb-4 p-3 rounded-xl bg-amber-950/30 border border-amber-500/50 text-xs text-amber-200 space-y-2 font-mono">
-            <div className="flex items-center justify-between font-bold text-amber-300">
-              <span className="flex items-center gap-1.5">
-                <Database className="w-4 h-4 text-amber-400" />
-                <span>Supabase Backend Required</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowBackendSetup(!showBackendSetup)}
-                className="text-[10px] px-2 py-0.5 rounded bg-amber-500 text-black font-extrabold hover:bg-amber-400"
-              >
-                {showBackendSetup ? 'Hide Keys' : 'Connect Keys'}
-              </button>
-            </div>
-            <p className="text-[11px] text-amber-200/90 font-sans leading-tight">
-              Real authentication requires your Supabase project URL and anon public key. Zero fake or simulated logins are permitted.
-            </p>
+        {/* ── NOTIFICATIONS ── */}
+        {errorMessage && (
+          <div className="rounded-xl border border-rose-500/40 bg-rose-950/60 p-3 text-xs text-rose-300 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span>{errorMessage}</span>
           </div>
         )}
 
-        {/* ── IN-APP SUPABASE CREDENTIALS SETUP FORM ── */}
-        {showBackendSetup && (
-          <form onSubmit={handleSaveBackendKeys} className="mb-4 p-4 rounded-xl bg-[#060a14] border border-cyan-500/40 space-y-3 text-xs font-mono">
-            <div className="flex items-center gap-2 text-cyan-300 font-bold">
-              <Key className="w-4 h-4 text-cyan-400" />
-              <span>Connect Live Supabase Project</span>
+        {successMessage && (
+          <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/60 p-3 text-xs text-emerald-300 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {/* 1. VIEW: CREATE YOUR ACCOUNT (MATCHING EXACT SCREENSHOT 1)                  */}
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {viewMode === 'SIGNUP' && (
+          <form onSubmit={handleSignUpSubmit} className="space-y-4">
+            {/* Header */}
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-white tracking-tight font-['Outfit',sans-serif]">
+                Create your account
+              </h2>
+              <p className="text-xs text-slate-300 font-sans">
+                Choose your plan after signup. Start with 7-Day Free Unlimited Trial.
+              </p>
             </div>
-            <div>
-              <label className="text-slate-400 block mb-1 text-[10px]">Project URL (from Supabase Dashboard API)</label>
+
+            {/* Field: NAME */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                NAME
+              </label>
               <input
-                type="url"
+                type="text"
                 required
-                value={inputUrl}
-                onChange={(e) => setInputUrl(e.target.value)}
-                placeholder="https://xyzcompany.supabase.co"
-                className="w-full bg-[#0a0f1d] px-2.5 py-1.5 rounded-lg border border-slate-700 text-white text-xs"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="How should we greet you?"
+                className="w-full rounded-xl border border-[#2d3648] bg-[#1d2331] px-4 py-3 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:bg-[#202738] focus:outline-none transition-all"
               />
             </div>
-            <div>
-              <label className="text-slate-400 block mb-1 text-[10px]">Anon Public Key (from Supabase Dashboard API)</label>
+
+            {/* Field: EMAIL */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                EMAIL
+              </label>
               <input
-                type="password"
+                type="email"
                 required
-                value={inputKey}
-                onChange={(e) => setInputKey(e.target.value)}
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                className="w-full bg-[#0a0f1d] px-2.5 py-1.5 rounded-lg border border-slate-700 text-white text-xs"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded-xl border border-[#2d3648] bg-[#1d2331] px-4 py-3 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:bg-[#202738] focus:outline-none transition-all"
               />
             </div>
-            <div className="flex gap-2 pt-1">
-              <button
-                type="submit"
-                className="flex-1 py-1.5 px-3 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs"
-              >
-                Save & Connect Backend
-              </button>
+
+            {/* Field: PASSWORD */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                PASSWORD
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="8+ chars with letters, numbers & symbols"
+                  className="w-full rounded-xl border border-[#2d3648] bg-[#1d2331] px-4 py-3 pr-11 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:bg-[#202738] focus:outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Field: WHATSAPP MOBILE NUMBER */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                WHATSAPP MOBILE NUMBER
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="w-20 rounded-xl border border-[#2d3648] bg-[#1d2331] px-2.5 py-3 text-sm text-center text-white focus:border-cyan-400 focus:outline-none cursor-pointer"
+                >
+                  {COUNTRY_CODES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="10-digit number"
+                  className="flex-1 rounded-xl border border-[#2d3648] bg-[#1d2331] px-4 py-3 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:bg-[#202738] focus:outline-none transition-all"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Must have WhatsApp. We'll send a code to verify it.
+              </p>
+            </div>
+
+            {/* Field: REFERRAL CODE (OPTIONAL) */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                REFERRAL CODE (OPTIONAL)
+              </label>
+              <input
+                type="text"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value)}
+                placeholder="e.g. 9YTPU5"
+                className="w-full rounded-xl border border-[#2d3648] bg-[#1d2331] px-4 py-3 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:bg-[#202738] focus:outline-none transition-all uppercase"
+              />
+            </div>
+
+            {/* Terms Checkbox */}
+            <div className="flex items-start gap-2.5 pt-1">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-700 bg-slate-900 text-cyan-400 focus:ring-0 cursor-pointer"
+              />
+              <label htmlFor="terms" className="text-xs text-slate-300 cursor-pointer leading-tight">
+                I agree to the <span className="text-cyan-400 hover:underline">Terms of Use</span> and <span className="text-cyan-400 hover:underline">Privacy Policy</span>.
+              </label>
+            </div>
+
+            {/* Big White Pill Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-full bg-white hover:bg-slate-100 py-3.5 px-6 text-xs sm:text-sm font-bold text-slate-950 uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2"
+            >
+              {loading ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+              ) : (
+                <span>SEND VERIFICATION CODE</span>
+              )}
+            </button>
+
+            <p className="text-center text-[11px] text-slate-400 leading-relaxed">
+              We'll also email you a verification link to unlock all features.
+            </p>
+
+            {/* Google OAuth alternative */}
+            <div className="pt-1">
               <button
                 type="button"
-                onClick={() => setShowBackendSetup(false)}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs"
+                onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-2.5 rounded-full border border-[#2d3648] bg-[#1d2331] hover:bg-[#252c3e] py-2.5 text-xs font-semibold text-slate-200 transition-colors cursor-pointer"
               >
-                Cancel
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+            </div>
+
+            {/* Switch to Login */}
+            <div className="pt-2 text-center text-xs text-slate-300">
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => setViewMode('LOGIN_EMAIL')}
+                className="text-cyan-400 hover:text-cyan-300 font-bold transition-colors cursor-pointer"
+              >
+                Log in
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-slate-800/80 text-center text-[10px] text-slate-400 space-y-1">
+              <div className="flex justify-center gap-3">
+                <span className="hover:text-slate-300 cursor-pointer">Terms</span>
+                <span>·</span>
+                <span className="hover:text-slate-300 cursor-pointer">Privacy</span>
+                <span>·</span>
+                <span className="hover:text-slate-300 cursor-pointer">Refund</span>
+              </div>
+              <div>© 2026 Deeepr.ai. All rights reserved.</div>
+              <div className="tracking-widest uppercase text-[9px] text-slate-400">
+                Examine · Evaluate · Execute.
+              </div>
+            </div>
+          </form>
+        )}
+
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {/* 2. VIEW: WELCOME BACK — EMAIL LOGIN (MATCHING EXACT SCREENSHOT 2)           */}
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {viewMode === 'LOGIN_EMAIL' && (
+          <form onSubmit={handleLoginEmailSubmit} className="space-y-4">
+            {/* Header */}
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-white tracking-tight font-['Outfit',sans-serif]">
+                Welcome back
+              </h2>
+              <p className="text-xs text-slate-400 font-mono tracking-wider">
+                Examine · Evaluate · Execute.
+              </p>
+            </div>
+
+            {/* Field: EMAIL */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                EMAIL
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded-xl border border-[#2d3648] bg-[#1d2331] px-4 py-3 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:bg-[#202738] focus:outline-none transition-all"
+              />
+            </div>
+
+            {/* Field: PASSWORD */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                PASSWORD
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full rounded-xl border border-[#2d3648] bg-[#1d2331] px-4 py-3 pr-11 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:bg-[#202738] focus:outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="text-right pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('FORGOT')}
+                  className="text-[11px] text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            </div>
+
+            {/* Big White Pill Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-full bg-white hover:bg-slate-100 py-3.5 px-6 text-xs sm:text-sm font-bold text-slate-950 uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2"
+            >
+              {loading ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+              ) : (
+                <span>LOG IN</span>
+              )}
+            </button>
+
+            {/* Secondary Option: Phone login */}
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('LOGIN_PHONE')}
+                className="text-xs text-slate-300 hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Log in with your phone number instead
+              </button>
+            </div>
+
+            {/* Google OAuth alternative */}
+            <div>
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-2.5 rounded-full border border-[#2d3648] bg-[#1d2331] hover:bg-[#252c3e] py-2.5 text-xs font-semibold text-slate-200 transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+            </div>
+
+            {/* Switch to Signup */}
+            <div className="pt-2 text-center text-xs text-slate-300">
+              New here?{' '}
+              <button
+                type="button"
+                onClick={() => setViewMode('SIGNUP')}
+                className="text-cyan-400 hover:text-cyan-300 font-bold transition-colors cursor-pointer"
+              >
+                Create an account
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-slate-800/80 text-center text-[10px] text-slate-400 space-y-1">
+              <div className="flex justify-center gap-3">
+                <span className="hover:text-slate-300 cursor-pointer">Terms</span>
+                <span>·</span>
+                <span className="hover:text-slate-300 cursor-pointer">Privacy</span>
+                <span>·</span>
+                <span className="hover:text-slate-300 cursor-pointer">Refund</span>
+              </div>
+              <div>© 2026 Deeepr.ai. All rights reserved.</div>
+              <div className="tracking-widest uppercase text-[9px] text-slate-400">
+                Examine · Evaluate · Execute.
+              </div>
+            </div>
+          </form>
+        )}
+
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {/* 3. VIEW: WELCOME BACK — PHONE LOGIN (MATCHING EXACT SCREENSHOT 3)           */}
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {viewMode === 'LOGIN_PHONE' && (
+          <form onSubmit={handleLoginPhoneSubmit} className="space-y-4">
+            {/* Header */}
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-white tracking-tight font-['Outfit',sans-serif]">
+                Welcome back
+              </h2>
+              <p className="text-xs text-slate-400 font-mono tracking-wider">
+                Examine · Evaluate · Execute.
+              </p>
+            </div>
+
+            {/* Field: WHATSAPP MOBILE NUMBER */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                WHATSAPP MOBILE NUMBER
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="w-20 rounded-xl border border-[#2d3648] bg-[#1d2331] px-2.5 py-3 text-sm text-center text-white focus:border-cyan-400 focus:outline-none cursor-pointer"
+                >
+                  {COUNTRY_CODES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="10-digit number"
+                  className="flex-1 rounded-xl border border-[#2d3648] bg-[#1d2331] px-4 py-3 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:bg-[#202738] focus:outline-none transition-all"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Use the number you verified when you signed up.
+              </p>
+            </div>
+
+            {/* Big White Pill Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-full bg-white hover:bg-slate-100 py-3.5 px-6 text-xs sm:text-sm font-bold text-slate-950 uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 mt-3"
+            >
+              {loading ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+              ) : (
+                <span>SEND CODE</span>
+              )}
+            </button>
+
+            {/* Secondary Option: Email login */}
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('LOGIN_EMAIL')}
+                className="text-xs text-slate-300 hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Log in with email instead
+              </button>
+            </div>
+
+            {/* Switch to Signup */}
+            <div className="pt-2 text-center text-xs text-slate-300">
+              New here?{' '}
+              <button
+                type="button"
+                onClick={() => setViewMode('SIGNUP')}
+                className="text-cyan-400 hover:text-cyan-300 font-bold transition-colors cursor-pointer"
+              >
+                Create an account
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-slate-800/80 text-center text-[10px] text-slate-400 space-y-1">
+              <div className="flex justify-center gap-3">
+                <span className="hover:text-slate-300 cursor-pointer">Terms</span>
+                <span>·</span>
+                <span className="hover:text-slate-300 cursor-pointer">Privacy</span>
+                <span>·</span>
+                <span className="hover:text-slate-300 cursor-pointer">Refund</span>
+              </div>
+              <div>© 2026 Deeepr.ai. All rights reserved.</div>
+              <div className="tracking-widest uppercase text-[9px] text-slate-400">
+                Examine · Evaluate · Execute.
+              </div>
+            </div>
+          </form>
+        )}
+
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {/* 4. VIEW: VERIFY OTP CODE (WHATSAPP VERIFICATION + 7-DAY TRIAL UNLOCK)      */}
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {viewMode === 'VERIFY_OTP' && (
+          <form onSubmit={handleVerifyOtpSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-white tracking-tight font-['Outfit',sans-serif]">
+                Verify code
+              </h2>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Enter the 6-digit code sent to your WhatsApp number <strong className="text-cyan-400 font-mono">{pendingPhone}</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                6-DIGIT VERIFICATION CODE
+              </label>
+              <input
+                type="text"
+                required
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="123456"
+                className="w-full rounded-xl border border-cyan-500/60 bg-[#1d2331] px-4 py-3.5 text-center text-2xl font-mono tracking-widest text-cyan-300 focus:border-cyan-400 focus:bg-[#202738] focus:outline-none transition-all"
+              />
+            </div>
+
+            <div className="flex justify-between items-center text-xs text-slate-400 font-mono">
+              <span>{otpCountdown > 0 ? `Resend in ${otpCountdown}s` : 'Code expired?'}</span>
+              {otpCountdown === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sendPhoneOtp(pendingPhone).then((res) => {
+                      setOtpCountdown(60);
+                      if (res.data?.simulatedCode) {
+                        showOtpToast(pendingPhone, res.data.simulatedCode, 60);
+                      }
+                    });
+                  }}
+                  className="text-cyan-400 hover:underline cursor-pointer"
+                >
+                  Resend code
+                </button>
+              ) : null}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || otpCode.length !== 6}
+              className="w-full rounded-full bg-white hover:bg-slate-100 py-3.5 px-6 text-xs sm:text-sm font-bold text-slate-950 uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2"
+            >
+              {loading ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+              ) : (
+                <span>{pendingPurpose === 'SIGNUP' ? 'VERIFY & START 7-DAY TRIAL' : 'CONFIRM & LOG IN'}</span>
+              )}
+            </button>
+
+            <div className="pt-2 text-center text-xs text-slate-400">
+              <button
+                type="button"
+                onClick={() => setViewMode(pendingPurpose === 'SIGNUP' ? 'SIGNUP' : 'LOGIN_PHONE')}
+                className="text-slate-300 hover:text-white underline cursor-pointer"
+              >
+                Change mobile number
               </button>
             </div>
           </form>
         )}
 
-        {/* ── LOGGED IN STATE CHECK ── */}
-        {user ? (
-          <div className="space-y-4 py-3 text-center font-mono">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-              <CheckCircle2 className="w-7 h-7" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white font-sans">Active Institutional Session</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Authenticated via <b className="text-cyan-400 uppercase">{user.provider}</b>
-              </p>
-              <p className="text-xs text-emerald-400 font-bold mt-0.5">
-                {user.email || user.phone}
-              </p>
-              <div className="mt-2 text-[10px] text-slate-500">
-                Role: <span className="text-slate-300">Macro Analyst & Quantitative Trader</span>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-800 flex gap-2">
-              <button
-                onClick={closeAuthModal}
-                className="flex-1 py-2 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-black font-bold text-xs font-sans transition-colors"
-              >
-                Return to Terminal
-              </button>
-              <button
-                onClick={logout}
-                className="py-2 px-3 rounded-xl bg-slate-900 border border-rose-500/40 hover:bg-rose-950/30 text-rose-400 text-xs font-sans transition-colors"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* ── NOT LOGGED IN: REAL AUTH METHODS TABS ── */
-          <div className="space-y-4">
-            {/* 3 Main Auth Method Buttons */}
-            <div className="grid grid-cols-3 gap-1.5 bg-[#050811] p-1 rounded-xl border border-slate-800 text-xs font-mono">
-              <button
-                onClick={() => setAuthMethod('GOOGLE')}
-                className={`py-2 px-1 rounded-lg font-bold transition-all flex items-center justify-center gap-1 ${
-                  authMethod === 'GOOGLE'
-                    ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <span>🌐</span> Google
-              </button>
-              <button
-                onClick={() => setAuthMethod('EMAIL')}
-                className={`py-2 px-1 rounded-lg font-bold transition-all flex items-center justify-center gap-1 ${
-                  authMethod === 'EMAIL'
-                    ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Mail className="w-3.5 h-3.5" /> Email
-              </button>
-              <button
-                onClick={() => setAuthMethod('PHONE')}
-                className={`py-2 px-1 rounded-lg font-bold transition-all flex items-center justify-center gap-1 ${
-                  authMethod === 'PHONE'
-                    ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Phone className="w-3.5 h-3.5" /> Phone OTP
-              </button>
-            </div>
-
-            {/* Error Message Alert */}
-            {errorMessage && (
-              <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/50 text-xs text-rose-300 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
-                <span className="leading-relaxed">{errorMessage}</span>
-              </div>
-            )}
-
-            {/* Success Message Alert */}
-            {successMessage && (
-              <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/50 text-xs text-emerald-300 flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-                <span className="leading-relaxed">{successMessage}</span>
-              </div>
-            )}
-
-            {/* ────────────────── METHOD 1: REAL GOOGLE SIGN-IN ────────────────── */}
-            {authMethod === 'GOOGLE' && (
-              <div className="space-y-4 py-2">
-                <p className="text-xs text-slate-300 leading-relaxed text-center">
-                  Authenticate securely via official Google OAuth. Redirects to Google's genuine consent screen.
-                </p>
-
-                <button
-                  onClick={handleGoogleSignIn}
-                  disabled={loading}
-                  className="w-full py-3 px-4 rounded-xl border border-slate-700 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm flex items-center justify-center gap-3 transition-all shadow-lg shadow-white/5 active:scale-[0.99] disabled:opacity-50"
-                >
-                  {loading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin text-slate-700" />
-                  ) : (
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                      />
-                    </svg>
-                  )}
-                  <span>Continue with Google</span>
-                </button>
-
-                <div className="p-3 rounded-xl bg-[#070c18] border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-300">
-                    <Shield className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>OAuth Security Guarantee</span>
-                  </div>
-                  <p>
-                    Verified with Supabase PKCE OAuth 2.0. Authorized callback: <code>https://&lt;project&gt;.supabase.co/auth/v1/callback</code>.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* ────────────────── METHOD 2: REAL EMAIL AUTHENTICATION ────────────────── */}
-            {authMethod === 'EMAIL' && (
-              <form onSubmit={handleEmailSubmit} className="space-y-3.5">
-                <div className="flex items-center justify-between text-xs font-mono border-b border-slate-800 pb-2">
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setEmailMode('LOGIN')}
-                      className={`font-bold transition-colors ${
-                        emailMode === 'LOGIN' ? 'text-cyan-400 border-b-2 border-cyan-400 pb-1' : 'text-slate-400'
-                      }`}
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEmailMode('SIGNUP')}
-                      className={`font-bold transition-colors ${
-                        emailMode === 'SIGNUP' ? 'text-cyan-400 border-b-2 border-cyan-400 pb-1' : 'text-slate-400'
-                      }`}
-                    >
-                      Create Account
-                    </button>
-                  </div>
-                  {emailMode !== 'FORGOT' && (
-                    <button
-                      type="button"
-                      onClick={() => setEmailMode('FORGOT')}
-                      className="text-[11px] text-slate-500 hover:text-cyan-300 transition-colors"
-                    >
-                      Forgot?
-                    </button>
-                  )}
-                </div>
-
-                {emailMode === 'SIGNUP' && (
-                  <div>
-                    <label className="text-[11px] font-mono text-slate-400 block mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Ishant Jakhenia"
-                      className="w-full bg-[#070c18] text-white px-3 py-2 rounded-xl border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-sans"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="text-[11px] font-mono text-slate-400 block mb-1">Institutional Email</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="trader@ishantmacro.com"
-                      className="w-full bg-[#070c18] text-white pl-9 pr-3 py-2 rounded-xl border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-mono"
-                    />
-                  </div>
-                </div>
-
-                {emailMode !== 'FORGOT' && (
-                  <div>
-                    <label className="text-[11px] font-mono text-slate-400 block mb-1">Password</label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                      <input
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••••••"
-                        className="w-full bg-[#070c18] text-white pl-9 pr-3 py-2 rounded-xl border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-mono"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-mono flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50"
-                >
-                  {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>
-                    {emailMode === 'LOGIN'
-                      ? 'Sign In to Ishant Macro Data'
-                      : emailMode === 'SIGNUP'
-                      ? 'Register Account'
-                      : 'Send Password Reset Link'}
-                  </span>
-                </button>
-
-                {emailMode === 'FORGOT' && (
-                  <button
-                    type="button"
-                    onClick={() => setEmailMode('LOGIN')}
-                    className="w-full text-center text-xs text-slate-400 hover:text-white pt-1"
-                  >
-                    ← Back to Sign In
-                  </button>
-                )}
-              </form>
-            )}
-
-            {/* ────────────────── METHOD 3: REAL PHONE NUMBER + REAL SMS OTP ────────────────── */}
-            {authMethod === 'PHONE' && (
-              <div className="space-y-4">
-                {!isOtpSent ? (
-                  <form onSubmit={handleSendOtp} className="space-y-3.5">
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      Enter your mobile number to receive a real 6-digit SMS OTP via Twilio / Supabase Phone Auth.
-                    </p>
-
-                    <div>
-                      <label className="text-[11px] font-mono text-slate-400 block mb-1">Mobile Phone Number</label>
-                      <div className="flex gap-2">
-                        <select
-                          value={selectedCountryCode}
-                          onChange={(e) => setSelectedCountryCode(e.target.value)}
-                          className="w-32 bg-[#070c18] text-white px-2 py-2 rounded-xl border border-slate-800 focus:border-cyan-400 text-xs font-mono focus:outline-none"
-                        >
-                          {COUNTRY_CODES.map((c) => (
-                            <option key={`${c.code}-${c.name}`} value={c.code} className="bg-slate-900 text-white">
-                              {c.flag} {c.code} ({c.name})
-                            </option>
-                          ))}
-                        </select>
-
-                        <div className="relative flex-1">
-                          <Phone className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                          <input
-                            type="tel"
-                            required
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder="98765 43210"
-                            className="w-full bg-[#070c18] text-white pl-9 pr-3 py-2 rounded-xl border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-mono flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50"
-                    >
-                      {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                      <span>Dispatch Real SMS OTP</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleVerifyOtp} className="space-y-3.5">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-400">Verifying: <b className="text-white">{selectedCountryCode} {phoneNumber}</b></span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsOtpSent(false);
-                          setOtpCode('');
-                        }}
-                        className="text-cyan-400 hover:underline"
-                      >
-                        Change Number
-                      </button>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-mono text-slate-400 block mb-1">Enter 6-Digit SMS Code</label>
-                      <input
-                        type="text"
-                        maxLength={6}
-                        required
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                        placeholder="••••••"
-                        className="w-full bg-[#070c18] text-center tracking-[0.5em] text-cyan-300 font-mono text-xl py-2 rounded-xl border border-slate-800 focus:border-cyan-400 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                      <span>Expires in: <b className="text-amber-400">5:00 min</b></span>
-                      {otpCountdown > 0 ? (
-                        <span>Resend in: <b className="text-cyan-400">{otpCountdown}s</b></span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleSendOtp}
-                          className="text-cyan-400 hover:underline font-bold"
-                        >
-                          Resend Real SMS OTP
-                        </button>
-                      )}
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loading || otpCode.length !== 6}
-                      className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-mono flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
-                    >
-                      {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                      <span>Verify SMS & Sign In</span>
-                    </button>
-                  </form>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── FOOTER STATUS ── */}
-        <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 font-mono">
-          <div className="flex items-center gap-1.5">
-            <span className={`h-2 w-2 rounded-full ${isBackendConnected ? 'bg-emerald-400' : 'bg-rose-500'}`} />
-            <span>
-              {isBackendConnected ? 'Supabase Backend Connected' : 'Backend Not Connected'}
-            </span>
-          </div>
-
-          <button
-            onClick={() => setShowBackendSetup(!showBackendSetup)}
-            className="text-cyan-400 hover:underline flex items-center gap-1"
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {/* 5. VIEW: FORGOT PASSWORD                                                   */}
+        {/* ────────────────────────────────────────────────────────────────────────── */}
+        {viewMode === 'FORGOT' && (
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              const res = await sendPasswordResetEmail(email);
+              setLoading(false);
+              if (res.success) {
+                setSuccessMessage(res.message || 'Password reset link sent to your email.');
+              } else {
+                setErrorMessage(res.error || 'Failed to send reset link.');
+              }
+            }}
+            className="space-y-4"
           >
-            <Settings className="w-3 h-3" />
-            Backend Keys
-          </button>
-        </div>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-white tracking-tight font-['Outfit',sans-serif]">
+                Reset your password
+              </h2>
+              <p className="text-xs text-slate-300">
+                Enter your email address to receive password reset instructions.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                EMAIL
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded-xl border border-[#2d3648] bg-[#1d2331] px-4 py-3 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-full bg-white hover:bg-slate-100 py-3.5 px-6 text-xs sm:text-sm font-bold text-slate-950 uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2"
+            >
+              {loading ? <RefreshCw className="w-4 h-4 animate-spin text-slate-950" /> : <span>SEND RESET LINK</span>}
+            </button>
+
+            <div className="text-center pt-2 text-xs text-slate-400">
+              <button
+                type="button"
+                onClick={() => setViewMode('LOGIN_EMAIL')}
+                className="text-cyan-400 hover:underline cursor-pointer"
+              >
+                Back to log in
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
