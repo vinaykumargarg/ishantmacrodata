@@ -1360,6 +1360,10 @@ export function evaluateTradeSetup(
   const isTrendBullish = lastBreak ? lastBreak.direction === 'BULLISH' : currentPrice >= premDisc.equilibrium50;
   const isTrendBearish = lastBreak ? lastBreak.direction === 'BEARISH' : currentPrice < premDisc.equilibrium50;
 
+  // Static structural reference levels (anchored to swing boundaries)
+  const structuralLow = premDisc.rangeLow > 0 ? premDisc.rangeLow : currentPrice * 0.985;
+  const structuralHigh = premDisc.rangeHigh > 0 ? premDisc.rangeHigh : currentPrice * 1.015;
+
   let entryPrice = currentPrice;
   let stopLossPrice = currentPrice * 1.01;
   let targetTp1 = currentPrice * 0.98;
@@ -1373,51 +1377,53 @@ export function evaluateTradeSetup(
   let hinglishExplanation = '';
   let whyThisLevelMatters = '';
 
-  // 1. Bullish Setup (Trend is Up, Demand absorbed, or Bullish Sweep)
-  if (isTrendBullish && (nearBullishOB || lastSweep?.direction === 'BULLISH_SWEEP' || currentPrice >= premDisc.equilibrium50)) {
-    action = 'LONG SETUP DETECTED';
-    bias = 'BULLISH';
-    marketPhase = 'Expansion';
-
-    entryPrice = nearBullishOB ? nearBullishOB.midPrice : currentPrice;
-    const rawSl = nearBullishOB ? Math.min(nearBullishOB.bottomPrice * 0.996, entryPrice * 0.992) : premDisc.rangeLow ? premDisc.rangeLow * 0.995 : entryPrice * 0.99;
-    stopLossPrice = +rawSl.toFixed(2);
-    entryZone = `$${Math.round(entryPrice * 0.996).toLocaleString()} – $${Math.round(entryPrice * 1.002).toLocaleString()}`;
-
-    const riskPts = Math.abs(entryPrice - stopLossPrice) || 1;
-    targetTp1 = +(entryPrice + riskPts * 2.5).toFixed(2);
-    targetTp2 = +(entryPrice + riskPts * 4.5).toFixed(2);
-    targetTp3 = +(entryPrice + riskPts * 7.5).toFixed(2);
-    liquidityTargetPrice = targetTp3;
-    liquidityTargetLabel = 'Buy-Side Equal Highs Pool';
-
-    invalidationRule = `15M / 1H candle close below $${stopLossPrice.toLocaleString()} USD strictly invalidates the long bias.`;
-    englishExplanation = `Market structure is bullish with active demand absorption and capital inflow. Entering on pullback support with protected invalidation.`;
-    hinglishExplanation = `Market UPAR ja raha hai — Buyers higher lows maintain kar rahe hain. Trend ke direction mein disciplined LONG active hai with fixed SL $${stopLossPrice.toLocaleString()}.`;
-    whyThisLevelMatters = `Demand absorption floor with high upside liquidity target.`;
-  }
-  // 2. Bearish Setup (Trend is Down, Supply rejection, or Bearish Sweep)
-  else if (isTrendBearish && (nearBearishOB || lastSweep?.direction === 'BEARISH_SWEEP' || currentPrice < premDisc.equilibrium50)) {
+  // 1. Bearish Setup Check First (If breaking down or rejected at supply)
+  if (isTrendBearish && (nearBearishOB || lastSweep?.direction === 'BEARISH_SWEEP' || currentPrice < premDisc.equilibrium50)) {
     action = 'SHORT SETUP DETECTED';
     bias = 'BEARISH';
     marketPhase = 'Distribution';
 
-    entryPrice = nearBearishOB ? nearBearishOB.midPrice : currentPrice;
-    const rawSl = nearBearishOB ? Math.max(nearBearishOB.topPrice * 1.004, entryPrice * 1.008) : premDisc.rangeHigh ? premDisc.rangeHigh * 1.005 : entryPrice * 1.01;
+    entryPrice = nearBearishOB ? Math.round(nearBearishOB.midPrice) : Math.round(Math.max(currentPrice, premDisc.equilibrium50 * 0.995));
+    // Anchor SL strictly above the structural high or Order Block top (NEVER floating down!)
+    const rawSl = nearBearishOB ? Math.max(nearBearishOB.topPrice * 1.004, structuralHigh) : structuralHigh * 1.004;
     stopLossPrice = +rawSl.toFixed(2);
     entryZone = `$${Math.round(entryPrice * 0.998).toLocaleString()} – $${Math.round(entryPrice * 1.004).toLocaleString()}`;
 
     const riskPts = Math.abs(stopLossPrice - entryPrice) || 1;
-    targetTp1 = +(entryPrice - riskPts * 2.5).toFixed(2);
-    targetTp2 = +(entryPrice - riskPts * 4.5).toFixed(2);
-    targetTp3 = +(entryPrice - riskPts * 7.5).toFixed(2);
+    targetTp1 = +(entryPrice - riskPts * 2.0).toFixed(2);
+    targetTp2 = +(entryPrice - riskPts * 3.5).toFixed(2);
+    targetTp3 = +(entryPrice - riskPts * 5.5).toFixed(2);
     liquidityTargetPrice = targetTp3;
     liquidityTargetLabel = 'Sell-side Liquidity Vacuum';
 
-    invalidationRule = `15M / 1H candle close above $${stopLossPrice.toLocaleString()} USD strictly invalidates the short bias.`;
-    englishExplanation = `Market printed rejection at premium supply. Pullback retest short active with high confluence.`;
-    hinglishExplanation = `Market breakdown ke baad lower highs structure bana raha hai. Fixed SL $${stopLossPrice.toLocaleString()} ke sath disciplined SHORT active hai.`;
+    invalidationRule = `15M / 1H candle close above $${stopLossPrice.toLocaleString()} USD strictly invalidates the short bias. Stop loss is 100% fixed.`;
+    englishExplanation = `Market printed rejection at premium supply. Pullback retest short active with high confluence and protected invalidation.`;
+    hinglishExplanation = `Market breakdown ke baad lower highs structure bana raha hai. Fixed SL $${stopLossPrice.toLocaleString()} ke sath disciplined SHORT active hai (No floating SL).`;
     whyThisLevelMatters = `Overhead supply block with confirmed liquidity sweep and protected invalidation.`;
+  }
+  // 2. Bullish Setup (Trend is Up, Demand absorbed, and holding above support)
+  else if (isTrendBullish && (nearBullishOB || lastSweep?.direction === 'BULLISH_SWEEP' || currentPrice >= premDisc.equilibrium50)) {
+    action = 'LONG SETUP DETECTED';
+    bias = 'BULLISH';
+    marketPhase = 'Expansion';
+
+    entryPrice = nearBullishOB ? Math.round(nearBullishOB.midPrice) : Math.round(Math.min(currentPrice, premDisc.equilibrium50 * 1.005));
+    // Anchor SL strictly below structural low (NEVER floating down!)
+    const rawSl = nearBullishOB ? Math.min(nearBullishOB.bottomPrice * 0.996, structuralLow) : structuralLow * 0.996;
+    stopLossPrice = +rawSl.toFixed(2);
+    entryZone = `$${Math.round(entryPrice * 0.996).toLocaleString()} – $${Math.round(entryPrice * 1.002).toLocaleString()}`;
+
+    const riskPts = Math.abs(entryPrice - stopLossPrice) || 1;
+    targetTp1 = +(entryPrice + riskPts * 2.0).toFixed(2);
+    targetTp2 = +(entryPrice + riskPts * 3.5).toFixed(2);
+    targetTp3 = +(entryPrice + riskPts * 5.5).toFixed(2);
+    liquidityTargetPrice = targetTp3;
+    liquidityTargetLabel = 'Buy-Side Equal Highs Pool';
+
+    invalidationRule = `15M / 1H candle close below $${stopLossPrice.toLocaleString()} USD strictly invalidates the long bias. Stop loss is 100% fixed.`;
+    englishExplanation = `Market structure is bullish with active demand absorption and capital inflow. Entering on pullback support with protected invalidation.`;
+    hinglishExplanation = `Market UPAR ja raha hai — Buyers higher lows maintain kar rahe hain. Trend ke direction mein disciplined LONG active hai with fixed SL $${stopLossPrice.toLocaleString()}.`;
+    whyThisLevelMatters = `Demand absorption floor with high upside liquidity target.`;
   } else {
     action = 'WAIT — NO HIGH-CONFIDENCE SETUP';
     bias = 'NEUTRAL';

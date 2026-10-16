@@ -133,7 +133,7 @@ export const DeeeprAiChartView: React.FC = () => {
 
   // Dynamic USDT & Macro Radar State aligned with real market regime & live price
   const usdtMacro = useMemo<UsdtMacroTelemetry>(() => {
-    const analysis = getUsdtDominanceAnalysis(livePrice);
+    const analysis = getUsdtDominanceAnalysis(livePrice, plan?.decision);
     return {
       usdtDominancePct: analysis.usdtDominancePct,
       usdtDominanceChange24h: analysis.usdtDominanceChange24h,
@@ -145,7 +145,7 @@ export const DeeeprAiChartView: React.FC = () => {
         'Dollar Index DXY softening ke chalte Gold support maintain kar raha hai.',
       cryptoUsdtImpact: analysis.relationshipHindiLogic
     };
-  }, [livePrice]);
+  }, [livePrice, plan?.decision]);
 
   // Chart Container & Instances Refs
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -364,22 +364,39 @@ export const DeeeprAiChartView: React.FC = () => {
 
     try {
       const isLong = currentPlan.decision === 'LONG';
-      const markers: any[] = [
-        {
+      const isShort = currentPlan.decision === 'SHORT';
+      const markers: any[] = [];
+
+      if (isLong) {
+        markers.push({
           time: targetCandle.time,
-          position: isLong ? 'belowBar' : 'aboveBar',
-          color: isLong ? '#10b981' : '#f43f5e',
-          shape: isLong ? 'arrowUp' : 'arrowDown',
-          text: isLong
-            ? `🟢 AI LONG SIGNAL (${currentPlan.convictionPct}% Conviction)`
-            : `🔴 AI SHORT SIGNAL (${currentPlan.convictionPct}% Conviction)`
-        }
-      ];
+          position: 'belowBar',
+          color: '#10b981',
+          shape: 'arrowUp',
+          text: `🟢 AI LONG SIGNAL (${currentPlan.convictionPct}% Conviction)`
+        });
+      } else if (isShort) {
+        markers.push({
+          time: targetCandle.time,
+          position: 'aboveBar',
+          color: '#f43f5e',
+          shape: 'arrowDown',
+          text: `🔴 AI SHORT SIGNAL (${currentPlan.convictionPct}% Conviction)`
+        });
+      } else {
+        markers.push({
+          time: targetCandle.time,
+          position: 'aboveBar',
+          color: '#f59e0b',
+          shape: 'circle',
+          text: `⏳ AI VERDICT: WAIT (NO TRADE ZONE)`
+        });
+      }
 
       // ONLY include structure breaks that AGREE with the trade direction (NEVER contradictory opposite-direction arrows!)
       if (mAnalysis && mAnalysis.structureBreaks) {
         const matchingBreaks = mAnalysis.structureBreaks.filter((brk) =>
-          isLong ? brk.direction === 'BULLISH' : brk.direction === 'BEARISH'
+          isLong ? brk.direction === 'BULLISH' : isShort ? brk.direction === 'BEARISH' : false
         );
         matchingBreaks.slice(-2).forEach((brk) => {
           markers.push({
@@ -581,11 +598,11 @@ export const DeeeprAiChartView: React.FC = () => {
         }
       }
 
-      // 2. Check System Plan Levels (only when not in WAIT)
-      if (plan.decision === 'WAIT') return;
+      // 2. Check System Plan Levels (only when not in WAIT, and only when status is ACTIVE)
+      if (plan.decision === 'WAIT' || plan.status === 'SL_HIT') return;
       const { decision, stopLossPrice, targetTp1, targetTp2, targetTp3 } = plan;
 
-      // 1. Check Stop Loss
+      // 1. Check Stop Loss (STRICTLY FIXED - NEVER TRAILED OR MOVED)
       const isSlHit = decision === 'SHORT' ? price >= stopLossPrice : price <= stopLossPrice;
       if (isSlHit && plan.status === 'ACTIVE') {
         handleTradeOutcome('SL_HIT', price);
@@ -971,7 +988,8 @@ export const DeeeprAiChartView: React.FC = () => {
           const activePlan = unifiedTradeSignalService.getSignal(
             selectedSymbol,
             undefined,
-            last.close
+            last.close,
+            formattedCandles
           );
 
           setPlans((prev) => ({
@@ -1025,7 +1043,8 @@ export const DeeeprAiChartView: React.FC = () => {
         const activePlan = unifiedTradeSignalService.getSignal(
           selectedSymbol,
           undefined,
-          lastClose
+          lastClose,
+          fakeCandles
         );
 
         setPlans((prev) => ({
@@ -1100,7 +1119,10 @@ export const DeeeprAiChartView: React.FC = () => {
     }
 
     fallbackTimer = setInterval(() => {
+      // ONLY run fallback timer if WebSocket is NOT live!
       setLivePrice((prev) => {
+        // If WebSocket is live, do not inject synthetic jitter
+        if (wsStatus === 'LIVE') return prev;
         const delta = (Math.random() - 0.495) * (prev * 0.0003);
         const updated = +(prev + delta).toFixed(2);
         if (updated > prev) setPriceFlash('up');
@@ -1329,6 +1351,143 @@ export const DeeeprAiChartView: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* ────────────────── 🕹️ DIRECT DECISION SELECTOR (AI AUTO / SHORT / LONG / WAIT) ────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#081022] p-3 rounded-2xl border-2 border-cyan-500/30 shadow-xl">
+        <div className="flex items-center gap-2">
+          <span className="text-sm">🎯</span>
+          <div>
+            <span className="text-xs font-black uppercase text-white tracking-wider block">
+              Trade Direction Selector (100% Fixed SL & TP):
+            </span>
+            <span className="text-[11px] text-slate-400">
+              Pick Short, Long, or Wait directly — or let AI Smart Auto analyze the candles
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* AI SMART AUTO */}
+          <button
+            onClick={() => {
+              const autoSignal = unifiedTradeSignalService.reevaluateWithCandles(
+                selectedSymbol,
+                candlesRef.current,
+                livePrice
+              );
+              setPlans((prev) => ({ ...prev, [selectedSymbol]: autoSignal }));
+              if (candleSeriesRef.current) {
+                renderPriceLines(candleSeriesRef.current, autoSignal, analysis);
+                renderMarkers(candleSeriesRef.current, autoSignal, candlesRef.current, analysis);
+              }
+              playBeepSound(980);
+              setTradeAlert({
+                type: 'NEW',
+                message: `🤖 AI SMART AUTO RE-EVALUATED: ${autoSignal.decision} setup detected based on real market structure and candles!`,
+                timestamp: Date.now()
+              });
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-cyan-600 to-blue-700 text-white hover:brightness-110 shadow-md shadow-cyan-900/40 cursor-pointer active:scale-95 transition-all"
+            title="Automatically detect direction from real multi-timeframe candles"
+          >
+            <span>🤖</span>
+            <span>AI Smart Auto</span>
+          </button>
+
+          {/* SHORT SETUP BUTTON */}
+          <button
+            onClick={() => {
+              const shortSignal = unifiedTradeSignalService.setDecision(
+                selectedSymbol,
+                'SHORT',
+                livePrice,
+                candlesRef.current
+              );
+              setPlans((prev) => ({ ...prev, [selectedSymbol]: shortSignal }));
+              if (candleSeriesRef.current) {
+                renderPriceLines(candleSeriesRef.current, shortSignal, analysis);
+                renderMarkers(candleSeriesRef.current, shortSignal, candlesRef.current, analysis);
+              }
+              playBeepSound(1046);
+              setTradeAlert({
+                type: 'NEW',
+                message: `🔴 SHORT SETUP ACTIVATED for ${shortSignal.displaySymbol}: Entry ${shortSignal.entryZone}, Strict Fixed SL $${shortSignal.stopLossPrice.toLocaleString()} USD!`,
+                timestamp: Date.now()
+              });
+            }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              plan.decision === 'SHORT'
+                ? 'bg-rose-600 text-white shadow-xl shadow-rose-900/50 scale-[1.03] border-2 border-rose-300 ring-2 ring-rose-500/50'
+                : 'bg-rose-950/40 text-rose-300 border border-rose-700/50 hover:bg-rose-900/50'
+            }`}
+          >
+            <span>🔴</span>
+            <span>SHORT SETUP</span>
+          </button>
+
+          {/* LONG SETUP BUTTON */}
+          <button
+            onClick={() => {
+              const longSignal = unifiedTradeSignalService.setDecision(
+                selectedSymbol,
+                'LONG',
+                livePrice,
+                candlesRef.current
+              );
+              setPlans((prev) => ({ ...prev, [selectedSymbol]: longSignal }));
+              if (candleSeriesRef.current) {
+                renderPriceLines(candleSeriesRef.current, longSignal, analysis);
+                renderMarkers(candleSeriesRef.current, longSignal, candlesRef.current, analysis);
+              }
+              playBeepSound(1046);
+              setTradeAlert({
+                type: 'NEW',
+                message: `🟢 LONG SETUP ACTIVATED for ${longSignal.displaySymbol}: Entry ${longSignal.entryZone}, Strict Fixed SL $${longSignal.stopLossPrice.toLocaleString()} USD!`,
+                timestamp: Date.now()
+              });
+            }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              plan.decision === 'LONG'
+                ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-900/50 scale-[1.03] border-2 border-emerald-300 ring-2 ring-emerald-500/50'
+                : 'bg-emerald-950/40 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-900/50'
+            }`}
+          >
+            <span>🟢</span>
+            <span>LONG SETUP</span>
+          </button>
+
+          {/* WAIT SETUP BUTTON */}
+          <button
+            onClick={() => {
+              const waitSignal = unifiedTradeSignalService.setDecision(
+                selectedSymbol,
+                'WAIT',
+                livePrice,
+                candlesRef.current
+              );
+              setPlans((prev) => ({ ...prev, [selectedSymbol]: waitSignal }));
+              if (candleSeriesRef.current) {
+                renderPriceLines(candleSeriesRef.current, waitSignal, analysis);
+                renderMarkers(candleSeriesRef.current, waitSignal, candlesRef.current, analysis);
+              }
+              playBeepSound(880);
+              setTradeAlert({
+                type: 'NEW',
+                message: `⏳ WAIT MODE ACTIVATED: Market chop zone me hai. Favorable key levels tap hone ka wait karein.`,
+                timestamp: Date.now()
+              });
+            }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              plan.decision === 'WAIT'
+                ? 'bg-amber-500 text-slate-950 shadow-xl shadow-amber-900/50 scale-[1.03] border-2 border-amber-200 ring-2 ring-amber-500/50'
+                : 'bg-amber-950/40 text-amber-300 border border-amber-700/50 hover:bg-amber-900/50'
+            }`}
+          >
+            <span>⏳</span>
+            <span>WAIT (NO TRADE)</span>
+          </button>
+        </div>
+      </div>
 
       {/* ────────────────── 🚨 AI TRADE DECISION HERO CARD (DYNAMIC LONG, SHORT, YA WAIT) ────────────────── */}
       <div
@@ -1879,18 +2038,33 @@ export const DeeeprAiChartView: React.FC = () => {
         {/* Simple Plain-Language Explanation (KYON HAI?) */}
         <div className="bg-[#060a16] p-3.5 rounded-xl border border-cyan-500/25 flex items-start gap-2.5 text-xs">
           <span className="text-cyan-400 text-base mt-0.5">💡</span>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="w-full">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <span className="font-bold text-cyan-300 text-xs uppercase tracking-wider block">
                 Yeh Trade Kyon Hai? (Simple Hindi / Hinglish Logic):
               </span>
-              {plan.tradeNumber > 1 && (
-                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                  Agli Trade #{plan.tradeNumber}
-                </span>
-              )}
+              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                100% Fixed Non-Floating Levels
+              </span>
             </div>
-            <p className="text-slate-200 mt-1 leading-relaxed text-xs sm:text-[13px]">{plan.hindiExplanation}</p>
+            <p className="text-slate-200 mt-1.5 leading-relaxed text-xs sm:text-[13px]">{plan.hindiExplanation}</p>
+
+            {/* 5-Point Institutional Proof Bullets */}
+            {plan.rationaleBullets && plan.rationaleBullets.length > 0 && (
+              <div className="mt-3 pt-2.5 border-t border-slate-800 space-y-1.5">
+                <span className="text-[11px] font-black uppercase text-amber-300 tracking-wider block">
+                  Institutional Confluence & Decision Rationale:
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-1">
+                  {plan.rationaleBullets.map((bullet, idx) => (
+                    <div key={idx} className="flex items-start gap-2 bg-[#091428] p-2 rounded-lg border border-slate-800/80 text-[11px] text-slate-300">
+                      <span className="text-cyan-400 font-bold font-mono">0{idx + 1}.</span>
+                      <span>{bullet}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
