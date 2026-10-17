@@ -174,7 +174,11 @@ export const FREE_TABS = new Set([
   'account',
   'profile',
   'auth',
-  'overview'
+  'overview',
+  'gold',
+  'gold-ai',
+  'gold-trading-ai',
+  'delta-swing-scanner'
 ]);
 
 /**

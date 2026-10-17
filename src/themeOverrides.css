@@ -1,40 +1,45 @@
 /* ==========================================================================
-   IshantMacro.Ai theme (Theme Studio)
+   IshantMacro.Ai — High-Precision Theme System (Dark | Light | Imperial Gold)
+   Ultra Clean, Readable Typography & Professional Institutional Aesthetics
    ========================================================================== */
 
-:root {
-  /* Colors: Pure Deep Midnight Obsidian Black */
-  --bg: #04060b;
-  --surface: #090e1a;
-  --surface-2: #0f1526;
-  --border: #1a2336;
-  --text: #f0f4ff;
-  --text-muted: #8593aa;
+/* ────────────────── 1. DARK THEME: OBSIDIAN CYBER (DEFAULT) ────────────────── */
+:root,
+html.dark,
+html[data-theme='dark'] {
+  --bg: #04060c;
+  --surface: #0a0f1d;
+  --surface-2: #111a30;
+  --border: #1e2b45;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
   --accent: #00f2fe;
-  --accent-fg: #04060b;
+  --accent-fg: #04060c;
   --accent-soft: rgba(0, 242, 254, 0.12);
-  --up: #00e676;
-  --down: #ff1744;
-  --up-bg: rgba(0, 230, 118, 0.12);
-  --down-bg: rgba(255, 23, 68, 0.12);
-
-  /* Fonts */
-  --font-ui: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-data: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --font-hi: 'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', sans-serif;
-
-  /* Type and shape */
-  --fs-base: 15px;
-  --lh-base: 1.6;
-  --track-label: 0.06em;
-  --track-heading: -0.01em;
-  --weight-heading: 700;
-  --radius: 12px;
-  --label-case: uppercase;
-  --space: 1; /* padding multiplier */
+  --up: #10b981;
+  --down: #ef4444;
+  --up-bg: rgba(16, 185, 129, 0.14);
+  --down-bg: rgba(239, 68, 68, 0.14);
+  --gold: #f59e0b;
+  --gold-bg: rgba(245, 158, 11, 0.15);
   color-scheme: dark;
 
-  /* Tailwind & System Mapping */
+  /* Fonts */
+  --font-ui: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-hi: 'Noto Sans Devanagari', 'Nirmala UI', sans-serif;
+
+  /* Type & Shape */
+  --fs-base: 15px;
+  --lh-base: 1.55;
+  --track-label: 0.01em;
+  --track-heading: -0.015em;
+  --weight-heading: 700;
+  --radius: 12px;
+  --label-case: none;
+
+  /* System token mappings */
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--surface);
@@ -54,12 +59,11 @@
   --ring: var(--accent);
   --bull: var(--up);
   --bear: var(--down);
-  --gold: #f59e0b;
   --neutral: var(--text-muted);
   --font-sans: var(--font-ui);
   --font-mono: var(--font-data);
 
-  /* Legacy terminal tokens */
+  /* Legacy terminal variables */
   --bg-primary: var(--bg);
   --bg-secondary: var(--surface);
   --bg-card: var(--surface);
@@ -74,69 +78,137 @@
   --color-bull-bg: var(--up-bg);
   --color-bear: var(--down);
   --color-bear-bg: var(--down-bg);
-  --color-wait: #f59e0b;
-  --color-wait-bg: rgba(245, 158, 11, 0.15);
+  --color-wait: var(--gold);
+  --color-wait-bg: var(--gold-bg);
   --color-cyan: var(--accent);
   --color-purple: #a78bfa;
   --color-indigo: #818cf8;
 }
 
-/* ────────────────── LIGHT THEME ADAPTATION (CRISP, PURE & CLEAN) ────────────────── */
+/* ────────────────── 2. LIGHT THEME: CLEAN FINANCIAL PRO (CRISP & LEGIBLE) ────────────────── */
 html.light,
 html[data-theme='light'] {
-  --bg: #f5f7fc;
-  --surface: #ffffff;
-  --surface-2: #edf2f9;
-  --border: #d5deed;
-  --text: #0d1527;
-  --text-muted: #55657e;
-  --accent: #2563eb;
+  --bg: #f8fafc; /* Crisp Slate 50 backdrop */
+  --surface: #ffffff; /* Crisp white elevated card */
+  --surface-2: #f1f5f9; /* Slate 100 secondary panels */
+  --border: #cbd5e1; /* Slate 300 crisp borders */
+  --text: #0f172a; /* Slate 900 high-contrast sharp black text */
+  --text-muted: #475569; /* Slate 600 clear secondary text */
+  --accent: #2563eb; /* Institutional Royal Blue */
   --accent-fg: #ffffff;
-  --accent-soft: #e0edff;
-  --up: #16a34a;
-  --down: #e11d48;
-  --up-bg: #dcfce7;
-  --down-bg: #ffe4e6;
+  --accent-soft: rgba(37, 99, 235, 0.1);
+  --up: #059669; /* Rich Emerald 600 - razor crisp on light bg */
+  --down: #dc2626; /* Rich Crimson 600 - razor crisp on light bg */
+  --up-bg: #ecfdf5; /* Emerald 50 */
+  --down-bg: #fef2f2; /* Rose 50 */
+  --gold: #b45309; /* Deep Amber 700 - high contrast on light bg */
+  --gold-bg: #fef3c7; /* Amber 100 */
   color-scheme: light;
 
-  --background: #f5f7fc;
-  --foreground: #0d1527;
+  /* System token mappings */
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #0d1527;
+  --card-foreground: #0f172a;
   --panel: #ffffff;
-  --panel-foreground: #0d1527;
+  --panel-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #0d1527;
+  --popover-foreground: #0f172a;
   --primary: #2563eb;
   --primary-foreground: #ffffff;
-  --secondary: #edf2f9;
-  --secondary-foreground: #0d1527;
-  --muted: #edf2f9;
-  --muted-foreground: #55657e;
-  --input: #d5deed;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --input: #cbd5e1;
   --ring: #2563eb;
-  --bull: #16a34a;
-  --bear: #e11d48;
-  --gold: #d97706;
-  --neutral: #55657e;
+  --bull: #059669;
+  --bear: #dc2626;
+  --neutral: #475569;
 
-  --bg-primary: #f5f7fc;
+  /* Legacy terminal variables */
+  --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --bg-card: #ffffff;
-  --bg-card-hover: #edf2f9;
-  --bg-elevated: #edf2f9;
-  --border-subtle: #d5deed;
+  --bg-card-hover: #f1f5f9;
+  --bg-elevated: #f1f5f9;
+  --border-subtle: #cbd5e1;
   --border-accent: #2563eb;
-  --border-glow: #e0edff;
-  --text-main: #0d1527;
-  --text-dim: #55657e;
-  --color-bull: #16a34a;
-  --color-bull-bg: #dcfce7;
-  --color-bear: #e11d48;
-  --color-bear-bg: #ffe4e6;
-  --color-wait: #d97706;
+  --border-glow: rgba(37, 99, 235, 0.15);
+  --text-main: #0f172a;
+  --text-dim: #475569;
+  --color-bull: #059669;
+  --color-bull-bg: #ecfdf5;
+  --color-bear: #dc2626;
+  --color-bear-bg: #fef2f2;
+  --color-wait: #b45309;
   --color-wait-bg: #fef3c7;
   --color-cyan: #2563eb;
+  --color-purple: #7c3aed;
+  --color-indigo: #4f46e5;
+}
+
+/* ────────────────── 3. GOLD THEME: IMPERIAL GOLD & NAVY (INSTITUTIONAL ELITE) ────────────────── */
+html.gold,
+html[data-theme='gold'] {
+  --bg: #030816; /* Deepest Imperial Navy */
+  --surface: #071228; /* Polished Navy card */
+  --surface-2: #0e1e3e; /* Navy panel */
+  --border: #1e3a68; /* Subtle blue-gold border */
+  --text: #fef9c3; /* Champagne ivory text */
+  --text-muted: #93c5fd; /* Soft sky blue secondary */
+  --accent: #fbbf24; /* Radiant Amber Gold */
+  --accent-fg: #030816;
+  --accent-soft: rgba(251, 191, 36, 0.15);
+  --up: #10b981;
+  --down: #f43f5e;
+  --up-bg: rgba(16, 185, 129, 0.15);
+  --down-bg: rgba(244, 63, 94, 0.15);
+  --gold: #fbbf24;
+  --gold-bg: rgba(251, 191, 36, 0.15);
+  color-scheme: dark;
+
+  /* System token mappings */
+  --background: #030816;
+  --foreground: #fef9c3;
+  --card: #071228;
+  --card-foreground: #fef9c3;
+  --panel: #071228;
+  --panel-foreground: #fef9c3;
+  --popover: #071228;
+  --popover-foreground: #fef9c3;
+  --primary: #fbbf24;
+  --primary-foreground: #030816;
+  --secondary: #0e1e3e;
+  --secondary-foreground: #fef9c3;
+  --muted: #0e1e3e;
+  --muted-foreground: #93c5fd;
+  --input: #1e3a68;
+  --ring: #fbbf24;
+  --bull: #10b981;
+  --bear: #f43f5e;
+  --neutral: #93c5fd;
+
+  /* Legacy terminal variables */
+  --bg-primary: #030816;
+  --bg-secondary: #071228;
+  --bg-card: #071228;
+  --bg-card-hover: #0e1e3e;
+  --bg-elevated: #0e1e3e;
+  --border-subtle: #1e3a68;
+  --border-accent: #fbbf24;
+  --border-glow: rgba(251, 191, 36, 0.25);
+  --text-main: #fef9c3;
+  --text-dim: #93c5fd;
+  --color-bull: #10b981;
+  --color-bull-bg: rgba(16, 185, 129, 0.15);
+  --color-bear: #f43f5e;
+  --color-bear-bg: rgba(244, 63, 94, 0.15);
+  --color-wait: #fbbf24;
+  --color-wait-bg: rgba(251, 191, 36, 0.15);
+  --color-cyan: #38bdf8;
+  --color-purple: #c084fc;
+  --color-indigo: #818cf8;
 }
 
 /* ────────────────── TYPOGRAPHY & GLOBAL APPLICATION ────────────────── */
@@ -154,35 +226,26 @@ body {
   letter-spacing: normal;
 }
 
-/* Headings: Strict negative letter-spacing only here */
+/* Headings: Outfit / Inter with crisp weight */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-ui), var(--font-hi) !important;
-  font-weight: var(--weight-heading) !important;
-  letter-spacing: var(--track-heading) !important;
+  font-family: var(--font-heading), var(--font-ui) !important;
+  font-weight: var(--weight-heading);
+  letter-spacing: var(--track-heading);
   line-height: 1.25;
 }
 
-/* Prices, tables, tickers: Tabular nums and Data font */
+/* Prices, tables, tickers: Tabular nums and JetBrains Mono */
 .num, .price, .ticker, table, td, [class*="font-mono"], .font-mono, .tabular-nums {
   font-family: var(--font-data) !important;
   font-variant-numeric: tabular-nums !important;
-  letter-spacing: 0 !important;
 }
 
-/* Small labels: Never below 12px */
-.label, small, th, label, [class*="text-[10px]"], [class*="text-[11px]"], [class*="text-[9px]"], [class*="text-[8px]"], [class*="text-xs"] {
-  font-size: max(12px, 0.8rem) !important;
-  letter-spacing: var(--track-label);
-  text-transform: var(--label-case);
-  color: var(--text-muted);
-}
-
-/* Regular text elements should never have negative letter-spacing */
+/* Text elements: clean, natural casing */
 p, span, div, a, button, input, select, textarea {
   letter-spacing: normal;
 }
 
-/* Hindi text: Noto Sans Devanagari and line-height 1.8 */
+/* Hindi text: Noto Sans Devanagari */
 :lang(hi), [lang="hi"], .lang-hi, [data-lang="hi"] {
   font-family: var(--font-hi), var(--font-ui) !important;
   line-height: 1.8 !important;
@@ -196,74 +259,55 @@ p, span, div, a, button, input, select, textarea {
 .terminal-card-glass,
 .top5-card,
 .royal-card {
-  background: var(--surface) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
-.terminal-hero-spotlight {
-  background: var(--surface) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: calc(var(--radius) + 4px) !important;
-  color: var(--text) !important;
+html.light .card,
+html.light .panel,
+html.light .bg-card,
+html.light [class*="bg-card"],
+html.light .terminal-card-glass {
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.08);
 }
 
-.regime-banner-neon,
-.regime-banner {
-  background: var(--surface-2) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius) !important;
-  color: var(--text) !important;
-}
-
-/* Badges & Plan items */
-.plan-item,
-.plan-item-neon {
-  background: var(--surface-2) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: calc(var(--radius) - 2px) !important;
-  padding: 10px 14px;
-}
-
-.plan-item-label {
-  font-size: max(12px, 0.8rem) !important;
-  letter-spacing: var(--track-label) !important;
-  text-transform: var(--label-case) !important;
-  color: var(--text-muted) !important;
-}
-
-.plan-item-val {
-  font-family: var(--font-data) !important;
-  font-variant-numeric: tabular-nums !important;
-  font-weight: 700;
+html.gold .card,
+html.gold .panel,
+html.gold .bg-card,
+html.gold [class*="bg-card"] {
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.06);
 }
 
 /* Directional Colors */
-.up, .val-bull, .text-bull, .text-emerald-400, .text-emerald-500, .text-green-400 {
+.up, .val-bull, .text-bull {
   color: var(--up) !important;
 }
 
-.down, .val-bear, .text-bear, .text-rose-400, .text-rose-500, .text-red-400 {
+.down, .val-bear, .text-bear {
   color: var(--down) !important;
 }
 
-.val-cyan, .text-cyan-400, .text-cyan-300, .text-accent {
+.val-cyan, .text-accent {
   color: var(--accent) !important;
 }
 
-.val-amber, .text-amber-400, .text-yellow-400 {
+.val-amber, .text-gold {
   color: var(--gold) !important;
 }
 
 /* Background tints */
-.bg-up-bg, .bg-bull\/10, .bg-emerald-500\/10, .bg-emerald-500\/15 {
+.bg-up-bg, .bg-bull\/10, .bg-bull\/15, .bg-bull\/20 {
   background-color: var(--up-bg) !important;
 }
 
-.bg-down-bg, .bg-bear\/10, .bg-rose-500\/10, .bg-rose-500\/15 {
+.bg-down-bg, .bg-bear\/10, .bg-bear\/15, .bg-bear\/20 {
   background-color: var(--down-bg) !important;
+}
+
+.bg-gold\/10, .bg-gold\/15, .bg-gold\/20 {
+  background-color: var(--gold-bg) !important;
 }
 
 /* Buttons */
@@ -287,31 +331,19 @@ p, span, div, a, button, input, select, textarea {
 
 /* Inputs & Form Elements */
 input, select, textarea {
-  background: var(--surface-2) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text) !important;
-  border-radius: var(--radius) !important;
-  font-family: var(--font-ui) !important;
-  font-size: max(13px, 0.85rem) !important;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: var(--accent) !important;
-  outline: none !important;
+  border-color: var(--accent);
+  outline: none;
 }
 
-/* Invalidation Box */
-.invalidation-box,
-.invalidation-box-neon {
-  background: var(--down-bg) !important;
-  border: 1px solid var(--down) !important;
-  border-radius: var(--radius) !important;
-  color: var(--down) !important;
-  padding: 10px 14px;
-  font-size: max(12px, 0.8rem) !important;
-}
-
-/* Neon badges updated to Theme Studio colors */
+/* Neon badges */
 .badge-long, .badge-long-neon {
   background: var(--up-bg) !important;
   color: var(--up) !important;
@@ -319,7 +351,6 @@ input:focus, select:focus, textarea:focus {
   border-radius: 9999px !important;
   padding: 3px 10px !important;
   font-weight: 700 !important;
-  font-size: max(12px, 0.8rem) !important;
 }
 
 .badge-short, .badge-short-neon {
@@ -329,28 +360,15 @@ input:focus, select:focus, textarea:focus {
   border-radius: 9999px !important;
   padding: 3px 10px !important;
   font-weight: 700 !important;
-  font-size: max(12px, 0.8rem) !important;
 }
 
 .badge-wait, .badge-wait-neon {
-  background: rgba(245, 158, 11, 0.15) !important;
+  background: var(--gold-bg) !important;
   color: var(--gold) !important;
   border: 1px solid var(--gold) !important;
   border-radius: 9999px !important;
   padding: 3px 10px !important;
   font-weight: 700 !important;
-  font-size: max(12px, 0.8rem) !important;
-}
-
-.badge-score, .badge-score-neon {
-  background: var(--accent-soft) !important;
-  color: var(--accent) !important;
-  border: 1px solid var(--accent) !important;
-  border-radius: 9999px !important;
-  padding: 3px 10px !important;
-  font-weight: 700 !important;
-  font-family: var(--font-data) !important;
-  font-size: max(12px, 0.8rem) !important;
 }
 
 /* Sidebar scrollbar & styling */
@@ -399,49 +417,20 @@ aside {
 }
 
 .nav-item {
-  color: var(--text-muted) !important;
-  border-radius: calc(var(--radius) - 4px) !important;
+  color: var(--text-muted);
+  border-radius: calc(var(--radius) - 4px);
   transition: all 0.15s ease;
 }
 
 .nav-item:hover {
-  background: var(--surface-2) !important;
-  color: var(--text) !important;
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 .nav-item.on,
 .nav-item[data-active='true'] {
-  background: var(--accent-soft) !important;
-  color: var(--accent) !important;
-  border-left: 3px solid var(--accent) !important;
-  font-weight: 700 !important;
-}
-
-/* Universal Tailwind color class mappings to Theme Studio tokens */
-.text-white {
-  color: var(--text) !important;
-}
-
-.text-black {
-  color: var(--text) !important;
-}
-
-.text-slate-100, .text-slate-200, .text-slate-300 {
-  color: var(--text) !important;
-}
-
-.text-slate-400, .text-slate-500, .text-slate-600 {
-  color: var(--text-muted) !important;
-}
-
-.bg-white {
-  background-color: var(--surface) !important;
-}
-
-.bg-slate-900, .bg-slate-900\/80, .bg-slate-950, .bg-slate-800, .bg-slate-800\/80 {
-  background-color: var(--surface-2) !important;
-}
-
-.border-slate-700, .border-slate-800, .border-slate-600 {
-  border-color: var(--border) !important;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-left: 3px solid var(--accent);
+  font-weight: 700;
 }

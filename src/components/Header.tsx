@@ -2,8 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, User, ChevronDown, Sparkles, CreditCard, Bell, Settings, ShieldCheck } from 'lucide-react';
 
+export type AppTheme = 'dark' | 'light' | 'gold';
+
 interface HeaderProps {
   isDarkMode: boolean;
+  theme?: AppTheme;
+  onSelectTheme?: (theme: AppTheme) => void;
   onToggleTheme: () => void;
   onToggleMobileSidebar?: () => void;
   onOpenAccount: () => void;
@@ -28,6 +32,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   isDarkMode,
+  theme = 'dark',
+  onSelectTheme,
   onToggleTheme,
   onNavigateHome,
   onNavigatePricing,
@@ -289,14 +295,48 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Light / Dark Mode Button */}
-        <button
-          onClick={onToggleTheme}
-          aria-label="Light / dark mode"
-          className="rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary cursor-pointer"
-        >
-          {isDarkMode ? '☀️ Light' : '🌙 Dark'}
-        </button>
+        {/* 3-Theme Selector: Dark | Light | Imperial Gold */}
+        <div className="flex items-center rounded-lg border border-border bg-card p-0.5 text-xs font-semibold shadow-xs">
+          <button
+            onClick={() => onSelectTheme ? onSelectTheme('dark') : onToggleTheme()}
+            aria-label="Dark Obsidian Cyber Theme"
+            className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+              theme === 'dark' || (!theme && isDarkMode)
+                ? 'bg-cyan-500/20 text-cyan-400 font-bold border border-cyan-500/40 shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title="Dark Theme (Obsidian Cyber Terminal)"
+          >
+            <span>🌙</span>
+            <span className="hidden xl:inline">Dark</span>
+          </button>
+          <button
+            onClick={() => onSelectTheme ? onSelectTheme('light') : onToggleTheme()}
+            aria-label="Light Financial Pro Theme"
+            className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+              theme === 'light'
+                ? 'bg-blue-600 text-white font-bold shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title="Light Theme (Clean Financial Pro)"
+          >
+            <span>☀️</span>
+            <span className="hidden xl:inline">Light</span>
+          </button>
+          <button
+            onClick={() => onSelectTheme ? onSelectTheme('gold') : onToggleTheme()}
+            aria-label="Imperial Gold Theme"
+            className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+              theme === 'gold'
+                ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title="Gold Theme (Imperial Institutional Elite)"
+          >
+            <span>👑</span>
+            <span className="hidden xl:inline">Gold</span>
+          </button>
+        </div>
 
         {/* Auth / Account Buttons & User Dropdown */}
         {user ? (

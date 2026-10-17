@@ -377,33 +377,7 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
         );
       }
 
-      // D. Previous High / Low Levels (PDH, PDL)
-      if (layers.previousHighLow && mAnalysis.previousHighLows && chartMode !== 'SNIPER') {
-        if (mAnalysis.previousHighLows.pdh) {
-          priceLinesRef.current.push(
-            series.createPriceLine({
-              price: mAnalysis.previousHighLows.pdh,
-              color: '#38bdf8',
-              lineWidth: 1,
-              lineStyle: LineStyle.Dotted,
-              axisLabelVisible: false,
-              title: 'PDH'
-            })
-          );
-        }
-        if (mAnalysis.previousHighLows.pdl) {
-          priceLinesRef.current.push(
-            series.createPriceLine({
-              price: mAnalysis.previousHighLows.pdl,
-              color: '#38bdf8',
-              lineWidth: 1,
-              lineStyle: LineStyle.Dotted,
-              axisLabelVisible: false,
-              title: 'PDL'
-            })
-          );
-        }
-      }
+      // D. Previous High / Low Levels (PDH, PDL removed per user request)
 
       // E. Order Blocks - Nearest 1 Bull & 1 Bear to prevent cluttering!
       if (layers.orderBlocks && mAnalysis.orderBlocks && chartMode !== 'SNIPER') {

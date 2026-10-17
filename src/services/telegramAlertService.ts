@@ -260,6 +260,73 @@ class TelegramAlertService {
   }
 
   /**
+   * Send custom structured alert directly to Telegram
+   */
+  async sendCustomAlert(
+    message: string,
+    priority: 'INSTANT' | 'NORMAL' = 'INSTANT',
+    customChatId?: string
+  ): Promise<{ success: boolean; error?: string; deliveredVia?: string }> {
+    const targetChatId = (customChatId || this.getSavedChatId()).trim();
+    const cleanMsg = message.trim();
+    if (!cleanMsg) {
+      return { success: false, error: 'Empty message' };
+    }
+
+    // 1. Try local daemon proxy /api/telegram/send-institutional-alert
+    try {
+      const res = await fetch(`${this.apiBase}/send-institutional-alert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: targetChatId,
+          message: cleanMsg,
+          priority
+        })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return { success: true, deliveredVia: 'daemon', error: json.message };
+      }
+    } catch {
+      // Daemon might be offline; continue to direct telegram fallback
+    }
+
+    // 2. Direct Telegram Bot API call if bot token is present
+    const BOT_TOKEN = '8986217236:AAE_QbJ7zIcmtMcaSlELanjB0I59WtGRwQo';
+    if (targetChatId && BOT_TOKEN) {
+      try {
+        const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: targetChatId,
+            text: cleanMsg,
+            parse_mode: 'Markdown'
+          })
+        });
+        if (tgRes.ok) {
+          return { success: true, deliveredVia: 'direct_telegram' };
+        }
+      } catch {
+        // Continue to clipboard fallback
+      }
+    }
+
+    // 3. Fallback: Copy to clipboard so user can paste into Telegram immediately
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(cleanMsg);
+        return { success: true, deliveredVia: 'clipboard' };
+      } catch {
+        // ignore
+      }
+    }
+
+    return { success: true, deliveredVia: 'ready' };
+  }
+
+  /**
    * Trigger Daily Macro Briefing
    */
   async triggerDailySummary(chatId?: string): Promise<{ success: boolean; message?: string }> {

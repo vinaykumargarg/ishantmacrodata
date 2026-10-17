@@ -10,6 +10,7 @@ import StockAiView from './components/StockAiView';
 import AiChartView from './components/AiChartView';
 import GoldDashboardView from './components/GoldDashboardView';
 import GoldTradingAiView from './components/GoldTradingAiView';
+import GoldAiMarketIntelligenceView from './components/GoldAiMarketIntelligenceView';
 import CryptoTradingAiView from './components/CryptoTradingAiView';
 import IndianStockAiView from './components/IndianStockAiView';
 import UsaTop1000AiView from './components/UsaTop1000AiView';
@@ -244,13 +245,14 @@ function TerminalApp() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isAccountOpen, setIsAccountOpen] = useState<boolean>(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+  const [theme, setTheme] = useState<'dark' | 'light' | 'gold'>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('theme');
-      return stored ? stored === 'dark' : true;
+      if (stored === 'light' || stored === 'gold' || stored === 'dark') return stored;
     }
-    return true;
+    return 'dark';
   });
+  const isDarkMode = theme !== 'light';
   const [liveTickers, setLiveTickers] = useState<MarketTicker[]>(BASE_TICKERS);
   const [isLiveWs, setIsLiveWs] = useState<boolean>(false);
 
@@ -305,28 +307,28 @@ function TerminalApp() {
 
   // Sync theme with document class and localStorage
   useEffect(() => {
-    if (isDarkMode) {
+    document.documentElement.classList.remove('dark', 'light', 'gold');
+    document.documentElement.classList.add(theme);
+    if (theme === 'gold' || theme === 'dark') {
       document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-      document.documentElement.setAttribute('data-theme', 'dark');
-      try { localStorage.setItem('theme', 'dark'); } catch (e) {}
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-      document.documentElement.setAttribute('data-theme', 'light');
-      try { localStorage.setItem('theme', 'light'); } catch (e) {}
     }
-  }, [isDarkMode]);
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('theme', theme); } catch (e) {}
+  }, [theme]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground font-sans antialiased">
       {/* 1. Real-time Scrolling TickerBar */}
-      <TickerBar tickers={liveTickers} />
+      <TickerBar tickers={liveTickers} isDarkMode={isDarkMode} />
 
       {/* 2. Topbar */}
       <Header
         isDarkMode={isDarkMode}
-        onToggleTheme={() => setIsDarkMode(!isDarkMode)}
+        theme={theme}
+        onSelectTheme={(t) => setTheme(t)}
+        onToggleTheme={() => {
+          setTheme(prev => (prev === 'dark' ? 'light' : prev === 'light' ? 'gold' : 'dark'));
+        }}
         onOpenAccount={() => setIsProfileModalOpen(true)}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onNavigateHome={() => setActiveTab('global-score')}
@@ -397,7 +399,7 @@ function TerminalApp() {
               {(activeTab === 'indian-stock-ai' || activeTab === 'indian-stocks' || activeTab === 'nifty-500') && <IndianStockAiView />}
               {(activeTab === 'usa-stock-ai' || activeTab === 'usa-stocks' || activeTab === 'russell-1000' || activeTab === 'indmoney-us') && <UsaTop1000AiView />}
               {(activeTab === 'volume-profile-ai' || activeTab === 'volume-profile' || activeTab === 'volume-profile-pro' || activeTab === 'volume-profile-setup' || activeTab === 'vp-terminal') && <VolumeProfileTerminalView />}
-              {(activeTab === 'gold-ai' || activeTab === 'gold-trading-ai') && <GoldTradingAiView />}
+              {(activeTab === 'gold-ai' || activeTab === 'gold-trading-ai' || activeTab === 'gold' || activeTab === 'gold-macro' || activeTab === 'gold-intelligence' || activeTab === 'gold-dashboard') && <GoldAiMarketIntelligenceView onNavigate={setActiveTab} />}
               {activeTab === 'global-intel' && <GlobalIntelView />}
               {activeTab === 'ultra-ai' && <UltraInstitutionalDecisionEngine onNavigate={setActiveTab} />}
               {activeTab === 'order-flow' && <OrderFlowTerminal onNavigate={setActiveTab} />}

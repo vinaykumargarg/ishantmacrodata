@@ -515,32 +515,8 @@ export const AdvancedInstitutionalChart: React.FC = () => {
       );
     }
 
-    // Previous High / Low (PDH, PDL, Daily Open)
+    // Previous High / Low (PDH, PDL removed per user request)
     if (layers.previousHighLow && analysis.importantLevels) {
-      if (analysis.importantLevels.pdh) {
-        priceLinesRef.current.push(
-          series.createPriceLine({
-            price: analysis.importantLevels.pdh,
-            color: '#38bdf8',
-            lineWidth: 1,
-            lineStyle: LineStyle.Dotted,
-            axisLabelVisible: false,
-            title: 'PDH'
-          })
-        );
-      }
-      if (analysis.importantLevels.pdl) {
-        priceLinesRef.current.push(
-          series.createPriceLine({
-            price: analysis.importantLevels.pdl,
-            color: '#38bdf8',
-            lineWidth: 1,
-            lineStyle: LineStyle.Dotted,
-            axisLabelVisible: false,
-            title: 'PDL'
-          })
-        );
-      }
       if (analysis.importantLevels.dailyOpen) {
         priceLinesRef.current.push(
           series.createPriceLine({
