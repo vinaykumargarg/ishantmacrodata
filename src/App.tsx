@@ -305,14 +305,20 @@ function TerminalApp() {
     };
   }, []);
 
-  // Sync theme with document class and localStorage
+  // Sync theme with document class, body class and localStorage
   useEffect(() => {
     document.documentElement.classList.remove('dark', 'light', 'gold');
     document.documentElement.classList.add(theme);
+    if (document.body) {
+      document.body.classList.remove('dark', 'light', 'gold');
+      document.body.classList.add(theme);
+    }
     if (theme === 'gold' || theme === 'dark') {
       document.documentElement.classList.add('dark');
+      if (document.body) document.body.classList.add('dark');
     }
     document.documentElement.setAttribute('data-theme', theme);
+    if (document.body) document.body.setAttribute('data-theme', theme);
     try { localStorage.setItem('theme', theme); } catch (e) {}
   }, [theme]);
 

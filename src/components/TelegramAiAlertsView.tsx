@@ -290,16 +290,48 @@ export const TelegramAiAlertsView: React.FC = () => {
       <div className="rounded-xl border border-border/80 bg-gradient-to-br from-card via-card/90 to-background/95 p-5 shadow-lg relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-xl">
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-lg">
-                🤖
-              </span>
-              <div>
-                <h3 className="text-sm font-bold text-foreground">
-                  Connect Through Official Telegram Bot: <span className="text-gold">@{connectionStatus.botUsername}</span>
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Backend secrets securely stored in environment. Tokens are never exposed in client code.
+            <div className="flex items-start gap-3.5 p-3 rounded-xl bg-secondary/50 border border-border/80">
+              <div className="relative shrink-0">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-900 font-extrabold text-[11px] shadow-md border-2 border-slate-600 select-none">
+                  <span>ishantmacro.ai</span>
+                </div>
+                {/* Official Telegram Blue Verified Badge on avatar */}
+                <div className="absolute -bottom-1 -right-1 rounded-full bg-[#0a0f1d] p-0.5 shadow">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" fill="#2AABEE" />
+                    <path d="M9.5 16.5l-3.5-3.5 1.41-1.41L9.5 13.67l7.09-7.09L18 8z" fill="#ffffff" />
+                  </svg>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-base font-extrabold text-foreground font-sans tracking-tight">
+                    ISHANTMACRO.AI
+                  </h3>
+                  {/* Blue Verified Badge */}
+                  <span title="Verified Official Telegram Bot" className="inline-flex items-center cursor-pointer">
+                    <svg className="w-4 h-4 drop-shadow-sm" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#2AABEE" />
+                      <path d="M9.5 16.5l-3.5-3.5 1.41-1.41L9.5 13.67l7.09-7.09L18 8z" fill="#ffffff" />
+                    </svg>
+                  </span>
+                  <span className="text-[10px] font-mono text-muted-foreground uppercase px-1.5 py-0.5 rounded bg-background/80 border border-border">
+                    bot
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5 font-mono text-xs text-sky-400">
+                  <a
+                    href="https://t.me/Researchsomething_bot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    @{connectionStatus.botUsername}
+                    <span className="text-[10px] text-muted-foreground font-sans">↗</span>
+                  </a>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                  ISHANTMACRO.AI — 24/7 Market Radar &amp; AI Trading Assistant
                 </p>
               </div>
             </div>
@@ -967,6 +999,87 @@ export const TelegramAiAlertsView: React.FC = () => {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── BOT PROFILE & QR CODE MODAL ── */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="relative w-full max-w-md rounded-2xl border border-sky-500/40 bg-[#080d1a] p-6 shadow-2xl text-center space-y-4">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-secondary cursor-pointer"
+            >
+              ✕
+            </button>
+
+            {/* Profile Avatar with Verified Badge */}
+            <div className="relative inline-block mx-auto mt-2">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white text-slate-900 font-extrabold text-xs shadow-xl border-2 border-slate-600">
+                <span className="text-[12px] font-bold">ishantmacro.ai</span>
+              </div>
+              <div className="absolute -bottom-1 -right-1 rounded-full bg-[#080d1a] p-0.5">
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" fill="#2AABEE" />
+                  <path d="M9.5 16.5l-3.5-3.5 1.41-1.41L9.5 13.67l7.09-7.09L18 8z" fill="#ffffff" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Bot Title & Verified Checkmark */}
+            <div>
+              <div className="flex items-center justify-center gap-1.5">
+                <h3 className="text-xl font-extrabold text-white tracking-tight">
+                  ISHANTMACRO.AI
+                </h3>
+                {/* Official Telegram Blue Checkmark */}
+                <svg className="w-5 h-5 drop-shadow" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" fill="#2AABEE" />
+                  <path d="M9.5 16.5l-3.5-3.5 1.41-1.41L9.5 13.67l7.09-7.09L18 8z" fill="#ffffff" />
+                </svg>
+              </div>
+              <p className="text-xs text-sky-400 font-mono mt-0.5">
+                @{connectionStatus.botUsername}
+              </p>
+              <p className="text-xs text-slate-300 mt-1 max-w-xs mx-auto">
+                ISHANTMACRO.AI — 24/7 Market Radar &amp; AI Trading Assistant
+              </p>
+            </div>
+
+            {/* QR Code Container */}
+            <div className="p-3 bg-white rounded-xl inline-block shadow-inner mx-auto">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://t.me/${connectionStatus.botUsername}?start=ishant_terminal`)}`}
+                alt="Telegram Bot QR Code"
+                className="w-44 h-44 mx-auto rounded"
+              />
+            </div>
+
+            <p className="text-[11px] text-muted-foreground font-mono">
+              Scan with Telegram or camera to open bot instantly
+            </p>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <a
+                href={`https://t.me/${connectionStatus.botUsername}?start=ishant_terminal`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#229ED9] hover:bg-[#1e8ec3] text-white py-2.5 px-4 text-xs font-bold transition shadow-md"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.37.74-.56 2.92-1.27 4.86-2.11 5.83-2.52 2.77-1.15 3.35-1.35 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06-.01.19-.03.36z" />
+                </svg>
+                Open in Telegram App
+              </a>
+              <button
+                onClick={() => setShowQrModal(false)}
+                className="text-xs text-muted-foreground hover:text-foreground py-1"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

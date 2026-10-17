@@ -2303,7 +2303,14 @@ export const DeeeprAiChartView: React.FC = () => {
               <span className="text-base">📲</span>
               <span className="font-bold">{telegramStatusMsg}</span>
             </div>
-            <span className="text-[10px] text-sky-400 font-mono">@Researchsomething_bot</span>
+            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+              <span className="text-white font-bold">ISHANTMACRO.AI</span>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" fill="#2AABEE" />
+                <path d="M9.5 16.5l-3.5-3.5 1.41-1.41L9.5 13.67l7.09-7.09L18 8z" fill="#ffffff" />
+              </svg>
+              <span className="text-sky-400">@Researchsomething_bot</span>
+            </div>
           </div>
         )}
 

@@ -251,33 +251,76 @@ p, span, div, a, button, input, select, textarea {
   line-height: 1.8 !important;
 }
 
-/* Cards & Surfaces */
+/* Cards & Surfaces — Universal Theme Consistency */
 .card,
 .panel,
+article.panel,
+section.panel,
+div.panel,
 .bg-card,
 [class*="bg-card"],
 .terminal-card-glass,
 .top5-card,
 .royal-card {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
   border-radius: var(--radius);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+html.dark .card,
+html.dark .panel,
+html.dark article.panel,
+html.dark section.panel,
+html.dark div.panel,
+html.dark .bg-card,
+html.dark [class*="bg-card"],
+html.dark .terminal-card-glass,
+html[data-theme='dark'] .card,
+html[data-theme='dark'] .panel,
+html[data-theme='dark'] article.panel,
+html[data-theme='dark'] section.panel,
+html[data-theme='dark'] div.panel,
+body.dark .panel,
+body.dark article.panel,
+body.dark section.panel,
+body.dark div.panel {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6) !important;
 }
 
 html.light .card,
 html.light .panel,
+html.light article.panel,
+html.light section.panel,
+html.light div.panel,
 html.light .bg-card,
 html.light [class*="bg-card"],
-html.light .terminal-card-glass {
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.08);
+html.light .terminal-card-glass,
+html[data-theme='light'] .panel,
+body.light .panel {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.08) !important;
 }
 
 html.gold .card,
 html.gold .panel,
+html.gold article.panel,
+html.gold section.panel,
+html.gold div.panel,
 html.gold .bg-card,
-html.gold [class*="bg-card"] {
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.06);
+html.gold [class*="bg-card"],
+html[data-theme='gold'] .panel,
+body.gold .panel {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.08) !important;
 }
 
 /* Directional Colors */

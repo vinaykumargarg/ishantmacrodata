@@ -4,7 +4,60 @@
    Exact White/Light Theme & Dark Terminal Theme
    ========================================================================== */
 
-:root, html[data-theme=light], body:not(.dark) {
+/* ────────────────── DARK THEME TOKENS (DEFAULT OBSIDIAN THEME) ────────────────── */
+:root,
+html.dark,
+html[data-theme='dark'],
+body.dark,
+[data-theme='dark'] {
+  /* ── EXACT IITIANMACRO DARK THEME TOKENS ── */
+  --bg: #07090f;
+  --bg2: #0a0e17;
+  --panel: #0d1220;
+  --panel2: #111830;
+  --glass: #1118309e;
+  --line: #1c2540;
+  --line2: #27314f;
+  --rowline: #131b33;
+  --barbg: #1a2444;
+  --thumb: #232d4d;
+  --topbar: #090d18d9;
+  --grad1: #101a3a;
+  --skel1: #0e1529;
+  --skel2: #16203c;
+  --lockbg: #07090f8c;
+  --gridc: #182142;
+  --tickc: #5f6b8a;
+  --legc: #9aa6c0;
+  
+  --txt: #e8ecf5;
+  --txt2: #9aa6c0;
+  --txt3: #5f6b8a;
+  
+  --grn: #22c55e;
+  --grnbg: #22c55e1f;
+  --red: #f43f5e;
+  --redbg: #f43f5e1f;
+  --amb: #f59e0b;
+  --ambbg: #f59e0b1f;
+  --blu: #38bdf8;
+  --blubg: #38bdf81f;
+  --pur: #a78bfa;
+  --purbg: #a78bfa24;
+  --gold: #fbbf24;
+  --cy: #2dd4bf;
+  
+  --s0: #090d18;
+  --s1: #0c1225;
+  --s2: #0b1122;
+  --s3: #121a34;
+}
+
+/* ────────────────── LIGHT THEME TOKENS (CLEAN PRO THEME) ────────────────── */
+html.light,
+html[data-theme='light'],
+body.light,
+[data-theme='light'] {
   /* ── EXACT IITIANMACRO LIGHT/WHITE THEME TOKENS ── */
   --bg: #eef1f7;
   --bg2: #e8ecf5;
@@ -49,51 +102,6 @@
   --s0: #ffffff;
   --s1: #f2f5fb;
   --s2: #f7f9fd;
-  --s3: #e9eef8;
-}
-
-html[data-theme=dark], body.dark {
-  /* ── EXACT IITIANMACRO DARK THEME TOKENS ── */
-  --bg: #07090f;
-  --bg2: #0a0e17;
-  --panel: #0d1220;
-  --panel2: #111830;
-  --glass: #1118309e;
-  --line: #1c2540;
-  --line2: #27314f;
-  --rowline: #131b33;
-  --barbg: #1a2444;
-  --thumb: #232d4d;
-  --topbar: #090d18d9;
-  --grad1: #101a3a;
-  --skel1: #0e1529;
-  --skel2: #16203c;
-  --lockbg: #07090f8c;
-  --gridc: #182142;
-  --tickc: #5f6b8a;
-  --legc: #9aa6c0;
-  
-  --txt: #e8ecf5;
-  --txt2: #9aa6c0;
-  --txt3: #5f6b8a;
-  
-  --grn: #22c55e;
-  --grnbg: #22c55e1f;
-  --red: #f43f5e;
-  --redbg: #f43f5e1f;
-  --amb: #f59e0b;
-  --ambbg: #f59e0b1f;
-  --blu: #38bdf8;
-  --blubg: #38bdf81f;
-  --pur: #a78bfa;
-  --purbg: #a78bfa24;
-  --gold: #fbbf24;
-  --cy: #2dd4bf;
-  
-  --s0: #090d18;
-  --s1: #0c1225;
-  --s2: #0b1122;
-  --s3: #121a34;
 }
 
 /* ────────────────── 1. GLOBAL CANVAS ────────────────── */
@@ -378,6 +386,8 @@ a {
   font-weight: 700;
 }
 
+html.dark .nav-item.on,
+html[data-theme='dark'] .nav-item.on,
 body.dark .nav-item.on {
   color: #fff;
   border-left: 2px solid var(--blu);
@@ -405,9 +415,13 @@ body.dark .nav-item.on {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+html.dark .card, html.dark .royal-card, html.dark .terminal-panel, html.dark .panel,
+html[data-theme='dark'] .card, html[data-theme='dark'] .royal-card, html[data-theme='dark'] .terminal-panel, html[data-theme='dark'] .panel,
 body.dark .card, body.dark .royal-card, body.dark .terminal-panel, body.dark .panel {
-  background: var(--glass) !important;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
+  background: var(--panel) !important;
+  border-color: var(--line) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6) !important;
+  color: var(--txt) !important;
 }
 
 .card:hover, .royal-card:hover, .terminal-panel:hover, .panel:hover {
