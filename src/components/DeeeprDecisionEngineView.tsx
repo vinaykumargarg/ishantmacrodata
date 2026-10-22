@@ -11,10 +11,12 @@ import {
 } from 'lightweight-charts';
 import {
   evaluateDeeeprMarketDecision,
+  evaluateUserChallenge,
   forceResetDeeeprDecision,
   getDecisionChangeLog,
   DeeeprInstitutionalOutput,
-  DecisionChangeRecord
+  DecisionChangeRecord,
+  UserChallengeResult
 } from '../services/deeeprMarketDecisionEngine';
 import {
   getFullIntermarketRadarSnapshot,
@@ -81,6 +83,23 @@ export const DeeeprDecisionEngineView: React.FC<DeeeprDecisionEngineViewProps> =
   const [changeLogs, setChangeLogs] = useState<DecisionChangeRecord[]>([]);
   const [copiedSmcAlert, setCopiedSmcAlert] = useState<boolean>(false);
   const [forceTick, setForceTick] = useState<number>(0);
+  const [userChallengeInput, setUserChallengeInput] = useState<string>('');
+  const [challengeResult, setChallengeResult] = useState<UserChallengeResult | null>(null);
+  const [isAuditingChallenge, setIsAuditingChallenge] = useState<boolean>(false);
+  const [showChallengeAuditTrail, setShowChallengeAuditTrail] = useState<boolean>(true);
+  const [showBacktestCard, setShowBacktestCard] = useState<boolean>(false);
+
+  const handleRunChallenge = (promptText?: string) => {
+    const query = promptText || userChallengeInput;
+    if (!query.trim()) return;
+    setIsAuditingChallenge(true);
+    setTimeout(() => {
+      const result = evaluateUserChallenge(selectedSymbol, query, livePrice, candles);
+      setChallengeResult(result);
+      setIsAuditingChallenge(false);
+      setShowChallengeAuditTrail(true);
+    }, 450);
+  };
 
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
@@ -1585,6 +1604,258 @@ export const DeeeprDecisionEngineView: React.FC<DeeeprDecisionEngineViewProps> =
           <span>Bias: <strong className="text-white font-bold">{decisionOutput.primaryBias}</strong></span>
         </div>
       </div>
+
+      {/* ────────────────── 3.1 NEXT EVENT TO WATCH (THE SINGLE CRITICAL TRIGGER) ────────────────── */}
+      <section className="rounded-2xl border-2 border-amber-500/60 bg-gradient-to-r from-[#170e03] via-[#100b02] to-[#0a0701] p-4 sm:p-5 shadow-2xl relative overflow-hidden space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-amber-500/30 pb-2.5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-2xl animate-pulse">⚡</span>
+            <div>
+              <span className="text-xs font-sans uppercase font-black tracking-widest text-amber-400 block">
+                THE SINGLE NEXT EVENT TO WATCH (RULE 23 & 25)
+              </span>
+              <h3 className="text-sm sm:text-base font-black text-white font-sans">
+                Next Market Catalyst Required Before Signal Execution
+              </h3>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-black border ${
+              decisionOutput.signalState === 'LONG-ACTIVE'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                : decisionOutput.signalState === 'SHORT-ACTIVE'
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/50'
+                : decisionOutput.signalState === 'WATCH-LONG'
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                : decisionOutput.signalState === 'WATCH-SHORT'
+                ? 'bg-purple-500/20 text-purple-300 border-purple-500/50'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+            }`}>
+              STATE: {decisionOutput.signalState || 'WAIT'}
+            </span>
+            <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-slate-900 border border-slate-700 text-slate-300">
+              LOC: {decisionOutput.locationLabel || 'ANALYZING'}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-black/40 border border-amber-500/40 text-amber-200 font-mono text-xs sm:text-sm leading-relaxed flex items-start gap-3">
+          <span className="text-lg mt-0.5">🎯</span>
+          <div className="space-y-1">
+            <strong className="text-amber-300 block font-sans uppercase text-xs tracking-wider">
+              TRIGGER SPECIFICATION:
+            </strong>
+            <p className="text-slate-100 font-sans text-xs sm:text-sm leading-relaxed">
+              {decisionOutput.nextTrigger}
+            </p>
+            <p className="text-[11px] text-amber-400/80 font-sans italic pt-0.5">
+              ⚠️ Location Assessment: {decisionOutput.locationDetails}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────────── 3.2 DUAL EVIDENCE SCORING & 15-POINT HYSTERESIS BARRIER ────────────────── */}
+      <section className="rounded-2xl border border-slate-800 bg-[#060a16] p-4 sm:p-5 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-2xl">⚖️</span>
+            <div>
+              <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider font-sans flex items-center gap-2">
+                <span>INDEPENDENT DUAL EVIDENCE SCORING & 15-PT HYSTERESIS ENGINE</span>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-mono">
+                  RULE 7 & 8 ANTI-FLIP
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 font-sans">
+                Long and Short scores evaluated independently (0–100). Signal flipping strictly locked unless opposite side holds ≥ 15 pt barrier + structural invalidation.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-lg text-xs font-black font-mono border ${
+              decisionOutput.dualScore?.canFlip
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+            }`}>
+              {decisionOutput.dualScore?.canFlip ? '⚡ FLIP CRITERIA MET' : '🔒 15-PT HYSTERESIS LOCKED'}
+            </span>
+          </div>
+        </div>
+
+        {/* DUAL GAUGES SIDE-BY-SIDE */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* LONG SCORE METER */}
+          <div className="p-3.5 rounded-xl bg-[#04130c] border border-emerald-500/40 space-y-2">
+            <div className="flex items-center justify-between font-mono">
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 uppercase font-sans">
+                <span>🟢</span> Bullish Confluence Score
+              </span>
+              <span className="text-lg font-black text-emerald-300">
+                {decisionOutput.dualScore?.longScore || 0}<span className="text-xs text-slate-400">/100</span>
+              </span>
+            </div>
+            {/* Progress Bar */}
+            <div className="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800">
+              <div
+                className="bg-gradient-to-r from-emerald-600 to-emerald-400 h-2.5 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, decisionOutput.dualScore?.longScore || 0)}%` }}
+              />
+            </div>
+            {/* Breakdown Chips */}
+            {decisionOutput.dualScore?.longBreakdown && (
+              <div className="grid grid-cols-4 gap-1.5 text-[10px] font-mono pt-1 text-slate-300">
+                <span className="p-1 rounded bg-black/40 text-center" title="HTF Structure (Max 20)">
+                  HTF: <strong className="text-emerald-400">{decisionOutput.dualScore.longBreakdown.htfStructure}/20</strong>
+                </span>
+                <span className="p-1 rounded bg-black/40 text-center" title="Location & S/R (Max 15)">
+                  S/R: <strong className="text-emerald-400">{decisionOutput.dualScore.longBreakdown.srLocation}/15</strong>
+                </span>
+                <span className="p-1 rounded bg-black/40 text-center" title="Liquidity Sweep/Reclaim (Max 15)">
+                  LIQ: <strong className="text-emerald-400">{decisionOutput.dualScore.longBreakdown.liquidity}/15</strong>
+                </span>
+                <span className="p-1 rounded bg-black/40 text-center" title="MSS/CHoCH/BOS (Max 15)">
+                  MSS: <strong className="text-emerald-400">{decisionOutput.dualScore.longBreakdown.mssConfirm}/15</strong>
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* SHORT SCORE METER */}
+          <div className="p-3.5 rounded-xl bg-[#140608] border border-rose-500/40 space-y-2">
+            <div className="flex items-center justify-between font-mono">
+              <span className="text-xs font-bold text-rose-400 flex items-center gap-1.5 uppercase font-sans">
+                <span>🔴</span> Bearish Confluence Score
+              </span>
+              <span className="text-lg font-black text-rose-300">
+                {decisionOutput.dualScore?.shortScore || 0}<span className="text-xs text-slate-400">/100</span>
+              </span>
+            </div>
+            {/* Progress Bar */}
+            <div className="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800">
+              <div
+                className="bg-gradient-to-r from-rose-600 to-rose-400 h-2.5 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, decisionOutput.dualScore?.shortScore || 0)}%` }}
+              />
+            </div>
+            {/* Breakdown Chips */}
+            {decisionOutput.dualScore?.shortBreakdown && (
+              <div className="grid grid-cols-4 gap-1.5 text-[10px] font-mono pt-1 text-slate-300">
+                <span className="p-1 rounded bg-black/40 text-center" title="HTF Structure (Max 20)">
+                  HTF: <strong className="text-rose-400">{decisionOutput.dualScore.shortBreakdown.htfStructure}/20</strong>
+                </span>
+                <span className="p-1 rounded bg-black/40 text-center" title="Location & S/R (Max 15)">
+                  S/R: <strong className="text-rose-400">{decisionOutput.dualScore.shortBreakdown.srLocation}/15</strong>
+                </span>
+                <span className="p-1 rounded bg-black/40 text-center" title="Liquidity Sweep/Reject (Max 15)">
+                  LIQ: <strong className="text-rose-400">{decisionOutput.dualScore.shortBreakdown.liquidity}/15</strong>
+                </span>
+                <span className="p-1 rounded bg-black/40 text-center" title="MSS/CHoCH/BOS (Max 15)">
+                  MSS: <strong className="text-rose-400">{decisionOutput.dualScore.shortBreakdown.mssConfirm}/15</strong>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* HYSTERESIS LOCK EXPLANATION FOOTER */}
+        <div className="p-3 rounded-xl bg-[#091122] border border-cyan-500/30 text-xs font-sans text-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🛡️</span>
+            <span>
+              <strong>Spread Advantage:</strong>{' '}
+              <span className="font-mono text-cyan-300 font-bold">
+                {decisionOutput.dualScore?.dominantSide} +{decisionOutput.dualScore?.spread || 0} pts
+              </span>
+              {' · '}
+              <span className="text-slate-300">{decisionOutput.dualScore?.flipBlockReason}</span>
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono">
+            Hysteresis Threshold: ≥15 pts delta
+          </span>
+        </div>
+      </section>
+
+      {/* ────────────────── 3.3 ACTIVE 3-SCENARIO MATRIX (BULLISH / BEARISH / NO-TRADE) ────────────────── */}
+      {decisionOutput.scenarios && (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider font-sans flex items-center gap-2">
+              <span>🧭</span>
+              <span>ACTIVE 3-SCENARIO PROBABILITY MATRIX (SECTION 7 & 23)</span>
+            </h3>
+            <span className="text-xs text-slate-400 font-sans">Scenarios Formulated Before Trade Selection</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {/* SCENARIO A: BULLISH */}
+            <div className="p-4 rounded-xl bg-[#03140e] border border-emerald-500/40 space-y-2 shadow-md">
+              <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                <span className="text-xs font-bold text-emerald-300 uppercase tracking-wide flex items-center gap-1.5 font-sans">
+                  <span>📈</span> {decisionOutput.scenarios.bullishScenario.title}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">
+                  EXPANSION
+                </span>
+              </div>
+              <p className="text-xs text-slate-200 font-sans leading-relaxed">
+                <strong>Conditions:</strong> {decisionOutput.scenarios.bullishScenario.condition}
+              </p>
+              <div className="text-[11px] font-mono text-slate-300 space-y-1 pt-1 border-t border-slate-800/80">
+                <span className="block text-emerald-400">
+                  Target: {decisionOutput.scenarios.bullishScenario.target}
+                </span>
+                <span className="block text-rose-400/90">
+                  Invalidation: {decisionOutput.scenarios.bullishScenario.invalidation}
+                </span>
+              </div>
+            </div>
+
+            {/* SCENARIO B: BEARISH */}
+            <div className="p-4 rounded-xl bg-[#140508] border border-rose-500/40 space-y-2 shadow-md">
+              <div className="flex items-center justify-between border-b border-rose-500/20 pb-2">
+                <span className="text-xs font-bold text-rose-300 uppercase tracking-wide flex items-center gap-1.5 font-sans">
+                  <span>📉</span> {decisionOutput.scenarios.bearishScenario.title}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono font-bold">
+                  REJECTION
+                </span>
+              </div>
+              <p className="text-xs text-slate-200 font-sans leading-relaxed">
+                <strong>Conditions:</strong> {decisionOutput.scenarios.bearishScenario.condition}
+              </p>
+              <div className="text-[11px] font-mono text-slate-300 space-y-1 pt-1 border-t border-slate-800/80">
+                <span className="block text-rose-400">
+                  Target: {decisionOutput.scenarios.bearishScenario.target}
+                </span>
+                <span className="block text-amber-400/90">
+                  Invalidation: {decisionOutput.scenarios.bearishScenario.invalidation}
+                </span>
+              </div>
+            </div>
+
+            {/* SCENARIO C: NO TRADE */}
+            <div className="p-4 rounded-xl bg-[#110e03] border border-amber-500/40 space-y-2 shadow-md">
+              <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wide flex items-center gap-1.5 font-sans">
+                  <span>🛡️</span> {decisionOutput.scenarios.noTradeScenario.title}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold">
+                  CAPITAL DEFENSE
+                </span>
+              </div>
+              <p className="text-xs text-slate-200 font-sans leading-relaxed">
+                <strong>Conditions:</strong> {decisionOutput.scenarios.noTradeScenario.condition}
+              </p>
+              <div className="text-[11px] font-sans text-amber-300/90 pt-1 border-t border-slate-800/80 leading-relaxed">
+                💡 {decisionOutput.scenarios.noTradeScenario.capitalProtectionNote}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ────────────────── 4. KEY TRADE LEVELS (CALIBRATED RRR 1:1.30 – 1:1.40) ────────────────── */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
@@ -3353,6 +3624,213 @@ export const DeeeprDecisionEngineView: React.FC<DeeeprDecisionEngineViewProps> =
           ))}
         </div>
       </section>
+
+      {/* ────────────────── 7.5 INDEPENDENT USER CHALLENGE & ANTI-FLIP AUDIT PROTOCOL (RULES 15 & 24) ────────────────── */}
+      <section className="bg-[#080d1e] p-4 sm:p-5 rounded-2xl border-2 border-indigo-500/50 space-y-4 font-sans shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-indigo-500/30 pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-2xl">🛡️</span>
+            <div>
+              <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider font-sans flex items-center gap-2">
+                <span>INDEPENDENT USER CHALLENGE AUDIT & ANTI-FLIP SIMULATOR</span>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-mono">
+                  RULE 15 & 24 STRICT COMPLIANCE
+                </span>
+              </h3>
+              <p className="text-xs text-slate-300 font-sans">
+                User assertions (e.g., &quot;Market is falling, why LONG?&quot;) NEVER control the trade. The engine runs an independent 9-step live data audit to verify structure without bias.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-mono text-cyan-300 bg-cyan-950/60 px-2.5 py-1 rounded border border-cyan-500/40 font-bold">
+            9-STEP RE-CHECK PROTOCOL
+          </span>
+        </div>
+
+        {/* QUICK QUESTION CHIPS */}
+        <div className="space-y-2">
+          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">
+            Test Real-Time Anti-Flip Engine With User Challenge Prompts:
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: '📉 "Why are you giving LONG when BTC is falling?"', query: 'Why are you giving LONG when BTC is falling?' },
+              { label: '📈 "Why are you giving SHORT when BTC is rising?"', query: 'Why are you giving SHORT when BTC is rising?' },
+              { label: '⚠️ "Market is definitely going SHORT now!"', query: 'Market is definitely going SHORT now!' },
+              { label: '⚖️ "Why is the engine in WAIT mode? Force trade!"', query: 'Why is the engine in WAIT mode? Force a trade now.' }
+            ].map((chip, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setUserChallengeInput(chip.query);
+                  handleRunChallenge(chip.query);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-[#0f172a] hover:bg-indigo-950 border border-indigo-500/30 hover:border-indigo-400 text-slate-200 text-xs font-sans transition-all cursor-pointer shadow-sm text-left"
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* CUSTOM CHALLENGE INPUT */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            value={userChallengeInput}
+            onChange={(e) => setUserChallengeInput(e.target.value)}
+            placeholder="Challenge DEEEPR AI (e.g., 'Market dropped 1500 pts, switch to SHORT now...')"
+            className="flex-1 px-3.5 py-2 rounded-xl bg-[#03060f] border border-slate-700 text-white placeholder-slate-500 text-xs sm:text-sm font-sans focus:outline-none focus:border-indigo-500"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleRunChallenge();
+            }}
+          />
+          <button
+            onClick={() => handleRunChallenge()}
+            disabled={isAuditingChallenge || !userChallengeInput.trim()}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:brightness-110 text-white font-black text-xs sm:text-sm font-sans transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            {isAuditingChallenge ? (
+              <>
+                <span className="animate-spin">⚙️</span>
+                <span>Auditing Live Data...</span>
+              </>
+            ) : (
+              <>
+                <span>🔬</span>
+                <span>Run 9-Step Independent Audit</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* 9-STEP AUDIT TRAIL MODAL / CARD */}
+        {challengeResult && (
+          <div className="p-4 rounded-xl bg-[#030712] border-2 border-indigo-500/40 space-y-3.5 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">
+                  {challengeResult.caseOutcome === 'CASE_A_RETAINED' ? '🟢' : challengeResult.caseOutcome === 'CASE_B_UNDER_REVIEW' ? '🟡' : '🔴'}
+                </span>
+                <div>
+                  <span className="text-xs text-slate-400 font-sans block">Audit Query: &ldquo;{challengeResult.query}&rdquo;</span>
+                  <strong className="text-sm font-black text-white font-sans">
+                    {challengeResult.caseOutcome === 'CASE_A_RETAINED' && 'CASE A: ACTIVE THESIS RETAINED — PRICE ACTION IS PULLBACK WITHIN INVALIDATION'}
+                    {challengeResult.caseOutcome === 'CASE_B_UNDER_REVIEW' && 'CASE B: ACTIVE THESIS UNDER REVIEW — WAITING FOR CONFIRMATION'}
+                    {challengeResult.caseOutcome === 'CASE_C_INVALIDATED' && 'CASE C: THESIS STRUCTURALLY INVALIDATED — TRANSITIONING TO REVERSAL/WAIT'}
+                  </strong>
+                </div>
+              </div>
+              <span className={`px-3 py-1 rounded-lg text-xs font-mono font-black border self-start sm:self-auto ${
+                challengeResult.caseOutcome === 'CASE_A_RETAINED'
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : challengeResult.caseOutcome === 'CASE_B_UNDER_REVIEW'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+              }`}>
+                VERDICT: {challengeResult.finalVerdict}
+              </span>
+            </div>
+
+            {/* 9 AUDIT STEPS GRID */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs font-sans">
+              {challengeResult.steps.map((st) => (
+                <div key={st.stepNumber} className="p-2.5 rounded-lg bg-[#070e1c] border border-slate-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-cyan-300 font-mono text-[11px]">
+                      Step {st.stepNumber}: {st.title}
+                    </span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold font-mono ${
+                      st.status === 'VERIFIED' ? 'bg-emerald-500/20 text-emerald-300' : st.status === 'FLAGGED' ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-300'
+                    }`}>
+                      {st.status}
+                    </span>
+                  </div>
+                  <p className="text-slate-200 text-xs leading-relaxed">{st.detail}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* SUMMARY RATIONALE */}
+            <div className="p-3 rounded-lg bg-[#0e1628] border border-indigo-500/30 text-xs font-sans text-slate-100 leading-relaxed">
+              <strong className="text-indigo-300 block mb-1 uppercase tracking-wide">
+                ⚖️ INDEPENDENT SOVEREIGN DECISION RATIONALE:
+              </strong>
+              {challengeResult.summaryRationale}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ────────────────── 7.6 BACKTEST TRANSPARENCY & ANTI-HALLUCINATION AUDIT (RULE 22) ────────────────── */}
+      {decisionOutput.backtestMetrics && (
+        <section className="bg-[#050914] p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3 font-sans">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📊</span>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider font-sans flex items-center gap-2">
+                  <span>BACKTEST AUDIT & ANTI-HALLUCINATION TRANSPARENCY CARD</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 border border-slate-700 text-slate-300 font-mono">
+                    RULE 22 MANDATORY
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 font-sans">
+                  Measured backtest results over a fixed rolling sample. Zero fabricated percentages or whale claims.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowBacktestCard(!showBacktestCard)}
+              className="text-xs text-cyan-400 hover:text-cyan-300 font-mono underline cursor-pointer"
+            >
+              {showBacktestCard ? 'Hide Details ▲' : 'Show Full Audit ▼'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs font-sans">
+            <div className="p-3 rounded-xl bg-[#091122] border border-slate-800 text-center">
+              <span className="text-[11px] text-slate-400 block uppercase font-medium">Sample Size</span>
+              <span className="text-base sm:text-lg font-black text-white font-mono">{decisionOutput.backtestMetrics.sampleSize}</span>
+              <span className="text-[10px] text-slate-500 block">Verified Trades</span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#091122] border border-slate-800 text-center">
+              <span className="text-[11px] text-slate-400 block uppercase font-medium">Time Period</span>
+              <span className="text-base sm:text-lg font-black text-cyan-300 font-mono">{decisionOutput.backtestMetrics.timePeriod}</span>
+              <span className="text-[10px] text-slate-500 block">Rolling Window</span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#051c16] border border-emerald-500/30 text-center">
+              <span className="text-[11px] text-emerald-400 block uppercase font-medium">Win Rate</span>
+              <span className="text-base sm:text-lg font-black text-emerald-300 font-mono">{decisionOutput.backtestMetrics.winRatePct}%</span>
+              <span className="text-[10px] text-emerald-400/70 block">Measured Backtest</span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#091122] border border-slate-800 text-center">
+              <span className="text-[11px] text-slate-400 block uppercase font-medium">Profit Factor</span>
+              <span className="text-base sm:text-lg font-black text-amber-300 font-mono">{decisionOutput.backtestMetrics.profitFactor}</span>
+              <span className="text-[10px] text-slate-500 block">Gross Win / Loss</span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#14080a] border border-rose-500/30 text-center">
+              <span className="text-[11px] text-rose-400 block uppercase font-medium">Max Drawdown</span>
+              <span className="text-base sm:text-lg font-black text-rose-300 font-mono">{decisionOutput.backtestMetrics.maxDrawdownPct}%</span>
+              <span className="text-[10px] text-rose-400/70 block">Peak to Trough</span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#091122] border border-slate-800 text-center">
+              <span className="text-[11px] text-slate-400 block uppercase font-medium">Avg Risk:Reward</span>
+              <span className="text-base sm:text-lg font-black text-cyan-300 font-mono">{decisionOutput.backtestMetrics.avgRR}</span>
+              <span className="text-[10px] text-slate-500 block">Realized Ratio</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-[#040812] border border-slate-800 text-xs font-sans text-slate-300 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span className="font-mono text-[11px] text-slate-400">
+              Breakdown: 🟢 {decisionOutput.backtestMetrics.longTradesCount} Longs · 🔴 {decisionOutput.backtestMetrics.shortTradesCount} Shorts · 🟡 {decisionOutput.backtestMetrics.waitSituationsCount} Waits (Capital Preserved)
+            </span>
+            <span className="text-[11px] text-amber-400 font-medium text-center sm:text-right">
+              {decisionOutput.backtestMetrics.disclaimer}
+            </span>
+          </div>
+        </section>
+      )}
 
       {/* ────────────────── 8. DECISION CHANGE LOG (ANTI-FLIP AUDIT TRAIL) ────────────────── */}
       <section className="bg-[#070e1c] p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3 font-sans">
