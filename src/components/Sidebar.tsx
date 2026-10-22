@@ -26,10 +26,11 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { id: 'market-chart-analyse', label: 'Market Chart AI Analyzer ⭐ (A-to-Z Read)', icon: '🔬' },
       { id: 'crypto-wealth-intelligence', label: 'Crypto Long-Term Wealth Intelligence ⭐ (Delta 1-4M+)', icon: '💎' },
       { id: 'institutional-terminal', label: 'Institutional AI Terminal ⭐ (BTC + Gold)', icon: '🏛️' },
-      { id: 'deeepr-ai', label: 'DEEEPR AI Market Decision Engine ⭐ (Institutional Long/Short/Wait)', icon: '🏛️' },
+      { id: 'deeepr-ai', label: 'DEEEPR.AI Copilot & Institutional Sniper Chart ⭐', icon: '📈' },
       { id: 'deeepr-precision-entry', label: 'DEEEPR AI Precision Entry Engine ⭐ (Level-Based Setup)', icon: '🎯' },
+      { id: 'deeepr-decision-engine', label: 'DEEEPR AI Market Decision Engine ⭐ (30-Rule Verification)', icon: '🏛️' },
       { id: 'volume-profile-confluence', label: 'Volume Profile Confluence ⭐ (BTC/USDT.D & Gold/DXY)', icon: '📶' },
-      { id: 'ai-chart', label: 'AI Sniper Chart (Long/Short) 🎯', icon: '📈' }
+      { id: 'ai-chart', label: 'AI Sniper Chart (Long/Short) 🎯', icon: '🎯' }
     ]
   },
   {

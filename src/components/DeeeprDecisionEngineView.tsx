@@ -1517,12 +1517,12 @@ export const DeeeprDecisionEngineView: React.FC<DeeeprDecisionEngineViewProps> =
             </button>
 
             <button
-              onClick={() => onNavigate ? onNavigate('deeepr-ai-chart') : (window.location.hash = '#deeepr-ai-chart')}
-              className="px-3 py-1.5 rounded-lg bg-[#0e1933] border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center gap-1"
-              title="Switch to Full Lightweight-Charts SMC Canvas"
+              onClick={() => onNavigate ? onNavigate('deeepr-ai') : (window.location.hash = '#deeepr-ai')}
+              className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white font-black hover:brightness-125 shadow-md shadow-cyan-950/40 transition-all cursor-pointer flex items-center gap-1.5 border border-cyan-400/50"
+              title="Switch to DEEEPR.AI Institutional Chart Canvas"
             >
               <span>📈</span>
-              <span>Open Chart Canvas</span>
+              <span>DEEEPR.AI Copilot Chart ⭐</span>
             </button>
 
             <button

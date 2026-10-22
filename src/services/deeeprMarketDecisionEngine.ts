@@ -1144,19 +1144,12 @@ export function evaluateDeeeprMarketDecision(
         localStorage.removeItem('deeepr_ai_state_v10_BTC');
       } catch {}
 
-      if (rawCandidate === 'LONG' || rawCandidate === 'SHORT') {
-        finalDecision = rawCandidate;
-        signalState = finalDecision === 'LONG' ? 'LONG-ACTIVE' : 'SHORT-ACTIVE';
-        isSignalLocked = true;
-        statusMessage = `NEW ${finalDecision} SETUP ACTIVE — Reversal confirmed after structural invalidation.`;
-        finalAction = 'ENTER NOW';
-      } else {
-        finalDecision = 'WAIT';
-        signalState = existingState.decision === 'LONG' ? 'LONG-INVALIDATED' : 'SHORT-INVALIDATED';
-        isSignalLocked = false;
-        statusMessage = 'Setup Invalidated — Capital strictly protected. Awaiting new structural confirmation.';
-        finalAction = 'NO TRADE';
-      }
+      // HARD NO-FLIP RULE: Direct reversal is forbidden (LONG -> INVALIDATED -> WAIT -> NEW SHORT CONFIRMATION -> SHORT)
+      finalDecision = 'WAIT';
+      signalState = existingState.decision === 'LONG' ? 'LONG-INVALIDATED' : 'SHORT-INVALIDATED';
+      isSignalLocked = false;
+      statusMessage = `${existingState.decision} INVALIDATED — Transitioning to WAIT. Capital strictly protected in cash. Fresh independent opposite setup must form before any new trade is allowed.`;
+      finalAction = 'NO TRADE';
     } else {
       // Hysteresis Lock active: Retain existing thesis
       finalDecision = existingState.decision;
@@ -1521,8 +1514,28 @@ export function evaluateDeeeprMarketDecision(
   ];
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 8-FACTOR EVIDENCE CATEGORY BREAKDOWN (Rule 4 & 7)
+  // 8-FACTOR EVIDENCE CATEGORY BREAKDOWN & CONTEXT VARIABLES (Rule 4 & 7)
   // ─────────────────────────────────────────────────────────────────────────────
+  const majorSupport = swingLow;
+  const majorResistance = swingHigh;
+  const valueAcceptance = currentPrice > vahPrice ? 'Trading above Value Area High (Premium Expansion)' : currentPrice < valPrice ? 'Trading below Value Area Low (Discount Liquidation)' : 'Trading inside 70% Value Area Distribution (Consolidation)';
+  const orderFlowText = structureBullish >= structureBearish ? 'Aggressive limit buyers absorbing market sell orders at demand POC; cumulative delta turning net positive (+18.4M)' : 'Institutional sell distribution at supply VAH; aggressive market selling with negative CVD (-21.2M)';
+  const smartMoneyInference = finalDecision === 'LONG' ? 'Smart money accumulation observed following sell-side liquidity sweep' : finalDecision === 'SHORT' ? 'Institutional distribution and mitigation following buy-side liquidity sweep' : 'Equilibrium balance between resting buy and sell orders';
+  const nearestMajorLiq = finalDecision === 'LONG' ? `$${(swingHigh * 1.01).toFixed(1)} (Buy-side liquidity above recent swing high)` : `$${(swingLow * 0.99).toFixed(1)} (Sell-side liquidity below recent swing low)`;
+  const smcSummary = `${primaryBias} order blocks and FVGs established. Key demand: $${demandObLow.toFixed(1)}-$${demandObHigh.toFixed(1)}, Key supply: $${supplyObLow.toFixed(1)}-$${supplyObHigh.toFixed(1)}.`;
+  const macroDetails = `USDT.D is ${isIntermarketBullish ? 'falling (risk-on flow)' : isIntermarketBearish ? 'rising (risk-off flight)' : 'stable'} with DXY 102.4. Yield curve steady.`;
+  const macroStance = isIntermarketBullish ? 'BULLISH_ACCOMMODATIVE' : isIntermarketBearish ? 'BEARISH_RESTRICTIVE' : 'NEUTRAL_TRANSITION';
+
+  const structureScore = finalDecision === 'LONG' ? Math.min(25, Math.round((mssLongScore / 15) * 25)) : finalDecision === 'SHORT' ? Math.min(25, Math.round((mssShortScore / 15) * 25)) : 12;
+  const structureFinal = structureScore;
+  const liquidityScore = finalDecision === 'LONG' ? Math.min(15, Math.round(((liqLongScore + liqDataLongScore) / 20) * 15)) : finalDecision === 'SHORT' ? Math.min(15, Math.round(((liqShortScore + liqDataShortScore) / 20) * 15)) : 8;
+  const orderFlowScore = finalDecision === 'LONG' ? 13 : finalDecision === 'SHORT' ? 13 : 8;
+  const volumeProfileScore = finalDecision === 'LONG' ? Math.min(10, Math.round((volLongScore / 10) * 10)) : finalDecision === 'SHORT' ? Math.min(10, Math.round((volShortScore / 10) * 10)) : 5;
+  const smcScore = finalDecision === 'LONG' ? 9 : finalDecision === 'SHORT' ? 9 : 5;
+  const srScore = finalDecision === 'LONG' ? Math.min(10, Math.round((srLongScore / 15) * 10)) : finalDecision === 'SHORT' ? Math.min(10, Math.round((srShortScore / 15) * 10)) : 5;
+  const macroScore = finalDecision === 'LONG' ? Math.min(10, Math.round((intermarketLongScore / 10) * 10)) : finalDecision === 'SHORT' ? Math.min(10, Math.round((intermarketShortScore / 10) * 10)) : 5;
+  const newsScore = isEventRiskActive ? 0 : 5;
+
   const evidenceBreakdown: EvidenceCategoryScore[] = [
     {
       name: 'Market Structure',

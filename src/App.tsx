@@ -453,9 +453,9 @@ function TerminalApp() {
               {(activeTab === 'liquidation-heatmap' || activeTab === 'liquidation-chart' || activeTab === 'liq-heatmap') && <LiquidationHeatmapTerminalView />}
               {(activeTab === 'market-chart-analyse' || activeTab === 'market-chart-analysis' || activeTab === 'market-chart-analyses' || activeTab === 'chart-ai-vision' || activeTab === 'chart-analyzer') && <MarketChartAnalyserTerminalView />}
               {(activeTab === 'institutional-terminal' || activeTab === 'institutional-ai' || activeTab === 'institutional-intelligence' || activeTab === 'btc-gold-terminal') && <InstitutionalAiTerminalView />}
-              {(activeTab === 'deeepr-ai' || activeTab === 'deeepr' || activeTab === 'deeepr-decision-engine') && <DeeeprDecisionEngineView onNavigate={setActiveTab} />}
+              {(activeTab === 'deeepr-ai' || activeTab === 'deeepr' || activeTab === 'deeepr-ai-chart' || activeTab === 'deeepr-copilot' || activeTab === 'deeepr-chart') && <DeeeprAiChartView />}
               {(activeTab === 'deeepr-precision-entry' || activeTab === 'precision-entry' || activeTab === 'entry-engine') && <DeeeprPrecisionEntryView onNavigate={setActiveTab} />}
-              {(activeTab === 'deeepr-ai-chart' || activeTab === 'deeepr-copilot' || activeTab === 'deeepr-chart') && <DeeeprAiChartView />}
+              {(activeTab === 'deeepr-decision-engine' || activeTab === 'decision-engine' || activeTab === 'deeepr-engine') && <DeeeprDecisionEngineView onNavigate={setActiveTab} />}
               {(activeTab === 'crypto-wealth-intelligence' || activeTab === 'wealth-intelligence' || activeTab === 'delta-wealth' || activeTab === 'crypto-long-term-wealth') && <CryptoWealthIntelligenceTerminalView />}
               {(activeTab === 'delta-intelligence' || activeTab === 'delta-engine' || activeTab === 'delta-crypto' || activeTab === 'delta-exchange' || activeTab === 'delta-india') && <DeltaIntelligenceEngineView />}
               {(activeTab === 'crypto-ai' || activeTab === 'crypto-trading-ai' || activeTab === 'btc-trading-ai' || activeTab === 'eth-trading-ai' || activeTab === 'sol-trading-ai') && <CryptoTradingAiView />}

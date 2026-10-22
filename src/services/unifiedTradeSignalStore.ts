@@ -335,12 +335,18 @@ export function buildUnifiedSignal(
   const isBtc = symbol === 'BTCUSDT' || symbol === 'BTC';
   const isEth = symbol === 'ETHUSDT' || symbol === 'ETH';
   const isGold = symbol === 'PAXGUSDT' || symbol === 'GOLD' || symbol === 'XAUUSD';
+  const isSilver = symbol === 'SLVUSDT' || symbol === 'SILVER' || symbol === 'XAGUSD';
 
-  // Exact point calculations (BTC: 2,000–3,000 pts, ETH: 50–100 pts, Gold: 50–70 pts)
-  const tp1Points = isBtc ? 2000 : isEth ? 55.0 : isGold ? 50.0 : +(currentLive * 0.0245).toFixed(2);
-  const tp2Points = isBtc ? 2500 : isEth ? 85.0 : isGold ? 60.0 : +(currentLive * 0.0306).toFixed(2);
-  const tp3Points = isBtc ? 3000 : isEth ? 105.0 : isGold ? 72.0 : +(currentLive * 0.0368).toFixed(2);
-  const slPoints = isBtc ? 680 : isEth ? 18.0 : isGold ? 15.0 : +(currentLive * 0.0080).toFixed(2);
+  // Exact point calculations calibrated to user specification:
+  // BTC: 2,500–3,000 pts (TP1: 2000, TP2: 2500, TP3: 3000)
+  // ETH: 80–120 pts (TP1: 80, TP2: 100, TP3: 120)
+  // Gold (XAUUSD): 50–80 pts (TP1: 50, TP2: 65, TP3: 80)
+  // Silver (XAGUSD): 1.2–2.5 pts (TP1: 1.2, TP2: 1.8, TP3: 2.5)
+  // Minimum 1.4 RRR strictly enforced
+  const tp1Points = isBtc ? 2000 : isEth ? 80.0 : isGold ? 50.0 : isSilver ? 1.20 : +(currentLive * 0.0245).toFixed(2);
+  const tp2Points = isBtc ? 2500 : isEth ? 100.0 : isGold ? 65.0 : isSilver ? 1.80 : +(currentLive * 0.0306).toFixed(2);
+  const tp3Points = isBtc ? 3000 : isEth ? 120.0 : isGold ? 80.0 : isSilver ? 2.50 : +(currentLive * 0.0368).toFixed(2);
+  const slPoints = isBtc ? 700 : isEth ? 28.0 : isGold ? 18.0 : isSilver ? 0.45 : +(currentLive * 0.0080).toFixed(2);
 
   // Detect real swing points and potential FVGs from candle history
   const recentHighs: number[] = [];
@@ -369,14 +375,14 @@ export function buildUnifiedSignal(
     }
   }
 
-  // LONG Targets (Calibrated to exact 2,000 / 2,500 / 3,000 points)
+  // LONG Targets (Calibrated to exact points)
   const longTp1 = +(currentLive + tp1Points).toFixed(2);
   const longTp2 = +(currentLive + tp2Points).toFixed(2);
   const longTp3 = +(currentLive + tp3Points).toFixed(2);
   const validLows = recentLows.filter(l => l < currentLive && (currentLive - l) <= slPoints * 1.2 && (currentLive - l) >= slPoints * 0.7);
   const longSl = validLows.length > 0 ? +(Math.min(...validLows) * 0.999).toFixed(2) : +(currentLive - slPoints).toFixed(2);
 
-  // SHORT Targets (Calibrated to exact 2,000 / 2,500 / 3,000 points)
+  // SHORT Targets (Calibrated to exact points)
   const shortTp1 = +(currentLive - tp1Points).toFixed(2);
   const shortTp2 = +(currentLive - tp2Points).toFixed(2);
   const shortTp3 = +(currentLive - tp3Points).toFixed(2);
@@ -420,16 +426,26 @@ export function buildUnifiedSignal(
     targetTp1 = longTp1;
     targetTp2 = longTp2;
     targetTp3 = longTp3;
-    const effRisk = Math.max(1, entryPrice - stopLossPrice);
+    const effRisk = Math.max(0.1, entryPrice - stopLossPrice);
     const tp1Rr = +((targetTp1 - entryPrice) / effRisk).toFixed(2);
     const tp2Rr = +((targetTp2 - entryPrice) / effRisk).toFixed(2);
     const tp3Rr = +((targetTp3 - entryPrice) / effRisk).toFixed(2);
     rrRatio = tp1Rr;
-    rewardToRisk = `1 : ${tp1Rr} (TP1: +${tp1Points.toLocaleString()} pts) · 1 : ${tp2Rr} (TP2: +${tp2Points.toLocaleString()} pts) · 1 : ${tp3Rr} (TP3: +${tp3Points.toLocaleString()} pts)`;
-    convictionPct = evaluated ? Math.max(75, evaluated.confidence) : 86;
-    longScore = evaluated ? Math.max(75, evaluated.longScore) : 84;
-    shortScore = evaluated ? Math.min(30, evaluated.shortScore) : 20;
-    status = 'ACTIVE';
+    if (tp1Rr < 1.40) {
+      decision = 'WAIT';
+      status = 'WAITING';
+      stopLossPrice = 0;
+      targetTp1 = 0;
+      targetTp2 = 0;
+      targetTp3 = 0;
+      rewardToRisk = `1 : ${tp1Rr} (WAIT — Minimum 1.4 RRR Required)`;
+    } else {
+      rewardToRisk = `1 : ${tp1Rr} (TP1: +${tp1Points.toLocaleString()} pts) · 1 : ${tp2Rr} (TP2: +${tp2Points.toLocaleString()} pts) · 1 : ${tp3Rr} (TP3: +${tp3Points.toLocaleString()} pts)`;
+      convictionPct = evaluated ? Math.max(75, evaluated.confidence) : 86;
+      longScore = evaluated ? Math.max(75, evaluated.longScore) : 84;
+      shortScore = evaluated ? Math.min(30, evaluated.shortScore) : 20;
+      status = 'ACTIVE';
+    }
   } else if (decision === 'SHORT') {
     entryPrice = currentLive;
     entryZoneLow = +(currentLive * 0.998).toFixed(2);
@@ -438,16 +454,26 @@ export function buildUnifiedSignal(
     targetTp1 = shortTp1;
     targetTp2 = shortTp2;
     targetTp3 = shortTp3;
-    const effRisk = Math.max(1, stopLossPrice - entryPrice);
+    const effRisk = Math.max(0.1, stopLossPrice - entryPrice);
     const tp1Rr = +((entryPrice - targetTp1) / effRisk).toFixed(2);
     const tp2Rr = +((entryPrice - targetTp2) / effRisk).toFixed(2);
     const tp3Rr = +((entryPrice - targetTp3) / effRisk).toFixed(2);
     rrRatio = tp1Rr;
-    rewardToRisk = `1 : ${tp1Rr} (TP1: -${tp1Points.toLocaleString()} pts) · 1 : ${tp2Rr} (TP2: -${tp2Points.toLocaleString()} pts) · 1 : ${tp3Rr} (TP3: -${tp3Points.toLocaleString()} pts)`;
-    convictionPct = evaluated ? Math.max(75, evaluated.confidence) : 86;
-    longScore = evaluated ? Math.min(30, evaluated.longScore) : 20;
-    shortScore = evaluated ? Math.max(75, evaluated.shortScore) : 84;
-    status = 'ACTIVE';
+    if (tp1Rr < 1.40) {
+      decision = 'WAIT';
+      status = 'WAITING';
+      stopLossPrice = 0;
+      targetTp1 = 0;
+      targetTp2 = 0;
+      targetTp3 = 0;
+      rewardToRisk = `1 : ${tp1Rr} (WAIT — Minimum 1.4 RRR Required)`;
+    } else {
+      rewardToRisk = `1 : ${tp1Rr} (TP1: -${tp1Points.toLocaleString()} pts) · 1 : ${tp2Rr} (TP2: -${tp2Points.toLocaleString()} pts) · 1 : ${tp3Rr} (TP3: -${tp3Points.toLocaleString()} pts)`;
+      convictionPct = evaluated ? Math.max(75, evaluated.confidence) : 86;
+      longScore = evaluated ? Math.min(30, evaluated.longScore) : 20;
+      shortScore = evaluated ? Math.max(75, evaluated.shortScore) : 84;
+      status = 'ACTIVE';
+    }
   } else {
     // WAIT: NO ACTIVE POSITION! Stop Loss and TP levels are NOT active yet.
     entryPrice = currentLive;
@@ -503,11 +529,11 @@ export function buildUnifiedSignal(
   // Hindi Explanation with Proper Logic
   let hindiExplanation = '';
   if (isWait) {
-    hindiExplanation = `Market consolidation range ($${Math.round(swingLow).toLocaleString()} - $${Math.round(swingHigh).toLocaleString()}) me hai. Premature entry lene se bachein. Breakout ya breakdown hone par automated signal 2,000 / 2,500 / 3,000 points targets ke sath activate hoga.`;
+    hindiExplanation = `Market consolidation range ($${Math.round(swingLow).toLocaleString()} - $${Math.round(swingHigh).toLocaleString()}) me hai ya RRR < 1.4 hai. Premature entry lene se bachein. Breakout ya key level retest hone par automated signal ${tp1Points.toLocaleString()} / ${tp2Points.toLocaleString()} / ${tp3Points.toLocaleString()} points targets ke sath activate hoga.`;
   } else if (isShort) {
-    hindiExplanation = `Institutional Short Setup Active (Proper Logic): 4H Supply Rejection confirm ho chuki hai. Exact proper logic ke sath 3 targets aligned hain: TP1 (-2,000 pts / $${targetTp1.toLocaleString()}) par 4H structural liquidity sweep, TP2 (-2,500 pts / $${targetTp2.toLocaleString()}) par Order Block rebalance, aur TP3 (-3,000 pts / $${targetTp3.toLocaleString()}) par multi-day range expansion. Fixed SL $${stopLossPrice.toLocaleString()} (680 pts risk) ke sath 1:2.9 se 1:4.4 ka asymmetric reward-to-risk ratio hai.`;
+    hindiExplanation = `Institutional Short Setup Active (Min 1.4+ RRR): 4H Supply Rejection confirm ho chuki hai. Exact proper logic ke sath 3 targets aligned hain: TP1 (-${tp1Points.toLocaleString()} pts / $${targetTp1.toLocaleString()}) par structural liquidity sweep, TP2 (-${tp2Points.toLocaleString()} pts / $${targetTp2.toLocaleString()}) par Order Block rebalance, aur TP3 (-${tp3Points.toLocaleString()} pts / $${targetTp3.toLocaleString()}) par multi-day range expansion. Structural SL $${stopLossPrice.toLocaleString()} (${slPoints} pts risk) ke sath verified institutional reward-to-risk ratio hai.`;
   } else {
-    hindiExplanation = `Institutional Long Setup Active (Proper Logic): 4H Demand Absorption confirm ho chuki hai. Proper logic ke sath 3 targets aligned hain: TP1 (+2,000 pts / $${targetTp1.toLocaleString()}) par 4H Buy-side liquidity pool sweep, TP2 (+2,500 pts / $${targetTp2.toLocaleString()}) par Order Block & FVG rebalance, aur TP3 (+3,000 pts / $${targetTp3.toLocaleString()}) par weekly range expansion runner. Fixed SL $${stopLossPrice.toLocaleString()} (680 pts risk) ke sath 1:2.9 se 1:4.4 R:R guaranteed hai.`;
+    hindiExplanation = `Institutional Long Setup Active (Min 1.4+ RRR): 4H Demand Absorption confirm ho chuki hai. Proper logic ke sath 3 targets aligned hain: TP1 (+${tp1Points.toLocaleString()} pts / $${targetTp1.toLocaleString()}) par Buy-side liquidity pool sweep, TP2 (+${tp2Points.toLocaleString()} pts / $${targetTp2.toLocaleString()}) par Order Block & FVG rebalance, aur TP3 (+${tp3Points.toLocaleString()} pts / $${targetTp3.toLocaleString()}) par range expansion runner. Structural SL $${stopLossPrice.toLocaleString()} (${slPoints} pts risk) ke sath minimum 1:1.4+ R:R guaranteed hai.`;
   }
 
   // Step-by-Step Execution Guide with Institutional Logic

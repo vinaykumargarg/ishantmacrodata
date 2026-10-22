@@ -1833,13 +1833,13 @@ export const DeeeprAiChartView: React.FC = () => {
   }, [selectedSymbol]);
 
   const assetTabs = [
-    { key: 'BTCUSDT', label: 'BTC / USD', icon: '₿', desc: 'Bitcoin' },
-    { key: 'PAXGUSDT', label: 'GOLD / USD (XAU)', icon: '🥇', desc: 'Gold Spot' },
+    { key: 'BTCUSDT', label: 'BTC / USD', icon: '₿', desc: 'Bitcoin', badge: '2,500–3,000 pts' },
+    { key: 'PAXGUSDT', label: 'GOLD (XAU)', icon: '🥇', desc: 'Gold Spot', badge: '50–80 pts' },
+    { key: 'ETHUSDT', label: 'ETH / USD', icon: 'Ξ', desc: 'Ethereum', badge: '80–120 pts' },
+    { key: 'SLVUSDT', label: 'SILVER (XAG)', icon: '🥈', desc: 'Silver Spot', badge: '1.2–2.5 pts' },
     { key: 'USDTD', label: 'USDT.D', icon: '🌊', desc: 'USDT Dominance (%)' },
     { key: 'DXY', label: 'DXY', icon: '💵', desc: 'Dollar Index' },
-    { key: 'ETHUSDT', label: 'ETH / USD', icon: 'Ξ', desc: 'Ethereum' },
-    { key: 'SOLUSDT', label: 'SOL / USD', icon: '⚡', desc: 'Solana' },
-    { key: 'SLVUSDT', label: 'SILVER / USD (XAG)', icon: '🥈', desc: 'Silver Spot' }
+    { key: 'SOLUSDT', label: 'SOL / USD', icon: '⚡', desc: 'Solana' }
   ];
 
   const isShort = plan.decision === 'SHORT';
@@ -1892,7 +1892,7 @@ export const DeeeprAiChartView: React.FC = () => {
 
           {/* Direct Switcher to DEEEPR AI Market Decision Engine (Section 30 Report & Signal Lock) */}
           <a
-            href="#deeepr-ai"
+            href="#deeepr-decision-engine"
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white border border-cyan-400/50 hover:brightness-125 shadow-md shadow-cyan-950/40 transition-all cursor-pointer"
             title="Open DEEEPR AI Institutional Market Decision Engine (Section 30 Report & Signal Lock)"
           >
@@ -1990,6 +1990,15 @@ export const DeeeprAiChartView: React.FC = () => {
             >
               <span>{a.icon}</span>
               <span>{a.label}</span>
+              {a.badge && (
+                <span
+                  className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold ${
+                    selectedSymbol === a.key ? 'bg-slate-900/40 text-slate-950' : 'bg-slate-800 text-cyan-300'
+                  }`}
+                >
+                  {a.badge}
+                </span>
+              )}
             </button>
           ))}
 
@@ -2395,7 +2404,7 @@ export const DeeeprAiChartView: React.FC = () => {
                   <strong className="text-white">Strict SL:</strong> ${plan.momentumLevels?.longSl.toLocaleString() || '—'} (Below Support Floor)
                 </p>
                 <p className="text-[10px] text-emerald-300 font-mono">
-                  TP1: ${plan.momentumLevels?.longTp1.toLocaleString()} (+2,000 pts) | TP2: ${plan.momentumLevels?.longTp2.toLocaleString()} (+2,500 pts) | TP3: ${plan.momentumLevels?.longTp3.toLocaleString()} (+3,000 pts)
+                  TP1: ${plan.momentumLevels?.longTp1.toLocaleString()} (+{Math.round(Math.abs((plan.momentumLevels?.longTp1 || livePrice) - (plan.momentumLevels?.longTriggerPrice || livePrice))).toLocaleString()} pts) | TP2: ${plan.momentumLevels?.longTp2.toLocaleString()} | TP3: ${plan.momentumLevels?.longTp3.toLocaleString()} (Min 1.4+ RRR)
                 </p>
               </div>
               <div className="mt-2.5 w-full py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
@@ -2428,7 +2437,7 @@ export const DeeeprAiChartView: React.FC = () => {
                   <strong className="text-white">Strict SL:</strong> ${plan.momentumLevels?.shortSl.toLocaleString() || '—'} (Above Resistance Ceiling)
                 </p>
                 <p className="text-[10px] text-rose-300 font-mono">
-                  TP1: ${plan.momentumLevels?.shortTp1.toLocaleString()} (-2,000 pts) | TP2: ${plan.momentumLevels?.shortTp2.toLocaleString()} (-2,500 pts) | TP3: ${plan.momentumLevels?.shortTp3.toLocaleString()} (-3,000 pts)
+                  TP1: ${plan.momentumLevels?.shortTp1.toLocaleString()} (-{Math.round(Math.abs((plan.momentumLevels?.shortTriggerPrice || livePrice) - (plan.momentumLevels?.shortTp1 || livePrice))).toLocaleString()} pts) | TP2: ${plan.momentumLevels?.shortTp2.toLocaleString()} | TP3: ${plan.momentumLevels?.shortTp3.toLocaleString()} (Min 1.4+ RRR)
                 </p>
               </div>
               <div className="mt-2.5 w-full py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-rose-500/40 bg-rose-500/10 text-rose-300">
