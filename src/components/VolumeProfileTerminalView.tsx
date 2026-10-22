@@ -14,6 +14,7 @@ import {
 } from '../data/volumeProfileDatabase';
 import { VolumeProfileChart } from './VolumeProfileChart';
 import { TradingViewWidget } from './TradingViewWidget';
+import { IntermarketVolumeProfileConfluenceView } from './IntermarketVolumeProfileConfluenceView';
 import {
   Activity,
   Layers,
@@ -46,6 +47,7 @@ import {
 export default function VolumeProfileTerminalView() {
   // Selected Asset & Configuration
   const [selectedSymbol, setSelectedSymbol] = useState<AssetSymbol>('BTCUSD');
+  const [activeTerminalMode, setActiveTerminalMode] = useState<'INTERMARKET_CONFLUENCE' | 'SINGLE_PROFILE'>('INTERMARKET_CONFLUENCE');
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('15m');
   const [isManualMode, setIsManualMode] = useState<boolean>(false);
   const [profileType, setProfileType] = useState<ProfileType>('VRVP');
@@ -304,12 +306,57 @@ export default function VolumeProfileTerminalView() {
   return (
     <div className="space-y-4 font-sans text-slate-100">
       {/* ────────────────────────────────────────────────────────────────── */}
-      {/* 1. TOP HEADER & TELEMETRY STRIP                                     */}
+      {/* 0. PRIMARY MODE SELECTOR BAR                                       */}
       {/* ────────────────────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-4 shadow-xl space-y-3">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-950 border border-slate-800 shadow-lg">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setActiveTerminalMode('INTERMARKET_CONFLUENCE')}
+            className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+              activeTerminalMode === 'INTERMARKET_CONFLUENCE'
+                ? 'bg-gradient-to-r from-cyan-500 via-sky-500 to-indigo-600 text-slate-950 shadow-[0_0_18px_rgba(6,182,212,0.4)]'
+                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            <Zap className="size-4" />
+            <span>⚡ DUAL INTER-MARKET CONFLUENCE (BTC ⮂ USDT.D & GOLD ⮂ DXY)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTerminalMode('SINGLE_PROFILE')}
+            className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+              activeTerminalMode === 'SINGLE_PROFILE'
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_0_18px_rgba(99,102,241,0.4)]'
+                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+            }`}
+          >
+            <BarChart2 className="size-4" />
+            <span>📶 SINGLE ASSET VOLUME PROFILE (VRVP / FRVP)</span>
+          </button>
+        </div>
+
+        <div className="text-[11px] font-mono text-cyan-300 font-bold px-3 py-1 bg-cyan-950/60 rounded-md border border-cyan-500/30 flex items-center gap-2">
+          <span className="text-rose-400">High ➔ Resistance</span>
+          <span>•</span>
+          <span className="text-amber-300">POC ➔ Profit Target</span>
+          <span>•</span>
+          <span className="text-emerald-400">Low ➔ Support</span>
+        </div>
+      </div>
+
+      {activeTerminalMode === 'INTERMARKET_CONFLUENCE' ? (
+        <IntermarketVolumeProfileConfluenceView
+          initialPair={selectedSymbol === 'XAUUSD' ? 'GOLD_DXY' : 'BTC_USDTD'}
+        />
+      ) : (
+        <div className="space-y-4">
+          {/* ────────────────────────────────────────────────────────────────── */}
+          {/* 1. TOP HEADER & TELEMETRY STRIP                                     */}
+          {/* ────────────────────────────────────────────────────────────────── */}
+          <div className="rounded-xl border border-slate-800 bg-[#0a0f1d] p-4 shadow-xl space-y-3">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
               <span className="rounded bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600 px-2.5 py-0.5 text-xs font-black text-white shadow-sm flex items-center gap-1.5">
                 <span>📶 VOLUME PROFILE PRO</span>
               </span>
@@ -660,5 +707,7 @@ export default function VolumeProfileTerminalView() {
         </div>
       </div>
     </div>
-  );
+    )}
+  </div>
+);
 }

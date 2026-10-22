@@ -167,10 +167,10 @@ export const DEEEPR_ASSETS_DATA: Record<string, DeeeprAssetSetup> = {
     holdDuration: '1–2 Days Hold Trader',
     confidencePct: 92,
     status: 'ACTIVATED',
-    setupSummary: 'Rejection from $84,590 supply block confirmed. -1,672 pt cascade broken below $83,000 support, targeting liquidity floor.',
+    setupSummary: 'Rejection from $84,590 supply block confirmed. Cascade targeting -2,000 pts, -2,500 pts, and -3,000 pts institutional swing liquidity pools.',
     
     invalidationRules: [
-      '1h close above $84,590 supply ceiling',
+      '1h close above $85,230 supply ceiling invalidation wick',
       'Sudden positive taker CVD surge exceeding +2,000 BTC',
       'RSI climbs back above 58 on 1h timeframe'
     ],
@@ -187,17 +187,17 @@ export const DEEEPR_ASSETS_DATA: Record<string, DeeeprAssetSetup> = {
       type: 'BREAKOUT_RETEST'
     },
     stopLoss: {
-      price: 84650,
-      priceFormatted: '$84,650',
-      riskPct: '+0.12% (Tight Invalidation)',
-      invalidationReason: 'Strict invalidation above $84,590 supply ceiling'
+      price: 85230,
+      priceFormatted: '$85,230',
+      riskPct: '-680 pts (+0.80%)',
+      invalidationReason: 'Strict 4H OB invalidation wick above $85,230 supply ceiling'
     },
     targets: {
-      tp1: { price: 82400, priceFormatted: '$82,400', gainPct: '+2.54%', sizePct: '50% position' },
-      tp2: { price: 81800, priceFormatted: '$81,800', gainPct: '+3.25%', sizePct: '30% position' },
-      tp3: { price: 80850, priceFormatted: '$80,850', gainPct: '+4.37%', sizePct: '20% runner' }
+      tp1: { price: 82550, priceFormatted: '$82,550', gainPct: '+2,000 pts (+2.37%)', sizePct: '50% position' },
+      tp2: { price: 82050, priceFormatted: '$82,050', gainPct: '+2,500 pts (+2.96%)', sizePct: '30% position' },
+      tp3: { price: 81550, priceFormatted: '$81,550', gainPct: '+3,000 pts (+3.55%)', sizePct: '20% runner' }
     },
-    riskRewardRatio: '1 : 12.8',
+    riskRewardRatio: '1 : 2.9 (TP1) · 1 : 3.7 (TP2) · 1 : 4.4 (TP3)',
     
     priceLadder: [
       { id: 'l1', type: 'WHALE_WALL', label: 'Sell wall', volume: '$5.2M', price: 86000.0, formattedPrice: '86000.00', color: '#eab308' },

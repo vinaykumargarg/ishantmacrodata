@@ -20,6 +20,8 @@ import OrderFlowTerminal from './components/OrderFlowTerminal';
 import { UltraInstitutionalDecisionEngine } from './components/UltraInstitutionalDecisionEngine';
 import DeltaIntelligenceEngineView from './components/DeltaIntelligenceEngineView';
 import DeeeprAiChartView from './components/DeeeprAiChartView';
+import { DeeeprDecisionEngineView } from './components/DeeeprDecisionEngineView';
+import { DeeeprPrecisionEntryView } from './components/DeeeprPrecisionEntryView';
 import InstitutionalAiTerminalView from './components/InstitutionalAiTerminalView';
 import AdvancedInstitutionalChart from './components/AdvancedInstitutionalChart';
 import InstitutionalMultiAssetEngineView from './components/InstitutionalMultiAssetEngineView';
@@ -30,19 +32,24 @@ import {
   UPCOMING_MACRO_CALENDAR_EVENTS
 } from './data/institutionalMarketIntelligenceData';
 import LiquidationHeatmapTerminalView from './components/LiquidationHeatmapTerminalView';
+import BookmapLiquidationTerminalView from './components/BookmapLiquidationTerminalView';
 import SubscriptionPricingView from './components/SubscriptionPricingView';
 import { JarvisVoiceMarketAssistant } from './components/JarvisVoiceMarketAssistant';
 import { JarvisFloatingWidget } from './components/JarvisFloatingWidget';
 import BtcUsdtRelationshipEngine from './components/BtcUsdtRelationshipEngine';
+import { CrossAssetConfirmationEngineView } from './components/CrossAssetConfirmationEngineView';
 import { LiquiditySweepIntelligenceView } from './components/LiquiditySweepIntelligenceView';
 import { TelegramAiAlertsView } from './components/TelegramAiAlertsView';
 import DeltaSwingScannerView from './components/DeltaSwingScannerView';
 import UsaStockScannerView from './components/UsaStockScannerView';
 import EventImpactEngineView from './components/EventImpactEngineView';
 import OilIntelligenceTerminalView from './components/OilIntelligenceTerminalView';
+import GoldSignalPanelView from './components/GoldSignalPanelView';
+import { IshantMacroPortalView } from './components/IshantMacroPortalView';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
+import GlobalStockScoreEngineView from './components/GlobalStockScoreEngineView';
 import { OtpNotificationBanner } from './components/OtpNotificationBanner';
 import { AuthPageView } from './components/AuthPageView';
 import { BrandLogo } from './components/BrandLogo';
@@ -119,12 +126,16 @@ function getFeatureTitle(tab: string): string {
     'usa-stock-ai': 'USA Top 1000 AI Terminal (INDmoney & Russell)',
     'volume-profile-ai': 'Volume Profile & Bookmap AI (POC/VAH/VAL)',
     'gold-ai': 'Gold Trading AI Terminal',
+    'gold-signal-panel': 'Gold Signal Panel — Institutional Long / Short (TP & SL)',
     'gold': 'Gold Macro Overview',
     'global-intel': 'Global Intelligence Desk',
     'ultra-ai': 'TradeAI Institutional Terminal',
     'order-flow': 'Order Flow & Bookmap AI Terminal (CVD & Footprint)',
     'liquidation-heatmap': 'Liquidation Heatmap Bookmap Terminal',
+    'bookmap-liquidation': 'Bookmap Liquidation Live Engine (BTC & Gold 1:1)',
     'market-chart-analyse': 'Market Chart AI Analyzer (A-to-Z Read)',
+    'market-chart-analysis': 'Market Chart AI Analyzer (A-to-Z Read)',
+    'market-chart-analyses': 'Market Chart AI Analyzer (A-to-Z Read)',
     'institutional-terminal': 'Institutional AI Terminal (BTC + Gold)',
     'deeepr-ai': 'DEEEPR.AI Copilot & Market Structure Terminal',
     'crypto-wealth-intelligence': 'Crypto Long-Term Wealth Intelligence (Delta 1-4M+)',
@@ -168,6 +179,7 @@ function getFeatureTitle(tab: string): string {
     'jarvis-voice-ai': 'Jarvis AI Market Voice Assistant',
     'liquidity-sweep-map': 'Liquidity Sweep & Liquidation Map (Pro)',
     'btc-usdt-momentum': 'BTC–USDT Momentum Prediction Engine',
+    'cross-asset-confirmation': 'Cross-Asset Confirmation Engine (BTC/USDT ↔ DXY/Gold)',
     'risk': 'Institutional Risk Console',
     'journal': 'Institutional Trading Journal',
     'reports': 'Performance Analytics & Journal Reports',
@@ -200,12 +212,18 @@ function TerminalApp() {
   const getInitialTab = (): string => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '').replace('/', '');
-      if (hash && hash.length > 0 && hash !== 'landing' && hash !== 'home') return hash;
+      if (hash && hash.length > 0) {
+        if (hash === 'landing' || hash === 'home' || hash === 'portal') return 'landing';
+        return hash;
+      }
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab') || urlParams.get('page') || urlParams.get('view');
-      if (tabParam && tabParam !== 'landing' && tabParam !== 'home') return tabParam;
+      if (tabParam) {
+        if (tabParam === 'landing' || tabParam === 'home' || tabParam === 'portal') return 'landing';
+        return tabParam;
+      }
     }
-    return 'global-score'; // Default to Global Market Score as requested
+    return 'landing'; // Default to IshantMacro Command Centre Portal
   };
 
   const [activeTab, setActiveTabState] = useState<string>(getInitialTab);
@@ -221,23 +239,15 @@ function TerminalApp() {
     const handleHashChange = () => {
       const h = window.location.hash.replace('#', '').replace('/', '');
       if (h) {
-        if (h === 'landing' || h === 'home') {
-          setActiveTabState('global-score');
-          window.location.hash = 'global-score';
+        if (h === 'home' || h === 'portal' || h === 'landing') {
+          setActiveTabState('landing');
         } else {
           setActiveTabState(h);
         }
       } else {
-        setActiveTabState('global-score');
-        window.location.hash = 'global-score';
+        setActiveTabState('landing');
       }
     };
-    if (typeof window !== 'undefined') {
-      if (!window.location.hash || window.location.hash === '#' || window.location.hash === '#landing' || window.location.hash === '#/landing' || window.location.hash === '#home') {
-        window.location.hash = 'global-score';
-        setActiveTabState('global-score');
-      }
-    }
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
@@ -322,6 +332,33 @@ function TerminalApp() {
     try { localStorage.setItem('theme', theme); } catch (e) {}
   }, [theme]);
 
+  // Fullscreen dedicated Landing Portal View (matches iitianmacro.ai layout requested by user)
+  if (activeTab === 'landing' || activeTab === 'portal' || activeTab === 'home') {
+    return (
+      <div className="min-h-screen bg-[#06080e] text-slate-100 font-sans antialiased">
+        <IshantMacroPortalView
+          onLaunchTerminal={(targetTab?: string) => setActiveTab(targetTab || 'global-score')}
+        />
+        {/* Modals accessible while browsing portal */}
+        {isProfileModalOpen && (
+          <UserProfileModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            onNavigatePricing={() => {
+              setIsProfileModalOpen(false);
+              setActiveTab('pricing');
+            }}
+            onNavigateAlerts={() => {
+              setIsProfileModalOpen(false);
+              setActiveTab('alerts');
+            }}
+          />
+        )}
+        {isAccountOpen && <AccountModal isOpen={isAccountOpen} onClose={() => setIsAccountOpen(false)} />}
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground font-sans antialiased">
       {/* 1. Real-time Scrolling TickerBar */}
@@ -337,7 +374,8 @@ function TerminalApp() {
         }}
         onOpenAccount={() => setIsProfileModalOpen(true)}
         onOpenProfile={() => setIsProfileModalOpen(true)}
-        onNavigateHome={() => setActiveTab('global-score')}
+        onNavigateHome={() => setActiveTab('landing')}
+        onNavigateLanding={() => setActiveTab('landing')}
         onNavigatePricing={() => setActiveTab('pricing')}
         onNavigateJarvis={() => setActiveTab('jarvis-voice-ai')}
         onNavigateBtcUsdt={() => setActiveTab('btc-usdt-momentum')}
@@ -399,20 +437,25 @@ function TerminalApp() {
               {(activeTab === 'usa-swing-scanner' || activeTab === 'usa-stocks-scanner' || activeTab === 'us-swing' || activeTab === 'usa-stock-scanner' || activeTab === 'usa-earnings-guard' || activeTab === 'usa-portfolio-builder') && <UsaStockScannerView onNavigate={setActiveTab} />}
               {(activeTab === 'event-impact-engine' || activeTab === 'news-impact' || activeTab === 'event-impact' || activeTab === 'macro-news-engine' || activeTab === 'macro-scenarios-matrix' || activeTab === 'gold-btc-transmission' || activeTab === 'voice-query-assistant') && <EventImpactEngineView onNavigate={setActiveTab} />}
               {(activeTab === 'oil-trading-ai' || activeTab === 'oil-intelligence' || activeTab === 'oil-terminal' || activeTab === 'crude-oil' || activeTab === 'oil-inventory-engine' || activeTab === 'oil-geopolitical-radar' || activeTab === 'oil-position-sizer' || activeTab === 'wti-brent') && <OilIntelligenceTerminalView onNavigate={setActiveTab} />}
-              {activeTab === 'global-score' && <GlobalMarketScoreView onNavigate={setActiveTab} liveTickers={liveTickers} />}
+              {(activeTab === 'landing' || activeTab === 'portal' || activeTab === 'home') && <IshantMacroPortalView onLaunchTerminal={(t) => setActiveTab(t || 'global-score')} />}
+              {(activeTab === 'global-score' || activeTab === 'global-stock-score' || activeTab === 'stock-investment-engine') && <GlobalStockScoreEngineView onNavigate={setActiveTab} liveTickers={liveTickers} />}
               {activeTab === 'auth' && <AuthPageView onNavigateToTerminal={() => setActiveTab('ultra-ai')} />}
               {activeTab === 'stock-ai' && <StockAiView />}
               {(activeTab === 'indian-stock-ai' || activeTab === 'indian-stocks' || activeTab === 'nifty-500') && <IndianStockAiView />}
               {(activeTab === 'usa-stock-ai' || activeTab === 'usa-stocks' || activeTab === 'russell-1000' || activeTab === 'indmoney-us') && <UsaTop1000AiView />}
-              {(activeTab === 'volume-profile-ai' || activeTab === 'volume-profile' || activeTab === 'volume-profile-pro' || activeTab === 'volume-profile-setup' || activeTab === 'vp-terminal') && <VolumeProfileTerminalView />}
+              {(activeTab === 'volume-profile-ai' || activeTab === 'volume-profile' || activeTab === 'volume-profile-pro' || activeTab === 'volume-profile-setup' || activeTab === 'vp-terminal' || activeTab === 'volume-profile-confluence' || activeTab === 'vp-confluence') && <VolumeProfileTerminalView />}
               {(activeTab === 'gold-ai' || activeTab === 'gold-trading-ai' || activeTab === 'gold' || activeTab === 'gold-macro' || activeTab === 'gold-intelligence' || activeTab === 'gold-dashboard') && <GoldAiMarketIntelligenceView onNavigate={setActiveTab} />}
+              {(activeTab === 'gold-signal-panel' || activeTab === 'gold-signals' || activeTab === 'gold-long-short') && <GoldSignalPanelView onNavigate={setActiveTab} />}
               {activeTab === 'global-intel' && <GlobalIntelView />}
               {activeTab === 'ultra-ai' && <UltraInstitutionalDecisionEngine onNavigate={setActiveTab} />}
               {activeTab === 'order-flow' && <OrderFlowTerminal onNavigate={setActiveTab} />}
-              {(activeTab === 'liquidation-heatmap' || activeTab === 'liquidation-chart' || activeTab === 'liq-heatmap' || activeTab === 'bookmap-liquidation') && <LiquidationHeatmapTerminalView />}
-              {(activeTab === 'market-chart-analyse' || activeTab === 'chart-ai-vision' || activeTab === 'chart-analyzer') && <MarketChartAnalyserTerminalView />}
+              {(activeTab === 'bookmap-liquidation' || activeTab === 'bookmap' || activeTab === 'bookmap-chart') && <BookmapLiquidationTerminalView />}
+              {(activeTab === 'liquidation-heatmap' || activeTab === 'liquidation-chart' || activeTab === 'liq-heatmap') && <LiquidationHeatmapTerminalView />}
+              {(activeTab === 'market-chart-analyse' || activeTab === 'market-chart-analysis' || activeTab === 'market-chart-analyses' || activeTab === 'chart-ai-vision' || activeTab === 'chart-analyzer') && <MarketChartAnalyserTerminalView />}
               {(activeTab === 'institutional-terminal' || activeTab === 'institutional-ai' || activeTab === 'institutional-intelligence' || activeTab === 'btc-gold-terminal') && <InstitutionalAiTerminalView />}
-              {(activeTab === 'deeepr-ai' || activeTab === 'deeepr' || activeTab === 'deeepr-ai-chart' || activeTab === 'deeepr-copilot') && <DeeeprAiChartView />}
+              {(activeTab === 'deeepr-ai' || activeTab === 'deeepr' || activeTab === 'deeepr-decision-engine') && <DeeeprDecisionEngineView onNavigate={setActiveTab} />}
+              {(activeTab === 'deeepr-precision-entry' || activeTab === 'precision-entry' || activeTab === 'entry-engine') && <DeeeprPrecisionEntryView onNavigate={setActiveTab} />}
+              {(activeTab === 'deeepr-ai-chart' || activeTab === 'deeepr-copilot' || activeTab === 'deeepr-chart') && <DeeeprAiChartView />}
               {(activeTab === 'crypto-wealth-intelligence' || activeTab === 'wealth-intelligence' || activeTab === 'delta-wealth' || activeTab === 'crypto-long-term-wealth') && <CryptoWealthIntelligenceTerminalView />}
               {(activeTab === 'delta-intelligence' || activeTab === 'delta-engine' || activeTab === 'delta-crypto' || activeTab === 'delta-exchange' || activeTab === 'delta-india') && <DeltaIntelligenceEngineView />}
               {(activeTab === 'crypto-ai' || activeTab === 'crypto-trading-ai' || activeTab === 'btc-trading-ai' || activeTab === 'eth-trading-ai' || activeTab === 'sol-trading-ai') && <CryptoTradingAiView />}
@@ -459,6 +502,7 @@ function TerminalApp() {
               {(activeTab === 'jarvis-voice-ai' || activeTab === 'jarvis' || activeTab === 'voice-ai' || activeTab === 'jarvis-ai' || activeTab === 'assistant') && <JarvisVoiceMarketAssistant />}
               {(activeTab === 'liquidity-sweep-map' || activeTab === 'liquidity-sweep-intelligence' || activeTab === 'liquidity-sweep' || activeTab === 'liquidity-map') && <LiquiditySweepIntelligenceView />}
               {(activeTab === 'btc-usdt-momentum' || activeTab === 'btc-usdt' || activeTab === 'usdt-btc' || activeTab === 'momentum-engine') && <BtcUsdtRelationshipEngine />}
+              {(activeTab === 'cross-asset-confirmation' || activeTab === 'cross-asset' || activeTab === 'intermarket-confirmation' || activeTab === 'btc-gold-correlation' || activeTab === 'cross-asset-engine') && <CrossAssetConfirmationEngineView />}
               {activeTab === 'risk' && <RiskConsoleView />}
               {activeTab === 'journal' && <TradingJournalView />}
               {activeTab === 'reports' && <JournalReportsView />}

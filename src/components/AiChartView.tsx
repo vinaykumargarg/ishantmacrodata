@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import TradingViewWidget from './TradingViewWidget';
 import ConfluencePanel, { ConfluenceDetails, ConfluenceData } from './ConfluencePanel';
+import { BookmapLiquidationTerminalView } from './BookmapLiquidationTerminalView';
 import {
   CandleData,
   analyzeMarketStructure,
@@ -885,6 +886,7 @@ export const AiChartView: React.FC = () => {
   const [selectedTf, setSelectedTf] = useState<string>('1h');
   const [liveWsPrice, setLiveWsPrice] = useState<number | null>(null);
   const [liveChange24h, setLiveChange24h] = useState<number>(-1.85);
+  const [chartMode, setChartMode] = useState<'CANDLE' | 'BOOKMAP'>('CANDLE');
 
   const activeAssetConfig = useMemo(
     () => ASSETS.find((a) => a.id === selectedAsset) || ASSETS[0],

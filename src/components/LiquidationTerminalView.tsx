@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { BookmapLiquidationTerminalView } from './BookmapLiquidationTerminalView';
 
 interface AssetConfig {
   id: string;
@@ -342,8 +343,13 @@ export const LiquidationTerminalView: React.FC = () => {
         ))}
       </div>
 
-      {/* 5. TAB 1: 2D LIQUIDATION HEATMAP (COINGLASS STYLE) */}
+      {/* 5. TAB 1: AUTHENTIC 1:1 BOOKMAP LIQUIDATION HEATMAP (MATCHING USER SCREENSHOTS) */}
       {activeTab === 'HEATMAP' && (
+        <div className="space-y-4">
+          <BookmapLiquidationTerminalView />
+        </div>
+      )}
+      {false && activeTab === 'HEATMAP' && (
         <div className="space-y-4">
           <div className="panel rounded-lg border border-border bg-card p-4 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">

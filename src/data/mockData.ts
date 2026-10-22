@@ -4,7 +4,7 @@ export const initialTickers: MarketTicker[] = [
   { symbol: 'BTC/USD', name: 'Bitcoin', price: '$68,450.20', change: '+2.85%', isPositive: true, category: 'Crypto' },
   { symbol: 'ETH/USD', name: 'Ethereum', price: '$2,640.80', change: '+1.92%', isPositive: true, category: 'Crypto' },
   { symbol: 'SOL/USD', name: 'Solana', price: '$154.30', change: '+4.15%', isPositive: true, category: 'Crypto' },
-  { symbol: 'XAU/USD', name: 'Gold Spot', price: '$2,652.40', change: '+0.68%', isPositive: true, category: 'Commodities' },
+  { symbol: 'XAU/USD', name: 'Gold Spot', price: '$4,165.42', change: '-0.13%', isPositive: false, category: 'Commodities' },
   { symbol: 'S&P 500', name: 'SPX Index', price: '5,782.50', change: '+0.42%', isPositive: true, category: 'Equities' },
   { symbol: 'NIFTY 50', name: 'NSE Nifty', price: '22,520.45', change: '+1.30%', isPositive: true, category: 'Equities' },
   { symbol: 'SENSEX', name: 'BSE Sensex', price: '72,472.33', change: '+1.22%', isPositive: true, category: 'Equities' },

@@ -24,15 +24,15 @@ html[data-theme='dark'] {
   --gold-bg: rgba(245, 158, 11, 0.15);
   color-scheme: dark;
 
-  /* Fonts */
-  --font-ui: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Outfit', 'Inter', system-ui, sans-serif;
-  --font-data: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --font-hi: 'Noto Sans Devanagari', 'Nirmala UI', sans-serif;
+  /* Enhanced Modern Fonts for Maximum Legibility & Institutional Aesthetics */
+  --font-ui: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --font-hi: 'Noto Sans Devanagari', 'Plus Jakarta Sans', sans-serif;
 
   /* Type & Shape */
   --fs-base: 15px;
-  --lh-base: 1.55;
+  --lh-base: 1.6;
   --track-label: 0.01em;
   --track-heading: -0.015em;
   --weight-heading: 700;
@@ -222,11 +222,12 @@ body {
   font-family: var(--font-ui), var(--font-hi) !important;
   line-height: var(--lh-base);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   letter-spacing: normal;
 }
 
-/* Headings: Outfit / Inter with crisp weight */
+/* Headings: Outfit / Plus Jakarta Sans / Inter with crisp weight */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading), var(--font-ui) !important;
   font-weight: var(--weight-heading);
@@ -234,21 +235,51 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.25;
 }
 
-/* Prices, tables, tickers: Tabular nums and JetBrains Mono */
-.num, .price, .ticker, table, td, [class*="font-mono"], .font-mono, .tabular-nums {
+/* Strict font-sans definition for clear, crisp UI text */
+.font-sans {
+  font-family: var(--font-ui), var(--font-hi) !important;
+}
+
+/* Prices, numbers, tickers: Tabular nums and JetBrains Mono applied specifically */
+.num, .price, .ticker, .font-numeric, .font-mono-numbers, .tabular-nums, code, pre {
   font-family: var(--font-data) !important;
   font-variant-numeric: tabular-nums !important;
 }
 
-/* Text elements: clean, natural casing */
+/* Font mono class for data */
+.font-mono {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Text elements: clean, natural casing and comfortable line-height */
 p, span, div, a, button, input, select, textarea {
   letter-spacing: normal;
 }
 
-/* Hindi text: Noto Sans Devanagari */
-:lang(hi), [lang="hi"], .lang-hi, [data-lang="hi"] {
+/* Hindi text: Noto Sans Devanagari with crisp readability */
+:lang(hi), [lang="hi"], .lang-hi, [data-lang="hi"], .hindi-readable {
   font-family: var(--font-hi), var(--font-ui) !important;
-  line-height: 1.8 !important;
+  line-height: 1.75 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Institutional Clean Typography Utilities */
+.pro-heading {
+  font-family: var(--font-heading) !important;
+  letter-spacing: -0.015em !important;
+  font-weight: 700 !important;
+}
+
+.pro-text {
+  font-family: var(--font-ui) !important;
+  line-height: 1.65 !important;
+}
+
+.pro-badge {
+  font-family: var(--font-ui) !important;
+  letter-spacing: 0.02em !important;
+  font-weight: 700 !important;
 }
 
 /* Cards & Surfaces — Universal Theme Consistency */

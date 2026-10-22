@@ -26,6 +26,7 @@ interface HeaderProps {
   onNavigateInstitutionalChart?: () => void;
   onNavigateMultiAssetEngine?: () => void;
   onNavigateVolumeProfile?: () => void;
+  onNavigateLanding?: () => void;
   onOpenProfile?: () => void;
   onSearch?: (query: string) => void;
 }
@@ -50,6 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateInstitutionalChart,
   onNavigateMultiAssetEngine,
   onNavigateVolumeProfile,
+  onNavigateLanding,
   onOpenProfile,
   onSearch,
   onOpenAccount
@@ -126,6 +128,18 @@ export const Header: React.FC<HeaderProps> = ({
           Live · 30s
         </span>
         <span className="flex size-2 animate-pulse-dot rounded-full bg-bull sm:hidden"></span>
+
+        {/* Marketing / AI Portal Landing Launcher */}
+        {onNavigateLanding && (
+          <button
+            onClick={onNavigateLanding}
+            className="rounded-md border border-rose-500/50 bg-gradient-to-r from-rose-500/20 via-orange-500/20 to-amber-500/20 px-2.5 py-1.5 text-xs font-black text-rose-300 hover:text-white hover:from-rose-500/40 hover:to-amber-500/40 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ring-1 ring-rose-500/30"
+            title="Open IshantMacro.Ai Portal Landing Page"
+          >
+            <span>🌐</span>
+            <span className="hidden sm:inline">Portal</span>
+          </button>
+        )}
 
         {/* Delta 4H Swing Scanner Launcher */}
         {onNavigateDeltaSwing && (

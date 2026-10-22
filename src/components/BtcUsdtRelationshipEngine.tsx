@@ -3,7 +3,7 @@ import {
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, RefreshCw,
   Shield, AlertTriangle, CheckCircle, Brain, Activity, Zap, Play, Pause,
   Volume2, Layers, BarChart2, Radio, Compass, Eye, Info, Clock, ExternalLink,
-  ChevronRight, Target, Flame, DollarSign, Database, Share2, Sparkles, Filter
+  ChevronRight, Target, Flame, DollarSign, Database, Share2, Sparkles, Filter, Scale
 } from 'lucide-react';
 import {
   generateBtcUsdtPrediction,
@@ -177,6 +177,17 @@ export const BtcUsdtRelationshipEngine: React.FC = () => {
                 <span>
                   {voiceState === 'SPEAKING' ? 'Deeepr Voice Bol Rahi Hai...' : voiceState === 'PAUSED' ? 'Resume Briefing' : '🎙️ Deeepr.ai Voice Briefing'}
                 </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  window.location.hash = '#cross-asset-confirmation';
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300 text-xs font-bold transition shadow-sm cursor-pointer"
+                title="Launch Cross-Asset Confirmation Engine (BTC/USDT ↔ DXY/Gold)"
+              >
+                <Scale className="size-3.5" />
+                <span>Cross-Asset Confirmation Engine ⭐</span>
               </button>
 
               {voiceState === 'SPEAKING' && (

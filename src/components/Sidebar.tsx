@@ -13,17 +13,22 @@ export const NAV_CATEGORIES: NavCategory[] = [
     title: 'AI Decision & Live Chart',
     icon: '⚡',
     items: [
+      { id: 'landing', label: 'IshantMacro Portal ⭐ (Home)', icon: '🌐' },
       { id: 'institutional-multi-asset', label: 'Institutional Multi-Asset Engine ⭐ (BTC/ETH/Gold/Oil)', icon: '🌐' },
       { id: 'institutional-chart', label: 'Institutional All-in-One Chart ⭐🏛️', icon: '🏛️' },
+      { id: 'bookmap-liquidation', label: 'Bookmap Liquidation Live ⭐ (BTC & Gold 1:1)', icon: '🌊' },
       { id: 'gold', label: 'Gold Macro Overview 🥇', icon: '🥇' },
       { id: 'news', label: 'Financial News 📰', icon: '📰' },
       { id: 'jarvis-voice-ai', label: 'Jarvis AI Market Voice Expert 🎙️⭐ (Hindi/Hinglish/Eng)', icon: '🎙️' },
       { id: 'liquidity-sweep-map', label: 'Liquidity Sweep & Liquidation Map ⭐ (Pro)', icon: '🌊' },
       { id: 'btc-usdt-momentum', label: 'BTC–USDT Momentum Prediction Engine ⭐ (Institutional)', icon: '🔄' },
+      { id: 'cross-asset-confirmation', label: 'Cross-Asset Confirmation Engine ⭐ (BTC/USDT ↔ DXY/Gold)', icon: '⚖️' },
       { id: 'market-chart-analyse', label: 'Market Chart AI Analyzer ⭐ (A-to-Z Read)', icon: '🔬' },
       { id: 'crypto-wealth-intelligence', label: 'Crypto Long-Term Wealth Intelligence ⭐ (Delta 1-4M+)', icon: '💎' },
       { id: 'institutional-terminal', label: 'Institutional AI Terminal ⭐ (BTC + Gold)', icon: '🏛️' },
-      { id: 'deeepr-ai', label: 'DEEEPR.AI Copilot ⭐ (BTC / Gold)', icon: '🔮' },
+      { id: 'deeepr-ai', label: 'DEEEPR AI Market Decision Engine ⭐ (Institutional Long/Short/Wait)', icon: '🏛️' },
+      { id: 'deeepr-precision-entry', label: 'DEEEPR AI Precision Entry Engine ⭐ (Level-Based Setup)', icon: '🎯' },
+      { id: 'volume-profile-confluence', label: 'Volume Profile Confluence ⭐ (BTC/USDT.D & Gold/DXY)', icon: '📶' },
       { id: 'ai-chart', label: 'AI Sniper Chart (Long/Short) 🎯', icon: '📈' }
     ]
   },
@@ -31,10 +36,12 @@ export const NAV_CATEGORIES: NavCategory[] = [
     title: 'Stocks & Global',
     icon: '🏦',
     items: [
+      { id: 'global-score', label: 'Global Stock Score Engine ⭐ (4–6M India & US)', icon: '🎯' },
       { id: 'indian-stock-ai', label: 'Indian Stocks AI ⭐ (Top 500)', icon: '🇮🇳' },
       { id: 'usa-stock-ai', label: 'USA Top 1000 AI ⭐ (INDmoney)', icon: '🇺🇸' },
       { id: 'volume-profile-ai', label: 'Volume Profile Pro ⭐ (VAH/VAL/POC Setup)', icon: '📶' },
       { id: 'gold-ai', label: 'Gold Trading AI ⭐', icon: '🥇' },
+      { id: 'gold-signal-panel', label: 'Gold Signal Panel ⭐ (Long/Short TP/SL)', icon: '🎯' },
       { id: 'stock-ai', label: 'AI Stocks (US + NIFTY 100)', icon: '📊' },
       { id: 'global-intel', label: 'Global Intelligence', icon: '🌍' },
       { id: 'ultra-ai', label: 'TradeAI Terminal ⭐', icon: '⚡' },
@@ -83,6 +90,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     title: 'Crypto Engines',
     icon: '🧬',
     items: [
+      { id: 'bookmap-liquidation', label: 'Bookmap Liquidation Live ⭐ (BTC & Gold 1:1)', icon: '🌊' },
       { id: 'liquidation-heatmap', label: 'Liquidation Heatmap Bookmap ⭐ (BTC/Gold/ETH/SOL)', icon: '🔥' },
       { id: 'delta-intelligence', label: 'Delta India Multi-Coin Engine ⭐ (1-3M)', icon: '🏛️' },
       { id: 'crypto-ai', label: 'Crypto Trading AI ⭐ (BTC/ETH/SOL)', icon: '⚡' },
@@ -109,7 +117,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     title: 'Dashboard',
     icon: '📊',
     items: [
-      { id: 'global-score', label: 'Global Market Score', icon: '🎯' },
+      { id: 'global-score', label: 'Global Stock Score Engine ⭐ (4–6M)', icon: '🎯' },
       { id: 'overview', label: 'Live Market Overview', icon: '📈' },
       { id: 'daily-report', label: 'Daily Market Report', icon: '🗞️' },
       { id: 'crowd', label: 'Crowd Long/Short', icon: '👥' }

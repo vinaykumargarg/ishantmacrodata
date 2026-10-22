@@ -5,8 +5,8 @@
    Market Structure (BOS, CHoCH, FVG, EQH/EQL), and Multi-Factor LONG/SHORT/WAIT AI
    ========================================================================== */
 
-export type AssetSymbol = 'BTCUSD' | 'ETHUSD' | 'SOLUSD' | 'XAUUSD' | 'XAGUSD';
-export type AssetClass = 'Crypto' | 'Precious Metals';
+export type AssetSymbol = 'BTCUSD' | 'ETHUSD' | 'SOLUSD' | 'XAUUSD' | 'XAGUSD' | 'USDTD' | 'DXY';
+export type AssetClass = 'Crypto' | 'Precious Metals' | 'Macro Benchmark';
 export type ProfileType = 'VRVP' | 'FRVP' | 'SESSION' | 'ANCHORED' | 'COMPOSITE';
 export type Timeframe = '1m' | '3m' | '5m' | '15m' | '30m' | '1H' | '2H' | '4H' | '1D' | '1W';
 export type DataProvider = 'BINANCE_SPOT' | 'BINANCE_FUTURES' | 'COINBASE' | 'KRAKEN' | 'OANDA_OTC_TICK' | 'COMEX_FUTURES_PROXY';
@@ -225,6 +225,40 @@ export const ASSET_REGISTRY: Record<AssetSymbol, AssetMetadata> = {
     marketHours: 'Mon 00:00 – Fri 23:00 GMT (Daily break 21:00-22:00 GMT)',
     isDerivativesSupported: true,
     otcDisclaimer: 'Note: Spot Silver OTC market relies on venue-specific tick activity. CME/COMEX Silver Futures (SI) proxy is available for centralized exchange-traded contract volume.'
+  },
+  USDTD: {
+    symbol: 'USDTD',
+    name: 'USDT Dominance (%)',
+    assetClass: 'Macro Benchmark',
+    quoteCurrency: 'USDT',
+    decimals: 2,
+    tickSize: 0.01,
+    lotUnit: '%',
+    basePrice: 5.34,
+    bidSpread: 0.01,
+    tvSymbol: 'CRYPTOCAP:USDT.D',
+    supportedProviders: [
+      { id: 'BINANCE_SPOT', label: 'Tether Dominance Index', volumeType: 'TRADED_VOLUME' }
+    ],
+    marketHours: '24/7/365 Continuous Real-Time',
+    isDerivativesSupported: false
+  },
+  DXY: {
+    symbol: 'DXY',
+    name: 'US Dollar Index',
+    assetClass: 'Macro Benchmark',
+    quoteCurrency: 'USD',
+    decimals: 2,
+    tickSize: 0.01,
+    lotUnit: 'Pts',
+    basePrice: 102.35,
+    bidSpread: 0.02,
+    tvSymbol: 'CAPITALCOM:DXY',
+    supportedProviders: [
+      { id: 'OANDA_OTC_TICK', label: 'ICE US Dollar Index Feed', volumeType: 'TICK_VOLUME' }
+    ],
+    marketHours: 'Mon 00:00 – Fri 23:00 GMT',
+    isDerivativesSupported: true
   }
 };
 
@@ -473,8 +507,8 @@ export function generateBenchmarkCandles(
   const candles: Candle[] = [];
 
   // Volatility multiplier per asset
-  const volPct = symbol === 'BTCUSD' ? 0.0035 : symbol === 'ETHUSD' ? 0.0045 : symbol === 'SOLUSD' ? 0.0065 : symbol === 'XAUUSD' ? 0.0020 : 0.0030;
-  const baseVol = symbol === 'BTCUSD' ? 240 : symbol === 'ETHUSD' ? 1800 : symbol === 'SOLUSD' ? 22000 : symbol === 'XAUUSD' ? 4200 : 8500;
+  const volPct = symbol === 'BTCUSD' ? 0.0035 : symbol === 'ETHUSD' ? 0.0045 : symbol === 'SOLUSD' ? 0.0065 : symbol === 'XAUUSD' ? 0.0020 : symbol === 'USDTD' ? 0.0022 : symbol === 'DXY' ? 0.0012 : 0.0030;
+  const baseVol = symbol === 'BTCUSD' ? 240 : symbol === 'ETHUSD' ? 1800 : symbol === 'SOLUSD' ? 22000 : symbol === 'XAUUSD' ? 4200 : symbol === 'USDTD' ? 1200 : symbol === 'DXY' ? 3400 : 8500;
 
   let currentPrice = base * (1 - volPct * 4); // start slightly lower for realistic trend
 
@@ -793,6 +827,59 @@ export function getAssetTelemetry(symbol: AssetSymbol): {
     };
   }
 
+  if (symbol === 'USDTD') {
+    return {
+      structure: {
+        trend: 'CONSOLIDATION',
+        lastBos: { level: +(p * 0.985).toFixed(2), type: 'BEARISH_BOS', timeStr: '1H Range' },
+        lastChoch: { level: +(p * 1.025).toFixed(2), type: 'BULLISH_CHOCH', timeStr: '4H Level' },
+        keySupport: 5.30,
+        keyResistance: 5.58,
+        fvgZones: [{ top: 5.48, bottom: 5.42, kind: 'BEARISH' }],
+        liquidityPools: { eqh: 5.62, eql: 5.28, sweepStatus: 'VAL Demand Shelf Active' },
+        priorDayPoc: 5.44,
+        priorDayVah: 5.54,
+        priorDayVal: 5.34
+      },
+      orderFlow: {
+        isAvailable: true,
+        cvd: -240,
+        cvdTrend: 'FLAT',
+        buySellRatio: 0.96,
+        stackedImbalances: [],
+        largeTradeAlerts: [],
+        openInterest: '$14.2B USDT',
+        fundingRate: 'N/A'
+      }
+    };
+  }
+
+  if (symbol === 'DXY') {
+    return {
+      structure: {
+        trend: 'CONSOLIDATION',
+        lastBos: { level: +(p * 0.992).toFixed(2), type: 'BULLISH_BOS', timeStr: '1H Rebound' },
+        lastChoch: { level: +(p * 1.015).toFixed(2), type: 'BEARISH_CHOCH', timeStr: '4H Resistance' },
+        keySupport: 101.90,
+        keyResistance: 102.85,
+        fvgZones: [{ top: 102.60, bottom: 102.40, kind: 'BEARISH' }],
+        liquidityPools: { eqh: 103.10, eql: 101.80, sweepStatus: 'Equal Lows Floor Held' },
+        priorDayPoc: 102.35,
+        priorDayVah: 102.75,
+        priorDayVal: 101.95
+      },
+      orderFlow: {
+        isAvailable: true,
+        cvd: 450,
+        cvdTrend: 'RISING (Aggressive Buying)',
+        buySellRatio: 1.08,
+        stackedImbalances: [],
+        largeTradeAlerts: [],
+        dataQualityWarning: 'ICE US Dollar Index centralized currency basket weights applied.'
+      }
+    };
+  }
+
   // XAGUSD (Silver)
   return {
     structure: {
@@ -815,6 +902,340 @@ export function getAssetTelemetry(symbol: AssetSymbol): {
       stackedImbalances: [],
       largeTradeAlerts: [],
       dataQualityWarning: 'OTC Spot Silver does not report centralized depth. Tick activity is calculated via global liquidity providers.'
+    }
+  };
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* INTER-MARKET VOLUME PROFILE CONFLUENCE ENGINE (BTC ⮂ USDT.D & GOLD ⮂ DXY)  */
+/* Based on D-Profile: High -> Resistance, POC -> Profit Target, Low -> Support*/
+/* ────────────────────────────────────────────────────────────────────────── */
+
+export type IntermarketPairType = 'BTC_USDTD' | 'GOLD_DXY';
+
+export interface DProfileItem {
+  symbol: AssetSymbol;
+  name: string;
+  price: number;
+  priceFormatted: string;
+  vah: number;
+  vahFormatted: string;
+  poc: number;
+  pocFormatted: string;
+  val: number;
+  valFormatted: string;
+  zone: 'ABOVE_VAH' | 'INSIDE_VA' | 'BELOW_VAL';
+  zoneLabel: string;
+  highResistanceFormatted: string;
+  pocProfitTargetFormatted: string;
+  lowSupportFormatted: string;
+  profile: VolumeProfileResult;
+  hvns: number[];
+  lvns: number[];
+}
+
+export interface IntermarketVpConfluenceResult {
+  pair: IntermarketPairType;
+  targetAsset: DProfileItem;
+  inverseAsset: DProfileItem;
+  confluenceSignal: 'STRONG_SHORT' | 'STRONG_LONG' | 'PARTIAL_SETUP' | 'NO_CONFLUENCE';
+  badgeType: 'SHORT' | 'LONG' | 'WAIT';
+  confidenceScore: number;
+  badgeText: string;
+  headline: string;
+  coreRuleMatched: string;
+  executionPlan: {
+    action: 'SHORT' | 'LONG' | 'WAIT';
+    entryZone: string;
+    entryPrice: number;
+    stopLoss: number;
+    stopLossFormatted: string;
+    profitTargetPoc: number;
+    profitTargetPocFormatted: string;
+    runnerTargetVa: number;
+    runnerTargetVaFormatted: string;
+    riskRewardRatio: string;
+    invalidationClause: string;
+  };
+  hinglishLogic: string;
+  dProfileGuide: {
+    resistanceExplanation: string;
+    pocTargetExplanation: string;
+    supportExplanation: string;
+  };
+}
+
+function formatPriceForSymbol(p: number, symbol: AssetSymbol): string {
+  if (symbol === 'USDTD') {
+    return `${p.toFixed(2)}%`;
+  }
+  if (symbol === 'DXY') {
+    return `${p.toFixed(2)} pts`;
+  }
+  if (p >= 1000) {
+    return `$${p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${p.toFixed(2)}`;
+}
+
+/**
+ * Builds a standardized DProfileItem for any supported asset
+ */
+export function buildAssetDProfile(
+  symbol: AssetSymbol,
+  overridePrice?: number,
+  customCandles?: Candle[]
+): DProfileItem {
+  const candles = customCandles && customCandles.length > 0
+    ? customCandles
+    : generateBenchmarkCandles(symbol, 96);
+  const profile = calculateVolumeProfile(candles, 45, 0.70);
+  const meta = ASSET_REGISTRY[symbol];
+  const price = overridePrice !== undefined ? overridePrice : meta.basePrice;
+
+  const isAboveVah = price > profile.vah;
+  const isBelowVal = price < profile.val;
+  const zone: 'ABOVE_VAH' | 'INSIDE_VA' | 'BELOW_VAL' = isAboveVah
+    ? 'ABOVE_VAH'
+    : isBelowVal
+    ? 'BELOW_VAL'
+    : 'INSIDE_VA';
+
+  const zoneLabel = isAboveVah
+    ? '🔴 RESISTANCE HIGH (> VAH)'
+    : isBelowVal
+    ? '🟢 SUPPORT FLOOR (< VAL)'
+    : '🔵 FAIR VALUE (70% VA)';
+
+  return {
+    symbol,
+    name: meta.name,
+    price,
+    priceFormatted: formatPriceForSymbol(price, symbol),
+    vah: profile.vah,
+    vahFormatted: formatPriceForSymbol(profile.vah, symbol),
+    poc: profile.poc,
+    pocFormatted: formatPriceForSymbol(profile.poc, symbol),
+    val: profile.val,
+    valFormatted: formatPriceForSymbol(profile.val, symbol),
+    zone,
+    zoneLabel,
+    highResistanceFormatted: formatPriceForSymbol(profile.vah, symbol),
+    pocProfitTargetFormatted: formatPriceForSymbol(profile.poc, symbol),
+    lowSupportFormatted: formatPriceForSymbol(profile.val, symbol),
+    profile,
+    hvns: profile.hvns,
+    lvns: profile.lvns
+  };
+}
+
+/**
+ * Evaluates Intermarket Volume Profile Confluence:
+ * 1. BTC vs USDT.D:
+ *    - Short Confluence: BTC > VAH (High / Resistance) AND USDT.D < VAL (Low / Support)
+ *    - Long Confluence: BTC < VAL (Low / Support) AND USDT.D > VAH (High / Resistance)
+ * 2. Gold vs DXY:
+ *    - Short Confluence: Gold > VAH (High / Resistance) AND DXY < VAL (Low / Support)
+ *    - Long Confluence: Gold < VAL (Low / Support) AND DXY > VAH (High / Resistance)
+ */
+export function evaluateIntermarketVpConfluence(
+  pair: IntermarketPairType,
+  customTargetPrice?: number,
+  customInversePrice?: number,
+  customTargetCandles?: Candle[],
+  customInverseCandles?: Candle[]
+): IntermarketVpConfluenceResult {
+  const targetSymbol: AssetSymbol = pair === 'BTC_USDTD' ? 'BTCUSD' : 'XAUUSD';
+  const inverseSymbol: AssetSymbol = pair === 'BTC_USDTD' ? 'USDTD' : 'DXY';
+
+  const target = buildAssetDProfile(targetSymbol, customTargetPrice, customTargetCandles);
+  const inverse = buildAssetDProfile(inverseSymbol, customInversePrice, customInverseCandles);
+
+  const tPrice = target.price;
+  const tVah = target.vah;
+  const tVal = target.val;
+  const tPoc = target.poc;
+
+  const iPrice = inverse.price;
+  const iVah = inverse.vah;
+  const iVal = inverse.val;
+
+  // Case 1: ULTRA-HIGH CONFLUENCE SHORT SETUP
+  // Target Price > VAH (Resistance High) AND Inverse Price < VAL (Support Low)
+  if (tPrice >= tVah * 0.999 && iPrice <= iVal * 1.002) {
+    const sl = +(tVah * 1.012).toFixed(targetSymbol === 'BTCUSD' ? 2 : 2);
+    const risk = Math.max(1, Math.abs(tPrice - sl));
+    const reward = Math.abs(tPrice - tPoc);
+    const rr = (reward / risk).toFixed(1);
+
+    return {
+      pair,
+      targetAsset: target,
+      inverseAsset: inverse,
+      confluenceSignal: 'STRONG_SHORT',
+      badgeType: 'SHORT',
+      confidenceScore: 96,
+      badgeText: `⚡ ULTRA HIGH-PROBABILITY SHORT CONFIRMED (${target.symbol} > VAH + ${inverse.symbol} < VAL)`,
+      headline: `${target.name} at Volume Area High (Resistance) + ${inverse.name} at Volume Area Low (Support)`,
+      coreRuleMatched: `${target.symbol} Price >= VAH (${target.vahFormatted}) + ${inverse.symbol} <= VAL (${inverse.valFormatted}) ➔ High-Probability Mean Reversion Short`,
+      executionPlan: {
+        action: 'SHORT',
+        entryZone: `${formatPriceForSymbol(tPrice * 0.998, targetSymbol)} – ${formatPriceForSymbol(tPrice * 1.002, targetSymbol)} (At VAH Resistance Ceiling)`,
+        entryPrice: tPrice,
+        stopLoss: sl,
+        stopLossFormatted: formatPriceForSymbol(sl, targetSymbol),
+        profitTargetPoc: tPoc,
+        profitTargetPocFormatted: target.pocFormatted,
+        runnerTargetVa: tVal,
+        runnerTargetVaFormatted: target.valFormatted,
+        riskRewardRatio: `1 : ${rr}`,
+        invalidationClause: `Hourly candle close firmly above VAH (${target.vahFormatted}) or break above stop loss ${formatPriceForSymbol(sl, targetSymbol)}.`
+      },
+      hinglishLogic: `${target.name} price volume profile ke Value Area High (VAH Resistance: ${target.vahFormatted}) ke upar trade kar raha hai, jabki ${inverse.name} apne Value Area Low (VAL Support: ${inverse.valFormatted}) ke niche support par khada hai. Jaise hi ${inverse.symbol} support se bounce karega (${pair === 'BTC_USDTD' ? 'log crypto bech kar USDT cash me aayenge' : 'dollar index मजबूत hoga'}), ${target.symbol} resistance ceiling se aggressively reject hoga. Yahan se SHORT trade lena maximum reward-to-risk deta hai! Primary Profit Target = POC (${target.pocFormatted}).`,
+      dProfileGuide: {
+        resistanceExplanation: `High -> Resistance: ${target.name} VAH (${target.vahFormatted}) ke upar overbought zone me hai jahan sellers dominant rehte hain.`,
+        pocTargetExplanation: `POC -> Profit Target: POC (${target.pocFormatted}) par maximum volume execute hua hai, isliye price POC magnet par revert hoga.`,
+        supportExplanation: `Low -> Support: ${inverse.name} apne VAL (${inverse.valFormatted}) support par hai jahan se bounce expected hai.`
+      }
+    };
+  }
+
+  // Case 2: ULTRA-HIGH CONFLUENCE LONG SETUP
+  // Target Price < VAL (Support Low) AND Inverse Price > VAH (Resistance High)
+  if (tPrice <= tVal * 1.001 && iPrice >= iVah * 0.998) {
+    const sl = +(tVal * 0.988).toFixed(targetSymbol === 'BTCUSD' ? 2 : 2);
+    const risk = Math.max(1, Math.abs(tPrice - sl));
+    const reward = Math.abs(tPoc - tPrice);
+    const rr = (reward / risk).toFixed(1);
+
+    return {
+      pair,
+      targetAsset: target,
+      inverseAsset: inverse,
+      confluenceSignal: 'STRONG_LONG',
+      badgeType: 'LONG',
+      confidenceScore: 94,
+      badgeText: `⚡ ULTRA HIGH-PROBABILITY LONG CONFIRMED (${target.symbol} < VAL + ${inverse.symbol} > VAH)`,
+      headline: `${target.name} at Volume Area Low (Support) + ${inverse.name} at Volume Area High (Resistance)`,
+      coreRuleMatched: `${target.symbol} Price <= VAL (${target.valFormatted}) + ${inverse.symbol} >= VAH (${inverse.vahFormatted}) ➔ High-Probability Mean Reversion Long`,
+      executionPlan: {
+        action: 'LONG',
+        entryZone: `${formatPriceForSymbol(tPrice * 0.998, targetSymbol)} – ${formatPriceForSymbol(tPrice * 1.002, targetSymbol)} (At VAL Support Floor)`,
+        entryPrice: tPrice,
+        stopLoss: sl,
+        stopLossFormatted: formatPriceForSymbol(sl, targetSymbol),
+        profitTargetPoc: tPoc,
+        profitTargetPocFormatted: target.pocFormatted,
+        runnerTargetVa: tVah,
+        runnerTargetVaFormatted: target.vahFormatted,
+        riskRewardRatio: `1 : ${rr}`,
+        invalidationClause: `Hourly candle close firmly below VAL (${target.valFormatted}) or stop loss trigger at ${formatPriceForSymbol(sl, targetSymbol)}.`
+      },
+      hinglishLogic: `${target.name} price volume profile ke Value Area Low (VAL Support: ${target.valFormatted}) ke niche discount zone me trade kar raha hai, jabki ${inverse.name} apne Value Area High (VAH Resistance: ${inverse.vahFormatted}) par exhaust ho chuka hai. ${inverse.symbol} resistance se slip karega (${pair === 'BTC_USDTD' ? 'cash se paisa nikal kar Bitcoin me deploy hoga' : 'dollar weak hone se gold surge karega'}) aur ${target.symbol} POC target ki taraf shoot karega. Yahan se LONG trade initiate karna best hai! Profit Target = POC (${target.pocFormatted}).`,
+      dProfileGuide: {
+        resistanceExplanation: `High -> Resistance: ${inverse.name} apne VAH (${inverse.vahFormatted}) resistance par hai jahan selling pressure aana tay hai.`,
+        pocTargetExplanation: `POC -> Profit Target: POC (${target.pocFormatted}) high liquidity magnet par apka main profit book hoga.`,
+        supportExplanation: `Low -> Support: ${target.name} apne VAL (${target.valFormatted}) support floor par hai jahan se institutional buying active hoti hai.`
+      }
+    };
+  }
+
+  // Case 3: PARTIAL SETUP (One asset in extreme, awaiting confirmation from inverse asset)
+  if (tPrice >= tVah) {
+    return {
+      pair,
+      targetAsset: target,
+      inverseAsset: inverse,
+      confluenceSignal: 'PARTIAL_SETUP',
+      badgeType: 'WAIT',
+      confidenceScore: 68,
+      badgeText: `⏳ PARTIAL SHORT SETUP (${target.symbol} > VAH, AWAITING ${inverse.symbol} VAL TOUCH)`,
+      headline: `${target.name} is at Resistance (> VAH) but ${inverse.name} is not yet at Support (< VAL)`,
+      coreRuleMatched: `Waiting for ${inverse.symbol} to reach VAL support (${inverse.valFormatted}) to avoid fakeout.`,
+      executionPlan: {
+        action: 'WAIT',
+        entryZone: `Watch ${target.vahFormatted} for rejection wicks`,
+        entryPrice: tPrice,
+        stopLoss: +(tVah * 1.01).toFixed(2),
+        stopLossFormatted: formatPriceForSymbol(tVah * 1.01, targetSymbol),
+        profitTargetPoc: tPoc,
+        profitTargetPocFormatted: target.pocFormatted,
+        runnerTargetVa: tVal,
+        runnerTargetVaFormatted: target.valFormatted,
+        riskRewardRatio: '1 : 2.2',
+        invalidationClause: `Do not front-run short until ${inverse.symbol} aligns at VAL support.`
+      },
+      hinglishLogic: `${target.name} to Value Area High (${target.vahFormatted}) par resistance test kar raha hai, lekin ${inverse.name} abhi tak apne VAL Support (${inverse.valFormatted}) par nahi pahucha hai (Current: ${inverse.priceFormatted}). Fakeout se bachne ke liye dono ka simultaneously reach hona zaroori hai. Thoda intezar karein!`,
+      dProfileGuide: {
+        resistanceExplanation: `${target.name} VAH Resistance par test kar raha hai.`,
+        pocTargetExplanation: `POC (${target.pocFormatted}) setup activate hone par primary target hoga.`,
+        supportExplanation: `${inverse.name} VAL (${inverse.valFormatted}) support ka test pending hai.`
+      }
+    };
+  }
+
+  if (tPrice <= tVal) {
+    return {
+      pair,
+      targetAsset: target,
+      inverseAsset: inverse,
+      confluenceSignal: 'PARTIAL_SETUP',
+      badgeType: 'WAIT',
+      confidenceScore: 68,
+      badgeText: `⏳ PARTIAL LONG SETUP (${target.symbol} < VAL, AWAITING ${inverse.symbol} VAH TOUCH)`,
+      headline: `${target.name} is at Support (< VAL) but ${inverse.name} has not reached Resistance (> VAH)`,
+      coreRuleMatched: `Waiting for ${inverse.symbol} to hit VAH ceiling (${inverse.vahFormatted}) for confirmed rotation.`,
+      executionPlan: {
+        action: 'WAIT',
+        entryZone: `Watch ${target.valFormatted} for buyer absorption`,
+        entryPrice: tPrice,
+        stopLoss: +(tVal * 0.99).toFixed(2),
+        stopLossFormatted: formatPriceForSymbol(tVal * 0.99, targetSymbol),
+        profitTargetPoc: tPoc,
+        profitTargetPocFormatted: target.pocFormatted,
+        runnerTargetVa: tVah,
+        runnerTargetVaFormatted: target.vahFormatted,
+        riskRewardRatio: '1 : 2.4',
+        invalidationClause: `Confirm ${inverse.symbol} rejection before full size entry.`
+      },
+      hinglishLogic: `${target.name} apne Value Area Low (${target.valFormatted}) par hai, par ${inverse.name} abhi tak apne VAH Ceiling (${inverse.vahFormatted}) par exhaust nahi hua hai. Jab dono extreme sync honge tab trade confirm hogi.`,
+      dProfileGuide: {
+        resistanceExplanation: `${inverse.name} VAH (${inverse.vahFormatted}) reach hone ka wait karein.`,
+        pocTargetExplanation: `POC (${target.pocFormatted}) target rahega.`,
+        supportExplanation: `${target.name} VAL (${target.valFormatted}) par support build kar raha hai.`
+      }
+    };
+  }
+
+  // Case 4: NEUTRAL RANGE ROTATION
+  return {
+    pair,
+    targetAsset: target,
+    inverseAsset: inverse,
+    confluenceSignal: 'NO_CONFLUENCE',
+    badgeType: 'WAIT',
+    confidenceScore: 50,
+    badgeText: '⚖️ VALUE AREA ROTATION (70% FAIR VALUE BALANCE)',
+    headline: 'Both assets rotating inside 70% Value Area — No edge for directional expansion',
+    coreRuleMatched: 'Price between VAL and VAH. Patience required until boundary extremes are probed.',
+    executionPlan: {
+      action: 'WAIT',
+      entryZone: 'No trade inside POC balance zone',
+      entryPrice: tPrice,
+      stopLoss: 0,
+      stopLossFormatted: 'N/A',
+      profitTargetPoc: tPoc,
+      profitTargetPocFormatted: target.pocFormatted,
+      runnerTargetVa: tVal,
+      runnerTargetVaFormatted: target.valFormatted,
+      riskRewardRatio: 'N/A',
+      invalidationClause: 'Wait for test of VAH or VAL.'
+    },
+    hinglishLogic: `Donon assets apne 70% Value Area ke andar rotate kar rahe hain. POC (${target.pocFormatted}) fair value magnet bana hua hai. Jab tak ${target.symbol} VAH ke upar aur ${inverse.symbol} VAL ke niche na aaye, tab tak short trade initiate na karein. Capital preserve karein!`,
+    dProfileGuide: {
+      resistanceExplanation: `VAH (${target.vahFormatted}) upper boundary ceiling hai.`,
+      pocTargetExplanation: `POC (${target.pocFormatted}) high volume magnet equilibrium hai.`,
+      supportExplanation: `VAL (${target.valFormatted}) lower floor demand shelf hai.`
     }
   };
 }

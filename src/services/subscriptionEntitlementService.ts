@@ -163,6 +163,9 @@ export function revokeFounderPassport(): void {
  * Free tabs accessible to everyone without paid subscription
  */
 export const FREE_TABS = new Set([
+  'landing',
+  'portal',
+  'home',
   'global-score',
   'economic-events',
   'calendar',
@@ -178,7 +181,22 @@ export const FREE_TABS = new Set([
   'gold',
   'gold-ai',
   'gold-trading-ai',
-  'delta-swing-scanner'
+  'bookmap-liquidation',
+  'bookmap',
+  'bookmap-chart',
+  'liquidation-heatmap',
+  'delta-swing-scanner',
+  'deeepr-ai',
+  'deeepr',
+  'deeepr-decision-engine',
+  'deeepr-ai-chart',
+  'deeepr-copilot',
+  'ai-chart',
+  'volume-profile-ai',
+  'volume-profile',
+  'volume-profile-confluence',
+  'vp-confluence',
+  'volume-profile-pro'
 ]);
 
 /**
