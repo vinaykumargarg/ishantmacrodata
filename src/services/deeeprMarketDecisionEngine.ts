@@ -581,9 +581,11 @@ export function evaluateDeeeprMarketDecision(
   let chochDirection: 'BULLISH' | 'BEARISH' | 'NONE' = 'NONE';
   let chochLevel = 0;
 
-  // Actual swing high and swing low tracking
+  // Actual swing high and swing low tracking (including Previous Day High / Low)
   let swingHigh = currentPrice * 1.012;
   let swingLow = currentPrice * 0.988;
+  let pdh = currentPrice * 1.018;
+  let pdl = currentPrice * 0.982;
   let lastMajorHigh = currentPrice * 1.008;
   let lastMajorLow = currentPrice * 0.992;
 
@@ -678,6 +680,9 @@ export function evaluateDeeeprMarketDecision(
       swingLow = Math.min(...recent.map((c) => c.low));
       lastMajorLow = swingLow;
     }
+
+    pdh = swingHigh;
+    pdl = swingLow;
 
     const lastCandle = candleList[len - 1];
     const lastClose = lastCandle.close;

@@ -410,6 +410,7 @@ export function evaluateDeeeprPrecisionEntry(
   const rangeSpan = swingHigh - swingLow;
   const midRange = (swingHigh + swingLow) / 2;
   const isRangeFlat = rangeSpan / currentPrice < 0.0020;
+  const isNearRangeMid = Math.abs(currentPrice - midRange) / (rangeSpan || 1) < 0.15;
 
   const last5 = candleList.slice(-5);
   const redCount = last5.filter((c) => c.close < c.open).length;
