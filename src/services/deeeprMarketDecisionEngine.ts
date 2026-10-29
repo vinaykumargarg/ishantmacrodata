@@ -1518,6 +1518,9 @@ export function evaluateDeeeprMarketDecision(
   // ─────────────────────────────────────────────────────────────────────────────
   const majorSupport = swingLow;
   const majorResistance = swingHigh;
+  const pocPrice = +(swingLow + (swingHigh - swingLow) * 0.5).toFixed(2);
+  const vahPrice = +(swingLow + (swingHigh - swingLow) * 0.7).toFixed(2);
+  const valPrice = +(swingLow + (swingHigh - swingLow) * 0.3).toFixed(2);
   const valueAcceptance = currentPrice > vahPrice ? 'Trading above Value Area High (Premium Expansion)' : currentPrice < valPrice ? 'Trading below Value Area Low (Discount Liquidation)' : 'Trading inside 70% Value Area Distribution (Consolidation)';
   const orderFlowText = structureBullish >= structureBearish ? 'Aggressive limit buyers absorbing market sell orders at demand POC; cumulative delta turning net positive (+18.4M)' : 'Institutional sell distribution at supply VAH; aggressive market selling with negative CVD (-21.2M)';
   const smartMoneyInference = finalDecision === 'LONG' ? 'Smart money accumulation observed following sell-side liquidity sweep' : finalDecision === 'SHORT' ? 'Institutional distribution and mitigation following buy-side liquidity sweep' : 'Equilibrium balance between resting buy and sell orders';

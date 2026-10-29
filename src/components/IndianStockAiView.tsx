@@ -7,8 +7,10 @@ import {
   getIndianStockProfile,
   MarketCapTier,
   DecisionType,
-  SetupType
+  SetupType,
+  INDIAN_SECTOR_INTELLIGENCE
 } from '../data/indianStockDatabase';
+import { GLOBAL_PORTFOLIO_STRATEGY } from '../data/usaTop1000Database';
 import { getIndianMarketSession } from '../utils/marketSessionUtils';
 import TradingViewWidget from './TradingViewWidget';
 import {
@@ -43,14 +45,14 @@ import {
   Radio
 } from 'lucide-react';
 
-export default function IndianStockAiView() {
+export default function IndianStockAiView({ onNavigate }: { onNavigate?: (tab: string) => void } = {}) {
   // ── STATE MANAGEMENT ──
   const [selectedSymbol, setSelectedSymbol] = useState<string>('RELIANCE');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeMainTab, setActiveMainTab] = useState<'RESEARCH' | 'SCANNER'>('RESEARCH');
+  const [activeMainTab, setActiveMainTab] = useState<'RESEARCH' | 'SCANNER' | 'SECTORS' | 'PORTFOLIO'>('RESEARCH');
   const [activeResearchTab, setActiveResearchTab] = useState<
-    'OVERVIEW' | 'BUSINESS' | 'FINANCIALS' | 'QUARTERS' | 'GOVERNANCE' | 'ANNUAL_REPORT' | 'VALUATION' | 'TECHNICALS' | 'MACRO' | 'SCENARIOS' | 'PEERS'
-  >('OVERVIEW');
+    'EXECUTION_BLUEPRINT' | 'OVERVIEW' | 'BUSINESS' | 'FINANCIALS' | 'QUARTERS' | 'GOVERNANCE' | 'ANNUAL_REPORT' | 'VALUATION' | 'TECHNICALS' | 'MACRO' | 'SCENARIOS' | 'PEERS'
+  >('EXECUTION_BLUEPRINT');
   const [selectedHorizon, setSelectedHorizon] = useState<'SWING' | 'INTRADAY' | 'SHORT' | 'MEDIUM' | 'LONG'>('SWING');
 
   // Scanner Filters
@@ -337,7 +339,7 @@ export default function IndianStockAiView() {
           </div>
 
           {/* Primary View Switcher */}
-          <div className="flex items-center gap-1.5 self-start lg:self-auto rounded-lg border border-border/80 bg-secondary/50 p-1">
+          <div className="flex flex-wrap items-center gap-1.5 self-start lg:self-auto rounded-lg border border-border/80 bg-secondary/50 p-1">
             <button
               onClick={() => setActiveMainTab('RESEARCH')}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
@@ -350,6 +352,28 @@ export default function IndianStockAiView() {
               <span>Deep Stock Terminal</span>
             </button>
             <button
+              onClick={() => setActiveMainTab('SECTORS')}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                activeMainTab === 'SECTORS'
+                  ? 'bg-primary text-slate-950 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Zap className="size-3.5" />
+              <span>⚡ Sector Outlook (Renewables & Defence)</span>
+            </button>
+            <button
+              onClick={() => setActiveMainTab('PORTFOLIO')}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                activeMainTab === 'PORTFOLIO'
+                  ? 'bg-primary text-slate-950 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Target className="size-3.5" />
+              <span>🌐 50:50 Growth Allocation (India & US)</span>
+            </button>
+            <button
               onClick={() => setActiveMainTab('SCANNER')}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                 activeMainTab === 'SCANNER'
@@ -357,8 +381,15 @@ export default function IndianStockAiView() {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Zap className="size-3.5" />
+              <Activity className="size-3.5" />
               <span>AI Opportunity Scanner</span>
+            </button>
+            <button
+              onClick={() => onNavigate ? onNavigate('deeepr-stock-research') : (window.location.hash = '#deeepr-stock-research')}
+              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm"
+            >
+              <Shield className="size-3.5 text-cyan-200" />
+              <span>🏛️ DEEEPR Stock Research ↗</span>
             </button>
           </div>
         </div>
@@ -463,15 +494,15 @@ export default function IndianStockAiView() {
             <span className="text-muted-foreground mr-1">Quick Select:</span>
             {[
               { sym: 'RELIANCE', name: 'Reliance' },
+              { sym: 'TATAPOWER', name: 'Tata Power ⚡' },
+              { sym: 'KPIGREEN', name: 'KPI Green 🌱' },
+              { sym: 'HAL', name: 'HAL Defence ✈️' },
+              { sym: 'BEL', name: 'BEL Radar 🛡️' },
               { sym: 'TCS', name: 'TCS' },
               { sym: 'HDFCBANK', name: 'HDFC Bank' },
               { sym: 'TATAMOTORS', name: 'Tata Motors' },
-              { sym: 'HAL', name: 'HAL Defence' },
-              { sym: 'BEL', name: 'BEL' },
               { sym: 'SBIN', name: 'SBI' },
-              { sym: 'TRENT', name: 'Trent' },
-              { sym: 'DIXON', name: 'Dixon' },
-              { sym: 'BSE', name: 'BSE' }
+              { sym: 'TRENT', name: 'Trent' }
             ].map(item => {
               const liveP = liveTickMap[item.sym]?.cmp;
               const flash = liveTickMap[item.sym]?.flash;
@@ -872,6 +903,7 @@ export default function IndianStockAiView() {
             {/* Tab navigation pills */}
             <div className="flex gap-1.5 overflow-x-auto pb-2 border-b border-border/60 text-xs font-mono">
               {[
+                { id: 'EXECUTION_BLUEPRINT' as const, label: '🎯 A-to-Z Execution Blueprint' },
                 { id: 'OVERVIEW' as const, label: 'Overview & Catalysts' },
                 { id: 'BUSINESS' as const, label: 'Business Model & Moat' },
                 { id: 'FINANCIALS' as const, label: 'Financial Statements (10Y)' },
@@ -897,6 +929,194 @@ export default function IndianStockAiView() {
                 </button>
               ))}
             </div>
+
+            {/* TAB CONTENT 0: A-TO-Z TRADE & MONEY BLUEPRINT */}
+            {activeResearchTab === 'EXECUTION_BLUEPRINT' && (
+              <div className="space-y-4 font-mono text-xs">
+                {/* 1. Master Guidance Banner */}
+                <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/10 via-slate-900 to-primary/5 p-4 sm:p-5 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-sm font-black text-primary">
+                      <Target className="size-5 text-primary" />
+                      INSTITUTIONAL A-TO-Z TRADE & MONEY MANAGEMENT BLUEPRINT
+                    </span>
+                    <span className="rounded bg-primary/20 px-2 py-0.5 text-[11px] font-bold text-primary">
+                      PIPELINE: LOCATION ➔ DIRECTION ➔ TRIGGER ➔ RISK
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    Koi bhi trade "sure-shot" ya guaranteed nahi hota. Desk rule: Trade tab banti hai jab price valid zone par ho, trigger candle close ho jaye, aur Risk-to-Reward (RR) minimum 2.0 ho. Niche is stock ka complete step-by-step capital, entry, SL, targets aur partial profit booking plan diya gaya hai.
+                  </p>
+                </div>
+
+                {/* 2. Seven Essential Questions Grid */}
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Q1: Upar Kyon Ja Sakta Hai */}
+                  <div className="rounded-lg border border-bull/40 bg-bull/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-bull font-bold text-sm">
+                      <TrendingUp className="size-4" />
+                      <span>1. Upar Kyon Ja Sakta Hai?</span>
+                    </div>
+                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                      <strong>Core Drivers & Moat:</strong> {stock.businessOverview}
+                    </p>
+                    <ul className="space-y-1 text-[11px] text-foreground">
+                      {stock.top3ReasonsToInvest.slice(0, 3).map((r, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-bull font-bold">•</span>
+                          <span>{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Q2: Long Kab Karna Hai */}
+                  <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                      <Clock className="size-4" />
+                      <span>2. Long Kab Karna Hai? (Trigger)</span>
+                    </div>
+                    <p className="text-foreground text-[11px] font-bold">
+                      {stock.swing.setup}
+                    </p>
+                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                      <strong>Closed-Candle Rule:</strong> Entry tabhi valid hogi jab Daily/4H candle entry range ({stock.swing.entry}) ke andar bullish rejection wick ya breakout hold kare. Live tick touch par entry na lein.
+                    </p>
+                    <div className="rounded bg-black/40 p-2 text-[10px] text-amber-300 border border-amber-500/30">
+                      ⚡ Mid-range chhod dein. Agar price entry zone se door bhag chuka hai, chase na karein (WAIT rule).
+                    </div>
+                  </div>
+
+                  {/* Q3: Kitna Paisa Lagana Hai */}
+                  <div className="rounded-lg border border-border/80 bg-secondary/30 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-foreground font-bold text-sm">
+                      <DollarSign className="size-4 text-primary" />
+                      <span>3. Kitna Paisa Lagana Hai?</span>
+                    </div>
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Portfolio Capital:</span>
+                        <span className="font-bold">₹{tradingCapital.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Max Risk ({riskPerTradePct}%):</span>
+                        <span className="font-bold text-bear">₹{positionSizing.maxRiskInr.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-border/50 pt-1">
+                        <span className="text-primary font-bold">Recommended Quantity:</span>
+                        <span className="font-bold text-primary">{positionSizing.sharesQty} Shares</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total INR Deployed:</span>
+                        <span className="font-bold text-foreground">₹{positionSizing.totalExposure.toLocaleString()} ({((positionSizing.totalExposure / tradingCapital) * 100).toFixed(1)}%)</span>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      *Formula: Shares = Max Risk / (Entry - StopLoss). Kabhi bhi 1-2% se zyada risk na lein.
+                    </p>
+                  </div>
+
+                  {/* Q4: Kahan Entry Karni Hai */}
+                  <div className="rounded-lg border border-bull/40 bg-secondary/30 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-bull font-bold text-sm">
+                      <ArrowUpRight className="size-4" />
+                      <span>4. Kahan Entry Karni Hai?</span>
+                    </div>
+                    <div className="text-lg font-black text-bull font-mono">
+                      {stock.swing.entry}
+                    </div>
+                    <p className="text-muted-foreground text-[11px]">
+                      CMP: <strong>₹{stock.cmp.toLocaleString()}</strong>. Entry hamesha planned demand zone ya discount zone (p &le; 0.45) par karein. Resistance ke bilkul neeche buy karna mana hai.
+                    </p>
+                  </div>
+
+                  {/* Q5: Kahan Stop-Loss Lagana Hai */}
+                  <div className="rounded-lg border border-bear/40 bg-bear/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-bear font-bold text-sm">
+                      <Shield className="size-4" />
+                      <span>5. Kahan Stop-Loss Lagana Hai?</span>
+                    </div>
+                    <div className="text-lg font-black text-bear font-mono">
+                      {stock.swing.sl}
+                    </div>
+                    <p className="text-muted-foreground text-[11px]">
+                      SL demand zone ke lowest point se 0.35 ATR neeche rakha jata hai. Agar candle iske neeche close hoti hai, to chupchap exit karein. Hope par holding mana hai.
+                    </p>
+                    <div className="text-[10px] text-rose-300 font-bold">
+                      Thesis Invalidation: {stock.invalidationTrigger}
+                    </div>
+                  </div>
+
+                  {/* Q6: Kitna Target Book Karna Hai */}
+                  <div className="rounded-lg border border-primary/40 bg-secondary/30 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                      <Target className="size-4" />
+                      <span>6. Targets & Risk-to-Reward</span>
+                    </div>
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">TP1 (Nearest Supply):</span>
+                        <span className="font-bold text-bull">{stock.swing.tp1}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">TP2 (Structural Expansion):</span>
+                        <span className="font-bold text-bull">{stock.swing.tp2}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">TP3 (HTF Liquidity Pool):</span>
+                        <span className="font-bold text-bull">{stock.swing.tp3}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-border/50 pt-1">
+                        <span className="text-primary font-bold">Calculated R:R Ratio:</span>
+                        <span className="font-black text-primary">{stock.swing.rr}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Partial Profit Booking & Capital Recovery Timeline */}
+                <div className="rounded-xl border border-border/80 bg-slate-900/90 p-4 sm:p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                    <Layers className="size-4 text-primary" />
+                    <span>7. Partially Kab Aur Kitna Paisa Nikalna Hai? (Exit Execution Strategy)</span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-emerald-400 text-xs">STAGE 1: 50% PROFIT BOOK</span>
+                        <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">Target 1 Hit</span>
+                      </div>
+                      <p className="text-xs text-foreground font-semibold">Sell 50% Quantity @ {stock.swing.tp1}</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Apna 50% capital aur initial profit lock karein. <strong>Mandatory Rule:</strong> Stop-loss ko turant entry price par shift (move to breakeven) kar dein. Iske baad ye trade zero-risk ban jata hai.
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-cyan-400 text-xs">STAGE 2: 30% PROFIT BOOK</span>
+                        <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">Target 2 Hit</span>
+                      </div>
+                      <p className="text-xs text-foreground font-semibold">Sell 30% Quantity @ {stock.swing.tp2}</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        2R+ return secure karein. Remaining 20% position ke liye SL ko TP1 ke thoda upar trail karein, taaki minimum profit guaranteed rahe.
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-primary/40 bg-primary/10 p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-primary text-xs">STAGE 3: 20% RUNNER TRAILING</span>
+                        <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">Target 3 / Trend</span>
+                      </div>
+                      <p className="text-xs text-foreground font-semibold">Hold 20% Runner @ {stock.swing.tp3}</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Bacha hua 20% paisa tab tak na nikalein jab tak stock Daily 50 EMA ke neeche close na ho ya koi structural trend breakdown na de. Ye multibagger expansion capture karta hai.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* TAB CONTENT 1: OVERVIEW */}
             {activeResearchTab === 'OVERVIEW' && (
@@ -1533,6 +1753,555 @@ export default function IndianStockAiView() {
                 })}
               </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* VIEW C: SECTOR OUTLOOK & COMPARATIVE RESEARCH (RENEWABLES & DEFENCE)*/}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {activeMainTab === 'SECTORS' && (
+        <div className="space-y-6 font-mono">
+          {/* Header Banner */}
+          <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/10 via-slate-900 to-primary/5 p-5 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-base font-black text-primary">
+                <Zap className="size-5 text-primary" />
+                HIGH-GROWTH INDIAN SECTORS: 2025–2030 OUTLOOK
+              </span>
+              <span className="rounded bg-primary/20 px-2.5 py-0.5 text-xs font-bold text-primary">
+                STRATEGIC FOCUS: RENEWABLE ENERGY & DEFENCE INDIGENISATION
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-4xl">
+              Aane wale 5 saalon mein Bharat ke do sabse bade structural secular megatrends hain: (1) Renewable Clean Energy Transition (500 GW target by 2030 + ₹75,000 Cr PM Surya Ghar Yojana) aur (2) Defence Indigenisation (Make in India + ₹50,000 Cr export target). Niche dono sectors ka deep dive, order books, aur top stocks ka financial comparison diya gaya hai.
+            </p>
+          </div>
+
+          {/* Sector 1: Indian Renewable Energy */}
+          <div className="rounded-xl border border-border/80 bg-card p-5 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-border/60 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-400">
+                    SECTOR: STRONG OVERWEIGHT
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">Horizon: 2025–2030 (Multidecade Megatrend)</span>
+                </div>
+                <h3 className="text-lg font-black text-foreground mt-1">
+                  1. Indian Renewable Energy & Clean Power Transition
+                </h3>
+              </div>
+              <div className="text-left md:text-right">
+                <span className="text-[10px] text-muted-foreground block">Expected Sector CAGR:</span>
+                <span className="text-base font-black text-emerald-400">24%–28% Annual Growth</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <strong>Macro Driver:</strong> India has committed to reaching 500 GW of non-fossil capacity by 2030 (currently ~190 GW), requiring an annual addition of 40–50 GW. Surging power demand driven by AI data centers, industrial manufacturing, and residential AC load is creating peak power deficits that only hybrid solar-wind and storage can fulfill.
+            </p>
+
+            {/* Key Policies & Schemes */}
+            <div className="rounded-lg border border-border/70 bg-secondary/20 p-3 space-y-1.5 text-xs">
+              <span className="font-bold text-foreground flex items-center gap-1.5">
+                <Award className="size-3.5 text-primary" />
+                Key Government Catalysts & Budget Schemes:
+              </span>
+              <ul className="grid gap-1 sm:grid-cols-2 text-[11px] text-muted-foreground">
+                <li className="flex items-start gap-1">
+                  <span className="text-emerald-400 font-bold">•</span>
+                  <span><strong>PM Surya Ghar Muft Bijli Yojana:</strong> ₹75,021 Cr outlay targeting 1 Crore household rooftop solar systems with 60% direct subsidy.</span>
+                </li>
+                <li className="flex items-start gap-1">
+                  <span className="text-emerald-400 font-bold">•</span>
+                  <span><strong>Solar PLI Scheme:</strong> ₹24,000 Cr incentive creating 45+ GW of domestic cell & module manufacturing to displace Chinese imports.</span>
+                </li>
+                <li className="flex items-start gap-1">
+                  <span className="text-emerald-400 font-bold">•</span>
+                  <span><strong>ISTS Transmission Waiver:</strong> Green energy corridors with 25-year waiver of inter-state transmission charges.</span>
+                </li>
+                <li className="flex items-start gap-1">
+                  <span className="text-emerald-400 font-bold">•</span>
+                  <span><strong>National Green Hydrogen Mission:</strong> ₹19,744 Cr outlay requiring 125 GW of dedicated renewable capacity.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Head-to-Head Comparison: Tata Power vs KPI Green Energy */}
+            <div className="space-y-2 pt-2">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders className="size-3.5 text-primary" />
+                Financial Head-to-Head: Tata Power (TATAPOWER) vs KPI Green Energy (KPIGREEN)
+              </h4>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Tata Power Card */}
+                <div className="rounded-xl border border-primary/40 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-base font-black text-primary">TATAPOWER</span>
+                      <span className="text-xs text-muted-foreground block font-sans">Tata Power Company Limited</span>
+                    </div>
+                    <span className="rounded bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">Large-Cap Leader</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 border-y border-border/60 py-2.5 text-center text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">P/E Ratio</span>
+                      <span className="font-bold text-foreground">34.2x</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Debt/Equity</span>
+                      <span className="font-bold text-amber-400">1.22x</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">3Y PAT CAGR</span>
+                      <span className="font-bold text-emerald-400">+36.8%</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <p><strong className="text-foreground">Order Book:</strong> ₹15,900+ Cr utility EPC backlog + ₹3,800+ Cr rooftop solar pipeline.</p>
+                    <p><strong className="text-foreground">Project Pipeline:</strong> 5.5 GW operational & under construction clean portfolio; 4.3 GW solar cell & module plant in Tirunelveli (Tamil Nadu) fully operational; 5,500+ public EV charging stations across India.</p>
+                    <p><strong className="text-foreground">Core Moat:</strong> Integrated presence across power generation, transmission, distribution (Odisha/Delhi/Mumbai), solar rooftop EPC, and high-margin EV charging infrastructure.</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedSymbol('TATAPOWER');
+                      setActiveMainTab('RESEARCH');
+                    }}
+                    className="w-full rounded bg-primary px-3 py-1.5 text-xs font-bold text-slate-950 transition-transform active:scale-95 cursor-pointer mt-2"
+                  >
+                    View Tata Power Deep Terminal ↗
+                  </button>
+                </div>
+
+                {/* KPI Green Energy Card */}
+                <div className="rounded-xl border border-emerald-500/40 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-base font-black text-emerald-400">KPIGREEN</span>
+                      <span className="text-xs text-muted-foreground block font-sans">KPI Green Energy Limited</span>
+                    </div>
+                    <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">High-Growth Small-Cap</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 border-y border-border/60 py-2.5 text-center text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">P/E Ratio</span>
+                      <span className="font-bold text-foreground">42.5x</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Debt/Equity</span>
+                      <span className="font-bold text-emerald-400">0.84x</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">3Y PAT CAGR</span>
+                      <span className="font-bold text-emerald-400">+112.4%</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <p><strong className="text-foreground">Order Book:</strong> ₹3,150+ Cr confirmed orders across hybrid solar and wind installations, providing 2.5x revenue visibility.</p>
+                    <p><strong className="text-foreground">Project Pipeline:</strong> 2.8+ GW hybrid pipeline under active execution; targeting Vision 2030 milestone of 10 GW operational capacity; proprietary power evacuation lines across industrial Gujarat.</p>
+                    <p><strong className="text-foreground">Core Moat:</strong> Dual IPP (Independent Power Producer) + CPP (Captive Power Producer) model delivering high 31%+ ROE with zero bad-debt credit risk from commercial clients.</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedSymbol('KPIGREEN');
+                      setActiveMainTab('RESEARCH');
+                    }}
+                    className="w-full rounded bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 text-xs font-bold text-slate-950 transition-transform active:scale-95 cursor-pointer mt-2"
+                  >
+                    View KPI Green Deep Terminal ↗
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sector Risks */}
+            <div className="rounded-lg border border-bear/30 bg-bear/5 p-3 text-xs">
+              <span className="font-bold text-bear flex items-center gap-1.5 mb-1">
+                <AlertTriangle className="size-3.5" />
+                Key Renewable Sector Risks:
+              </span>
+              <p className="text-muted-foreground text-[11px]">
+                (1) Grid transmission evacuation delays in high-resource regions of Rajasthan & Gujarat, (2) State DISCOM financial delays in tariff approval, (3) Volatility in imported wind turbine and solar wafer prices.
+              </p>
+            </div>
+          </div>
+
+          {/* Sector 2: Indian Aerospace & Defence */}
+          <div className="rounded-xl border border-border/80 bg-card p-5 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-border/60 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-xs font-bold text-cyan-400">
+                    SECTOR: STRONG OVERWEIGHT
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">Horizon: 2025–2029 (5-Year Visibility)</span>
+                </div>
+                <h3 className="text-lg font-black text-foreground mt-1">
+                  2. Indian Aerospace & National Defence Indigenisation
+                </h3>
+              </div>
+              <div className="text-left md:text-right">
+                <span className="text-[10px] text-muted-foreground block">Expected Sector CAGR:</span>
+                <span className="text-base font-black text-cyan-400">18%–22% Annual Growth</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <strong>Macro Driver:</strong> Geopolitical realignments and the national imperative for strategic autonomy have created the Make in India defence mandate: 75%+ of defence capital procurement must be sourced from domestic vendors. Simultaneously, Indian defence exports have skyrocketed from ₹1,521 Cr in FY17 to ₹21,083 Cr in FY24, with the government officially targeting ₹50,000 Cr by 2029.
+            </p>
+
+            {/* Key Policies & Schemes */}
+            <div className="rounded-lg border border-border/70 bg-secondary/20 p-3 space-y-1.5 text-xs">
+              <span className="font-bold text-foreground flex items-center gap-1.5">
+                <Shield className="size-3.5 text-primary" />
+                Key Government Catalysts & Make in India Policies:
+              </span>
+              <ul className="grid gap-1 sm:grid-cols-2 text-[11px] text-muted-foreground">
+                <li className="flex items-start gap-1">
+                  <span className="text-cyan-400 font-bold">•</span>
+                  <span><strong>Defence Acquisition Procedure (DAP 2020):</strong> Mandatory Buy (Indian-IDDM) priority ensures domestic PSUs receive exclusive procurement preference.</span>
+                </li>
+                <li className="flex items-start gap-1">
+                  <span className="text-cyan-400 font-bold">•</span>
+                  <span><strong>Positive Indigenisation Lists:</strong> 5 embargo lists banning imports of 509+ military platforms, weapon systems, and avionics.</span>
+                </li>
+                <li className="flex items-start gap-1">
+                  <span className="text-cyan-400 font-bold">•</span>
+                  <span><strong>Surging Defence Exports:</strong> Fast-track defence export approvals to 85+ friendly nations (Armenia, Philippines, Vietnam, Middle East).</span>
+                </li>
+                <li className="flex items-start gap-1">
+                  <span className="text-cyan-400 font-bold">•</span>
+                  <span><strong>Union Budget Capex:</strong> Record capital outlay of ₹1.72 Lakh Cr dedicated exclusively to military modernization.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Head-to-Head Comparison: HAL vs BEL */}
+            <div className="space-y-2 pt-2">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders className="size-3.5 text-primary" />
+                Financial Head-to-Head: Hindustan Aeronautics (HAL) vs Bharat Electronics (BEL)
+              </h4>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* HAL Card */}
+                <div className="rounded-xl border border-cyan-500/40 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-base font-black text-cyan-400">HAL</span>
+                      <span className="text-xs text-muted-foreground block font-sans">Hindustan Aeronautics Limited</span>
+                    </div>
+                    <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] font-bold text-cyan-300">Aviation Monopoly</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 border-y border-border/60 py-2.5 text-center text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">P/E Ratio</span>
+                      <span className="font-bold text-foreground">36.4x</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Debt/Equity</span>
+                      <span className="font-bold text-emerald-400">0.00x (Cash ₹24k Cr)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">3Y PAT CAGR</span>
+                      <span className="font-bold text-emerald-400">+28.5%</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <p><strong className="text-foreground">Order Book:</strong> ₹94,000+ Cr confirmed backlog (~3.2x TTM revenue), with ₹1.2 Lakh Cr pipeline pending Cabinet sanction.</p>
+                    <p><strong className="text-foreground">Upcoming Project Pipeline:</strong> 83 LCA Tejas Mk1A fighters + 97 additional Tejas Mk1A DAC clearance (₹65,000 Cr); 156 LCH Prachand combat helicopters; ₹60,000 Cr Su-30MKI radar and avionics upgrade; RD-33 and AL-31FP engine manufacturing.</p>
+                    <p><strong className="text-foreground">Export Impact:</strong> Actively pitching LCA Tejas and combat helicopters to Philippines, Egypt, Argentina; export share expected to expand from 2% to 10% of revenues.</p>
+                    <p><strong className="text-bear">Key Risks:</strong> Delay in delivery of GE F404 engines by US supplier GE Aerospace; single-customer sovereign risk (Indian Air Force & Army = 92% of revenue).</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedSymbol('HAL');
+                      setActiveMainTab('RESEARCH');
+                    }}
+                    className="w-full rounded bg-cyan-500 hover:bg-cyan-400 px-3 py-1.5 text-xs font-bold text-slate-950 transition-transform active:scale-95 cursor-pointer mt-2"
+                  >
+                    View HAL Deep Terminal ↗
+                  </button>
+                </div>
+
+                {/* BEL Card */}
+                <div className="rounded-xl border border-primary/40 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-base font-black text-primary">BEL</span>
+                      <span className="text-xs text-muted-foreground block font-sans">Bharat Electronics Limited</span>
+                    </div>
+                    <span className="rounded bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">Defence Radars & EW</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 border-y border-border/60 py-2.5 text-center text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">P/E Ratio</span>
+                      <span className="font-bold text-foreground">48.2x</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Debt/Equity</span>
+                      <span className="font-bold text-emerald-400">0.00x (Cash ₹9k Cr)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">3Y PAT CAGR</span>
+                      <span className="font-bold text-emerald-400">+24.2%</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <p><strong className="text-foreground">Order Book:</strong> ₹76,000+ Cr confirmed order book (~3.8x TTM revenue), with annual order inflow guidance of ₹25,000 Cr.</p>
+                    <p><strong className="text-foreground">Upcoming Project Pipeline:</strong> Akash air defence missile systems electronics; MF-STAR and QRSAM radar platforms; Electronic Warfare suites for warships and submarines; Drone detection and Counter-Unmanned Systems (C-UAS).</p>
+                    <p><strong className="text-foreground">Export Impact:</strong> Coastal surveillance systems to Maldives, Seychelles, and Mauritius; radar systems to Armenia and Southeast Asia; targeting $1 Billion exports by FY28.</p>
+                    <p><strong className="text-bear">Key Risks:</strong> Dependence on foreign semiconductor foundries for specialized sub-assemblies; lumpy quarter-on-quarter revenue recognition due to testing approvals.</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedSymbol('BEL');
+                      setActiveMainTab('RESEARCH');
+                    }}
+                    className="w-full rounded bg-primary px-3 py-1.5 text-xs font-bold text-slate-950 transition-transform active:scale-95 cursor-pointer mt-2"
+                  >
+                    View BEL Deep Terminal ↗
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* VIEW D: 50:50 CROSS-BORDER BALANCED GROWTH ALLOCATION STRATEGY     */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {activeMainTab === 'PORTFOLIO' && (
+        <div className="space-y-6 font-mono">
+          {/* Top Strategy Card */}
+          <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/10 via-slate-900 to-primary/5 p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-base font-black text-primary">
+                <Target className="size-5 text-primary" />
+                50:50 CROSS-BORDER GROWTH & RISK-HEDGED ALLOCATION STRATEGY
+              </span>
+              <span className="rounded bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
+                TARGET RETURN: 24%–28% ANNUAL NET CAGR
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-4xl">
+              Growth-oriented investor ke liye optimal asset allocation strategy jo geopolitical risks ko hedge karte hue maximum returns generate kare. Capital ko 4 high-moat secular sectors mein barabar (25% each) divide kiya gaya hai: <strong>Indian Defence</strong> (25%), <strong>Indian Renewable Energy</strong> (25%), <strong>US AI Hardware & Cloud</strong> (25%), aur <strong>US Biotech & Robotic Surgery</strong> (25%).
+            </p>
+
+            <div className="rounded-lg border border-border/80 bg-black/40 p-3.5 space-y-2 text-xs">
+              <span className="font-bold text-primary flex items-center gap-1.5">
+                <DollarSign className="size-4" />
+                Dual-Currency Alpha: Indian Rupee (INR) + US Dollar (USD) Currency Tailwind
+              </span>
+              <p className="text-muted-foreground text-[11px] leading-relaxed">
+                50% capital US mega-caps mein lagane se ek automatic <strong>3.2%–4.0% annual currency depreciation bonus</strong> milta hai. Agar US stocks $ terms mein 18% compound karte hain, to INR terms mein effective return <strong>22%–23%</strong> ho jata hai. Saath hi domestic political/economic shock ke samay USD exposure portfolio ko protect karta hai.
+              </p>
+            </div>
+          </div>
+
+          {/* Capital Allocator Interactive Calculator */}
+          <div className="rounded-xl border border-border/80 bg-card p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/60 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Sliders className="size-4 text-primary" />
+                  Interactive Capital Deployment Calculator
+                </h3>
+                <span className="text-xs text-muted-foreground">Apna investment capital enter karein:</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Portfolio Capital:</span>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
+                  <input
+                    type="number"
+                    value={tradingCapital}
+                    onChange={e => setTradingCapital(Math.max(50000, Number(e.target.value)))}
+                    className="w-36 rounded border border-border bg-secondary/50 pl-6 pr-2.5 py-1 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Buckets Breakdown Grid */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Bucket 1: Indian Defence */}
+              <div className="rounded-xl border border-cyan-500/40 bg-secondary/30 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-cyan-400 text-xs">BUCKET 1: INDIAN DEFENCE & AEROSPACE</span>
+                  <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[11px] font-black text-cyan-300">
+                    25% · ₹{(tradingCapital * 0.25).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Monopoly order books (₹1.7 Lakh Cr combined), debt-free fortress balance sheets, and soaring export demand to 85+ partner countries.
+                </p>
+                <div className="space-y-1.5 border-t border-border/60 pt-2 text-xs">
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">HAL (Hindustan Aeronautics):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Tejas Mk1A & Prachand Monopoly · Order Book ₹94k Cr</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-cyan-400">15% · ₹{(tradingCapital * 0.15).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">Target ₹5,200</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">BEL (Bharat Electronics):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Military Radars, EW & Missile Electronics · Order Book ₹76k Cr</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-cyan-400">10% · ₹{(tradingCapital * 0.10).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">Target ₹365</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bucket 2: Indian Renewable Energy */}
+              <div className="rounded-xl border border-emerald-500/40 bg-secondary/30 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-emerald-400 text-xs">BUCKET 2: INDIAN RENEWABLE ENERGY</span>
+                  <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[11px] font-black text-emerald-300">
+                    25% · ₹{(tradingCapital * 0.25).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  500 GW national target by 2030, PM Surya Ghar Muft Bijli Yojana (₹75k Cr), and explosive hybrid solar-wind commercial adoption.
+                </p>
+                <div className="space-y-1.5 border-t border-border/60 pt-2 text-xs">
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Tata Power (TATAPOWER):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Integrated Clean Utility · 5.5 GW Pipeline + Rooftop EPC</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-emerald-400">15% · ₹{(tradingCapital * 0.15).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">Target ₹540</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">KPI Green Energy (KPIGREEN):</strong>
+                      <span className="text-[10px] text-muted-foreground block">3Y PAT CAGR 112% · 2.8+ GW Hybrid Pipeline · IPP/CPP</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-emerald-400">10% · ₹{(tradingCapital * 0.10).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">Target ₹1,150</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bucket 3: US AI Hardware & Cloud */}
+              <div className="rounded-xl border border-primary/40 bg-secondary/30 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-primary text-xs">BUCKET 3: US AI ACCELERATORS & CLOUD</span>
+                  <span className="rounded bg-primary/20 px-2 py-0.5 text-[11px] font-black text-primary">
+                    25% · ₹{(tradingCapital * 0.25).toLocaleString()} (${Math.round((tradingCapital * 0.25) / 87.10)})
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  $1 Trillion data center transition to parallel computing; Nvidia 85–90% AI chip dominance and Microsoft Azure enterprise Copilot monetization.
+                </p>
+                <div className="space-y-1.5 border-t border-border/60 pt-2 text-xs">
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Nvidia (NVDA):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Blackwell Architecture · 55% Net Margin · CUDA Software Lock-in</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-primary">15% · ₹{(tradingCapital * 0.15).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">${Math.round((tradingCapital * 0.15) / 87.10)} · Target $175</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Microsoft (MSFT):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Azure AI Cloud (+33%) · 400M Office Seats · Maia Silicon</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-primary">10% · ₹{(tradingCapital * 0.10).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">${Math.round((tradingCapital * 0.10) / 87.10)} · Target $480</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bucket 4: US Biotech & Robotic Surgery */}
+              <div className="rounded-xl border border-amber-500/40 bg-secondary/30 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-amber-400 text-xs">BUCKET 4: US BIOTECH & SURGICAL ROBOTICS</span>
+                  <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[11px] font-black text-amber-300">
+                    25% · ₹{(tradingCapital * 0.25).toLocaleString()} (${Math.round((tradingCapital * 0.25) / 87.10)})
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Metabolic GLP-1/GIP weight loss megatrend ($100B+ TAM) and robotic surgery platform with 83% recurring revenue.
+                </p>
+                <div className="space-y-1.5 border-t border-border/60 pt-2 text-xs">
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Eli Lilly (LLY):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Zepbound & Mounjaro Global Demand ($55B–$65B Projections)</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-amber-400">15% · ₹{(tradingCapital * 0.15).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">${Math.round((tradingCapital * 0.15) / 87.10)} · Target $1,120</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Intuitive Surgical (ISRG):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Da Vinci 5 System · 83% Recurring Revenue · Zero Debt</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-amber-400">10% · ₹{(tradingCapital * 0.10).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">${Math.round((tradingCapital * 0.10) / 87.10)} · Target $580</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tranche Accumulation Strategy */}
+            <div className="rounded-xl border border-border/80 bg-slate-900/90 p-4 space-y-2 text-xs">
+              <span className="font-bold text-foreground flex items-center gap-1.5">
+                <Layers className="size-4 text-primary" />
+                Institutional Tranche Deployment Rulebook (Never Buy 100% in One Go)
+              </span>
+              <div className="grid gap-2 sm:grid-cols-3 text-[11px]">
+                <div className="bg-black/40 p-2.5 rounded border border-border/60">
+                  <strong className="text-primary block">Tranche 1 (33% Capital):</strong>
+                  <span className="text-muted-foreground">Initial anchor entry within the planned structural demand zone on confirmation candle.</span>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded border border-border/60">
+                  <strong className="text-emerald-400 block">Tranche 2 (33% Capital):</strong>
+                  <span className="text-muted-foreground">Add on a healthy pullback or retest of the daily 20/50 EMA that holds support.</span>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded border border-border/60">
+                  <strong className="text-cyan-400 block">Tranche 3 (34% Capital):</strong>
+                  <span className="text-muted-foreground">Final tranche deployed upon breakout confirmation above recent consolidation swing high.</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

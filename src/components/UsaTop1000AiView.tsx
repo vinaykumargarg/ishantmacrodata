@@ -8,7 +8,9 @@ import {
   UsMarketCapTier,
   UsSector,
   UsDecisionType,
-  UsHorizonType
+  UsHorizonType,
+  US_SECTOR_INTELLIGENCE,
+  GLOBAL_PORTFOLIO_STRATEGY
 } from '../data/usaTop1000Database';
 import { getUsMarketSession } from '../utils/marketSessionUtils';
 import TradingViewWidget from './TradingViewWidget';
@@ -50,14 +52,14 @@ import {
   Share2
 } from 'lucide-react';
 
-export default function UsaTop1000AiView() {
+export default function UsaTop1000AiView({ onNavigate }: { onNavigate?: (tab: string) => void } = {}) {
   // ── STATE MANAGEMENT ──
   const [selectedSymbol, setSelectedSymbol] = useState<string>('NVDA');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeMainTab, setActiveMainTab] = useState<'RESEARCH' | 'SCANNER' | 'INDMONEY_SIMULATOR'>('RESEARCH');
+  const [activeMainTab, setActiveMainTab] = useState<'RESEARCH' | 'SCANNER' | 'SECTORS' | 'PORTFOLIO' | 'INDMONEY_SIMULATOR'>('RESEARCH');
   const [activeResearchTab, setActiveResearchTab] = useState<
-    'OVERVIEW' | 'INDMONEY_PLAN' | 'FUNDAMENTALS' | 'QUARTERS' | 'SEC_FILINGS' | 'VALUATION' | 'TECHNICALS' | 'MACRO' | 'PEERS' | 'INSTITUTIONAL' | 'SCENARIOS'
-  >('OVERVIEW');
+    'EXECUTION_BLUEPRINT' | 'OVERVIEW' | 'INDMONEY_PLAN' | 'FUNDAMENTALS' | 'QUARTERS' | 'SEC_FILINGS' | 'VALUATION' | 'TECHNICALS' | 'MACRO' | 'PEERS' | 'INSTITUTIONAL' | 'SCENARIOS'
+  >('EXECUTION_BLUEPRINT');
   const [selectedHorizon, setSelectedHorizon] = useState<UsHorizonType>('3-6M');
 
   // Scanner Filters
@@ -364,7 +366,7 @@ export default function UsaTop1000AiView() {
           </div>
 
           {/* Primary View Switcher */}
-          <div className="flex items-center gap-1.5 self-start lg:self-auto rounded-lg border border-border/80 bg-secondary/50 p-1">
+          <div className="flex flex-wrap items-center gap-1.5 self-start lg:self-auto rounded-lg border border-border/80 bg-secondary/50 p-1">
             <button
               onClick={() => setActiveMainTab('RESEARCH')}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
@@ -377,6 +379,28 @@ export default function UsaTop1000AiView() {
               <span>Deep Stock Terminal</span>
             </button>
             <button
+              onClick={() => setActiveMainTab('SECTORS')}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                activeMainTab === 'SECTORS'
+                  ? 'bg-primary text-slate-950 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Zap className="size-3.5" />
+              <span>⚡ US Sectors (AI & Biotech/MedTech)</span>
+            </button>
+            <button
+              onClick={() => setActiveMainTab('PORTFOLIO')}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                activeMainTab === 'PORTFOLIO'
+                  ? 'bg-primary text-slate-950 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Target className="size-3.5" />
+              <span>🌐 50:50 Growth Allocation (India & US)</span>
+            </button>
+            <button
               onClick={() => setActiveMainTab('SCANNER')}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                 activeMainTab === 'SCANNER'
@@ -384,7 +408,7 @@ export default function UsaTop1000AiView() {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Zap className="size-3.5" />
+              <Activity className="size-3.5" />
               <span>INDmoney 1000 Scanner</span>
             </button>
             <button
@@ -397,6 +421,13 @@ export default function UsaTop1000AiView() {
             >
               <Briefcase className="size-3.5" />
               <span>LRS & Portfolio Engine</span>
+            </button>
+            <button
+              onClick={() => onNavigate ? onNavigate('deeepr-stock-research') : (window.location.hash = '#deeepr-stock-research')}
+              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all cursor-pointer bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm"
+            >
+              <Shield className="size-3.5 text-cyan-200" />
+              <span>🏛️ DEEEPR Stock Research ↗</span>
             </button>
           </div>
         </div>
@@ -910,6 +941,7 @@ export default function UsaTop1000AiView() {
           <div className="border-b border-border/60 pb-1">
             <div className="flex flex-wrap items-center gap-1.5 font-mono text-xs">
               {[
+                { id: 'EXECUTION_BLUEPRINT' as const, label: '🎯 A-to-Z Execution Blueprint', icon: Target },
                 { id: 'OVERVIEW' as const, label: 'Verdict & Highlights', icon: Award },
                 { id: 'INDMONEY_PLAN' as const, label: 'INDmoney Sizing & LRS', icon: Briefcase },
                 { id: 'FUNDAMENTALS' as const, label: 'Fundamentals & Cash Flow', icon: BarChart2 },
@@ -943,6 +975,202 @@ export default function UsaTop1000AiView() {
 
           {/* ── TAB CONTENT PANELS ── */}
           <div className="rounded-xl border border-border/80 bg-card p-5 space-y-4 font-mono">
+            {/* TAB 0: A-TO-Z TRADE & MONEY BLUEPRINT */}
+            {activeResearchTab === 'EXECUTION_BLUEPRINT' && (
+              <div className="space-y-4 font-mono text-xs">
+                {/* 1. Master Guidance Banner */}
+                <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/10 via-slate-900 to-primary/5 p-4 sm:p-5 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-sm font-black text-primary">
+                      <Target className="size-5 text-primary" />
+                      INSTITUTIONAL A-TO-Z US TRADE & CAPITAL MANAGEMENT BLUEPRINT
+                    </span>
+                    <span className="rounded bg-primary/20 px-2 py-0.5 text-[11px] font-bold text-primary">
+                      INDmoney VERIFIED · DUAL CURRENCY (USD + INR)
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    Koi trade "sure-shot" ya guaranteed nahi hota. Desk rule: Trade tab banti hai jab price valid zone par ho, trigger candle close ho jaye, aur Risk-to-Reward (RR) minimum 2.0 ho. Niche is US stock ka complete step-by-step capital, entry, SL, targets aur partial profit booking plan diya gaya hai.
+                  </p>
+                </div>
+
+                {/* 2. Seven Essential Questions Grid */}
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Q1: Upar Kyon Ja Sakta Hai */}
+                  <div className="rounded-lg border border-bull/40 bg-bull/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-bull font-bold text-sm">
+                      <TrendingUp className="size-4" />
+                      <span>1. Upar Kyon Ja Sakta Hai?</span>
+                    </div>
+                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                      <strong>Core Catalyst:</strong> {stock.top3ReasonsToInvest[0]}
+                    </p>
+                    <ul className="space-y-1 text-[11px] text-foreground">
+                      {stock.top3ReasonsToInvest.slice(0, 3).map((r, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-bull font-bold">•</span>
+                          <span>{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Q2: Long Kab Karna Hai */}
+                  <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                      <Clock className="size-4" />
+                      <span>2. Long Kab Karna Hai? (Trigger)</span>
+                    </div>
+                    <p className="text-foreground text-[11px] font-bold">
+                      {stock.multiHorizonPlans['m3to6']?.technicalSetup || 'Bullish demand zone retest with closed-candle confirmation'}
+                    </p>
+                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                      <strong>Closed-Candle Rule:</strong> Entry tabhi valid hogi jab Daily/4H candle entry range ({stock.multiHorizonPlans['m3to6']?.entryUsd}) ke andar bullish rejection wick ya breakout hold kare. Live tick touch par entry na lein.
+                    </p>
+                    <div className="rounded bg-black/40 p-2 text-[10px] text-amber-300 border border-amber-500/30">
+                      ⚡ Mid-range chhod dein. Agar price entry zone se door bhag chuka hai, chase na karein (WAIT rule).
+                    </div>
+                  </div>
+
+                  {/* Q3: Kitna Paisa Lagana Hai */}
+                  <div className="rounded-lg border border-border/80 bg-secondary/30 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-foreground font-bold text-sm">
+                      <DollarSign className="size-4 text-primary" />
+                      <span>3. Kitna Paisa Lagana Hai?</span>
+                    </div>
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Portfolio Capital (INR):</span>
+                        <span className="font-bold">₹{capitalInr.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">USD Equivalent (@ ₹{liveUsdInr.toFixed(2)}):</span>
+                        <span className="font-bold text-primary">${Math.round(capitalInr / liveUsdInr).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-border/50 pt-1">
+                        <span className="text-foreground font-bold">INDmoney Allocation:</span>
+                        <span className="font-bold text-emerald-400">Fractional Allowed (Min $1.00)</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Estimated Shares:</span>
+                        <span className="font-bold text-foreground">
+                          {((capitalInr / liveUsdInr) / stock.cmpUsd).toFixed(2)} Shares
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      *INDmoney allows buying fractions of US shares. Ek hi baar mein sara paisa na lagayein, tranches mein enter karein.
+                    </p>
+                  </div>
+
+                  {/* Q4: Kahan Entry Karni Hai */}
+                  <div className="rounded-lg border border-bull/40 bg-secondary/30 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-bull font-bold text-sm">
+                      <ArrowUpRight className="size-4" />
+                      <span>4. Kahan Entry Karni Hai?</span>
+                    </div>
+                    <div className="text-base font-black text-bull font-mono">
+                      {stock.multiHorizonPlans['m3to6']?.entryUsd}
+                    </div>
+                    <span className="text-xs text-muted-foreground block font-mono">
+                      ({stock.multiHorizonPlans['m3to6']?.entryInr})
+                    </span>
+                    <p className="text-muted-foreground text-[11px]">
+                      CMP: <strong>${stock.cmpUsd.toFixed(2)} (₹{stock.cmpInr.toLocaleString()})</strong>. Entry hamesha planned demand zone ya discount zone par karein. Resistance ke bilkul paas buy karna mana hai.
+                    </p>
+                  </div>
+
+                  {/* Q5: Kahan Stop-Loss Lagana Hai */}
+                  <div className="rounded-lg border border-bear/40 bg-bear/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-bear font-bold text-sm">
+                      <Shield className="size-4" />
+                      <span>5. Kahan Stop-Loss Lagana Hai?</span>
+                    </div>
+                    <div className="text-base font-black text-bear font-mono">
+                      {stock.multiHorizonPlans['m3to6']?.stopLossUsd}
+                    </div>
+                    <span className="text-xs text-muted-foreground block font-mono">
+                      ({stock.multiHorizonPlans['m3to6']?.stopLossInr})
+                    </span>
+                    <p className="text-muted-foreground text-[11px]">
+                      SL structural support shelf se 0.35 ATR neeche rakha jata hai. Weekly candle close neeche hone par exit rule mandatory hai.
+                    </p>
+                    <div className="text-[10px] text-rose-300 font-bold">
+                      Invalidation: {stock.thesisInvalidationTrigger}
+                    </div>
+                  </div>
+
+                  {/* Q6: Kitna Target Book Karna Hai */}
+                  <div className="rounded-lg border border-primary/40 bg-secondary/30 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                      <Target className="size-4" />
+                      <span>6. Targets & Risk-to-Reward</span>
+                    </div>
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">TP1:</span>
+                        <span className="font-bold text-bull">{stock.multiHorizonPlans['m3to6']?.tp1Usd} ({stock.multiHorizonPlans['m3to6']?.tp1Inr})</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">TP2:</span>
+                        <span className="font-bold text-bull">{stock.multiHorizonPlans['m3to6']?.tp2Usd} ({stock.multiHorizonPlans['m3to6']?.tp2Inr})</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">TP3:</span>
+                        <span className="font-bold text-bull">{stock.multiHorizonPlans['m3to6']?.tp3Usd} ({stock.multiHorizonPlans['m3to6']?.tp3Inr})</span>
+                      </div>
+                      <div className="flex justify-between border-t border-border/50 pt-1">
+                        <span className="text-primary font-bold">Calculated R:R Ratio:</span>
+                        <span className="font-black text-primary">{stock.multiHorizonPlans['m3to6']?.riskReward}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Partial Profit Booking & Capital Recovery Timeline */}
+                <div className="rounded-xl border border-border/80 bg-slate-900/90 p-4 sm:p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                    <Layers className="size-4 text-primary" />
+                    <span>7. Partially Kab Aur Kitna Paisa Nikalna Hai? (Exit Execution Strategy)</span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-emerald-400 text-xs">STAGE 1: 50% PROFIT BOOK</span>
+                        <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">Target 1 Hit</span>
+                      </div>
+                      <p className="text-xs text-foreground font-semibold">Sell 50% Quantity @ {stock.multiHorizonPlans['m3to6']?.tp1Usd}</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Apna 50% capital aur initial dollar profit lock karein. <strong>Mandatory Rule:</strong> Stop-loss ko turant entry price par shift (move to breakeven) kar dein. Iske baad ye trade zero-risk ban jata hai.
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-cyan-400 text-xs">STAGE 2: 30% PROFIT BOOK</span>
+                        <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">Target 2 Hit</span>
+                      </div>
+                      <p className="text-xs text-foreground font-semibold">Sell 30% Quantity @ {stock.multiHorizonPlans['m3to6']?.tp2Usd}</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        2R+ return secure karein. Remaining 20% position ke liye SL ko TP1 ke thoda upar trail karein, taaki minimum dollar profit guaranteed rahe.
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-primary/40 bg-primary/10 p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-primary text-xs">STAGE 3: 20% RUNNER TRAILING</span>
+                        <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">Target 3 / Trend</span>
+                      </div>
+                      <p className="text-xs text-foreground font-semibold">Hold 20% Runner @ {stock.multiHorizonPlans['m3to6']?.tp3Usd}</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Bacha hua 20% paisa tab tak na nikalein jab tak stock Daily 50-day EMA ke neeche close na ho ya koi macro breakdown na aaye. Ye long-term compounding capture karta hai.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* TAB 1: OVERVIEW & VERDICT */}
             {activeResearchTab === 'OVERVIEW' && (
               <div className="space-y-4">
@@ -1680,6 +1908,503 @@ export default function UsaTop1000AiView() {
               <h4 className="font-bold text-foreground">Taxation & Reporting Checklist for Indian Residents:</h4>
               <p className="text-muted-foreground">• <strong>Capital Gains Holding Period:</strong> For foreign US equities, investments held for more than 24 months qualify for Long-Term Capital Gains (LTCG) tax at 12.5% (post-July 2024 budget rules). Investments held for 24 months or less are treated as Short-Term Capital Gains (STCG) taxed at applicable income tax slab rates.</p>
               <p className="text-muted-foreground">• <strong>Schedule FA (Foreign Assets):</strong> Mandatory reporting in Indian ITR. All US stocks held on INDmoney must be declared under Schedule FA in ITR-2 or ITR-3.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* VIEW D: US SECTOR OUTLOOK (AI & BIOTECH/MEDTECH)                   */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {activeMainTab === 'SECTORS' && (
+        <div className="space-y-6 font-mono">
+          {/* Header Banner */}
+          <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/10 via-slate-900 to-primary/5 p-5 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-base font-black text-primary">
+                <Zap className="size-5 text-primary" />
+                HIGH-GROWTH US SECTORS: 2025–2030 OUTLOOK
+              </span>
+              <span className="rounded bg-primary/20 px-2.5 py-0.5 text-xs font-bold text-primary">
+                STRATEGIC FOCUS: AI HARDWARE & BIOTECH/MEDTECH
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-4xl">
+              US equity market mein sabse bada secular outperformance un companies se aa raha hai jinka business model global technological aur medical transformation ke center mein hai: (1) AI Accelerators & Cloud Infrastructure (Nvidia & Microsoft) aur (2) Metabolic Biopharma & Robotic Surgery (Eli Lilly & Intuitive Surgical). Niche in dono sectors ka deep dive, market share dynamics, aur quarterly metrics diye gaye hain.
+            </p>
+          </div>
+
+          {/* Sector 1: US AI & Semiconductors */}
+          <div className="rounded-xl border border-border/80 bg-card p-5 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-border/60 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-primary/20 px-2 py-0.5 text-xs font-bold text-primary">
+                    SECTOR: STRONG OVERWEIGHT
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">Horizon: 2025–2030 (AI Supercycle Phase 2)</span>
+                </div>
+                <h3 className="text-lg font-black text-foreground mt-1">
+                  1. US Artificial Intelligence & Advanced Semiconductor Accelerators
+                </h3>
+              </div>
+              <div className="text-left md:text-right">
+                <span className="text-[10px] text-muted-foreground block">Expected Compute CAGR:</span>
+                <span className="text-base font-black text-primary">32%–38% Annual Growth</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <strong>Macro Driver:</strong> Global data center infrastructure is undergoing a $1 Trillion architectural transition from legacy general-purpose x86 CPUs to accelerated parallel GPU computing. Frontier AI model training, reasoning inference (OpenAI o1/o3, Google Gemini, DeepSeek), and enterprise copilot automation require millions of interconnected high-bandwidth accelerator nodes.
+            </p>
+
+            {/* Competitive Landscape & Chip Moat Analysis */}
+            <div className="rounded-lg border border-border/70 bg-secondary/20 p-3.5 space-y-2 text-xs">
+              <span className="font-bold text-foreground flex items-center gap-1.5">
+                <Cpu className="size-4 text-primary" />
+                Nvidia Market Share & Competitive Risk Evaluation:
+              </span>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Nvidia holds an overwhelming <strong>85%–90% global market share</strong> in AI training and advanced reasoning accelerators, reinforced by its 20-year CUDA software lock-in (5M+ developers worldwide). Competitor AMD (Instinct MI300X/MI325X/MI350 series) offers cost-effective memory bandwidth for open-source models, capturing budget tier deployments (~5%–8% share). Meanwhile, major cloud hyperscalers (Amazon AWS Trainium2, Google Cloud TPU v6e, Microsoft Azure Maia 100) are developing internal custom ASICs to handle proprietary internal workloads and constrain capex. However, hyperscalers simultaneously remain Nvidia's largest customers, ordering tens of billions in Blackwell GB200 systems to satisfy external commercial developer demand.
+              </p>
+            </div>
+
+            {/* Head-to-Head Comparison: Nvidia vs Microsoft */}
+            <div className="space-y-2 pt-2">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders className="size-3.5 text-primary" />
+                Financial Head-to-Head: Nvidia (NVDA) vs Microsoft (MSFT)
+              </h4>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Nvidia Card */}
+                <div className="rounded-xl border border-primary/40 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-base font-black text-primary">NVDA</span>
+                      <span className="text-xs text-muted-foreground block font-sans">NVIDIA Corporation</span>
+                    </div>
+                    <span className="rounded bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">AI Hardware King</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 border-y border-border/60 py-2.5 text-center text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Quarterly Rev</span>
+                      <span className="font-bold text-foreground">$35.08B (+94%)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Net Profit Margin</span>
+                      <span className="font-bold text-emerald-400">55.3% ($19.31B)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">AI Chip Share</span>
+                      <span className="font-bold text-primary">85%–90%</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <p><strong className="text-foreground">Latest Financial Performance:</strong> Q3 FY25 revenue reached a record $35.08B (+94% YoY), driven by Data Center compute revenue of $30.8B. GAAP net income surged to $19.31B with industry-leading 55.3% net margin.</p>
+                    <p><strong className="text-foreground">Competitive Position vs AMD/ASICs:</strong> While AMD MI325X is gaining traction in inference, Nvidia's full-stack architecture (Blackwell GB200 NVL72 liquid-cooled racks, 1.8 TB/s NVLink interconnect, Spectrum-X Ethernet) and 20-year CUDA software ecosystem create an insurmountable barrier for mission-critical enterprise workloads.</p>
+                    <p><strong className="text-bear">Key Risks:</strong> Hyperscaler customer concentration (~40% of sales from Microsoft, Meta, Google, Amazon) and reliance on TSMC foundries in Taiwan for CoWoS packaging.</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedSymbol('NVDA');
+                      setActiveMainTab('RESEARCH');
+                    }}
+                    className="w-full rounded bg-primary px-3 py-1.5 text-xs font-bold text-slate-950 transition-transform active:scale-95 cursor-pointer mt-2"
+                  >
+                    View Nvidia Deep Terminal ↗
+                  </button>
+                </div>
+
+                {/* Microsoft Card */}
+                <div className="rounded-xl border border-cyan-500/40 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-base font-black text-cyan-400">MSFT</span>
+                      <span className="text-xs text-muted-foreground block font-sans">Microsoft Corporation</span>
+                    </div>
+                    <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] font-bold text-cyan-300">Enterprise AI Cloud</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 border-y border-border/60 py-2.5 text-center text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Quarterly Rev</span>
+                      <span className="font-bold text-foreground">$65.59B (+16%)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Net Profit Margin</span>
+                      <span className="font-bold text-emerald-400">36.8% ($24.67B)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Azure AI Growth</span>
+                      <span className="font-bold text-cyan-400">+33% YoY</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <p><strong className="text-foreground">Latest Financial Performance:</strong> Q1 FY25 revenue was $65.59B (+16% YoY) with net income of $24.67B (36.8% net margin). Commercial cloud revenue reached $38.9B (+22% YoY) with a $259B contracted backlog.</p>
+                    <p><strong className="text-foreground">AI Monetization & In-House Silicon:</strong> Azure growth accelerated to 33%, with 12 full percentage points directly driven by generative AI services. Deploying custom Maia 100 AI chips in data centers to optimize inference costs across 400M+ Office 365 commercial Copilot seats.</p>
+                    <p><strong className="text-bear">Key Risks:</strong> Escalating capital expenditure ($20B/quarter) to fund global data center buildouts and antitrust regulatory scrutiny over enterprise software bundling.</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedSymbol('MSFT');
+                      setActiveMainTab('RESEARCH');
+                    }}
+                    className="w-full rounded bg-cyan-500 hover:bg-cyan-400 px-3 py-1.5 text-xs font-bold text-slate-950 transition-transform active:scale-95 cursor-pointer mt-2"
+                  >
+                    View Microsoft Deep Terminal ↗
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sector 2: US Biopharma & Robotic Surgery */}
+          <div className="rounded-xl border border-border/80 bg-card p-5 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-border/60 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-400">
+                    SECTOR: STRONG OVERWEIGHT
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">Horizon: 2025–2030 (Metabolic & Surgical Megatrends)</span>
+                </div>
+                <h3 className="text-lg font-black text-foreground mt-1">
+                  2. US Biopharmaceuticals & Robotic Surgical MedTech
+                </h3>
+              </div>
+              <div className="text-left md:text-right">
+                <span className="text-[10px] text-muted-foreground block">Expected Sector CAGR:</span>
+                <span className="text-base font-black text-amber-400">20%–25% Annual Growth</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <strong>Macro Driver:</strong> Aging global demographics, escalating obesity and cardiometabolic diseases, and the worldwide hospital shift toward minimally invasive robotic procedures are generating unprecedented secular demand insulated from macroeconomic cycles.
+            </p>
+
+            {/* Head-to-Head Comparison: Eli Lilly vs Intuitive Surgical */}
+            <div className="space-y-2 pt-2">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders className="size-3.5 text-primary" />
+                Financial Head-to-Head: Eli Lilly (LLY) vs Intuitive Surgical (ISRG)
+              </h4>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Eli Lilly Card */}
+                <div className="rounded-xl border border-amber-500/40 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-base font-black text-amber-400">LLY</span>
+                      <span className="text-xs text-muted-foreground block font-sans">Eli Lilly and Company</span>
+                    </div>
+                    <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">GLP-1 Monopoly</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 border-y border-border/60 py-2.5 text-center text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Quarterly Rev</span>
+                      <span className="font-bold text-foreground">$11.44B (+20%)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Net Profit Margin</span>
+                      <span className="font-bold text-emerald-400">29.8% ($3.41B)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Peak Projections</span>
+                      <span className="font-bold text-amber-400">$55B–$65B Sales</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <p><strong className="text-foreground">Zepbound & Mounjaro Projections:</strong> Tirzepatide (Zepbound for obesity, Mounjaro for diabetes) is projected by consensus to become the best-selling pharmaceutical in global history with $55B–$65B in annual peak sales by 2030.</p>
+                    <p><strong className="text-foreground">Expanding Clinical Indications:</strong> FDA granted fast-track approvals for Obstructive Sleep Apnea (OSA) and MASH liver fibrosis; oral GLP-1 candidate Orforglipron entering Phase 3 trial readouts.</p>
+                    <p><strong className="text-foreground">Manufacturing Capex:</strong> Investing $9B+ in advanced sterile manufacturing facilities in Indiana, North Carolina, and Germany to resolve drug supply shortages and meet global demand.</p>
+                    <p><strong className="text-bear">Key Risks:</strong> Production bottlenecks on auto-injector pens and insurance formulary price negotiations with US pharmacy benefit managers (PBMs).</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedSymbol('LLY');
+                      setActiveMainTab('RESEARCH');
+                    }}
+                    className="w-full rounded bg-amber-500 hover:bg-amber-400 px-3 py-1.5 text-xs font-bold text-slate-950 transition-transform active:scale-95 cursor-pointer mt-2"
+                  >
+                    View Eli Lilly Deep Terminal ↗
+                  </button>
+                </div>
+
+                {/* Intuitive Surgical Card */}
+                <div className="rounded-xl border border-emerald-500/40 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-base font-black text-emerald-400">ISRG</span>
+                      <span className="text-xs text-muted-foreground block font-sans">Intuitive Surgical Inc.</span>
+                    </div>
+                    <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">Robotic Surgery Monopoly</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 border-y border-border/60 py-2.5 text-center text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Quarterly Rev</span>
+                      <span className="font-bold text-foreground">$2.04B (+17%)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Net Profit Margin</span>
+                      <span className="font-bold text-emerald-400">27.8% ($565M)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Recurring Rev %</span>
+                      <span className="font-bold text-emerald-400">83% Recurring</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <p><strong className="text-foreground">Da Vinci Global Installed Base:</strong> Over 9,200 installed Da Vinci systems globally across top hospitals. Total procedure volume grew 17% YoY to over 2.6M robotic surgical procedures annually.</p>
+                    <p><strong className="text-foreground">83% Recurring Revenue Annuity:</strong> $1.26B/quarter from single-use EndoWrist instruments and accessories ($1,800–$3,500 per surgery) + $360M/quarter in recurring service maintenance contracts, insulating revenue from hospital capex cycles.</p>
+                    <p><strong className="text-foreground">Da Vinci 5 Launch Supercycle:</strong> 5th-generation platform features force-sensing technology (measuring tissue push/pull force) and 10,000x greater compute power, accelerating upgrades across the entire installed base.</p>
+                    <p><strong className="text-bear">Key Risks:</strong> Premium valuation multiple (68x P/E) vulnerability if elective procedure growth slows down; hospital capital expenditure deferrals during economic stress.</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedSymbol('ISRG');
+                      setActiveMainTab('RESEARCH');
+                    }}
+                    className="w-full rounded bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 text-xs font-bold text-slate-950 transition-transform active:scale-95 cursor-pointer mt-2"
+                  >
+                    View Intuitive Surgical Deep Terminal ↗
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* VIEW E: 50:50 CROSS-BORDER BALANCED GROWTH ALLOCATION STRATEGY     */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {activeMainTab === 'PORTFOLIO' && (
+        <div className="space-y-6 font-mono">
+          {/* Top Strategy Card */}
+          <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/10 via-slate-900 to-primary/5 p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-base font-black text-primary">
+                <Target className="size-5 text-primary" />
+                50:50 CROSS-BORDER GROWTH & RISK-HEDGED ALLOCATION STRATEGY
+              </span>
+              <span className="rounded bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
+                TARGET RETURN: 24%–28% ANNUAL NET CAGR
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-4xl">
+              Growth-oriented investor ke liye optimal asset allocation strategy jo geopolitical risks ko hedge karte hue maximum returns generate kare. Capital ko 4 high-moat secular sectors mein barabar (25% each) divide kiya gaya hai: <strong>Indian Defence</strong> (25%), <strong>Indian Renewable Energy</strong> (25%), <strong>US AI Hardware & Cloud</strong> (25%), aur <strong>US Biotech & Robotic Surgery</strong> (25%).
+            </p>
+
+            <div className="rounded-lg border border-border/80 bg-black/40 p-3.5 space-y-2 text-xs">
+              <span className="font-bold text-primary flex items-center gap-1.5">
+                <DollarSign className="size-4" />
+                Dual-Currency Alpha: Indian Rupee (INR) + US Dollar (USD) Currency Tailwind
+              </span>
+              <p className="text-muted-foreground text-[11px] leading-relaxed">
+                50% capital US mega-caps mein lagane se ek automatic <strong>3.2%–4.0% annual currency depreciation bonus</strong> milta hai. Agar US stocks $ terms mein 18% compound karte hain, to INR terms mein effective return <strong>22%–23%</strong> ho jata hai. Saath hi domestic political/economic shock ke samay USD exposure portfolio ko protect karta hai.
+              </p>
+            </div>
+          </div>
+
+          {/* Capital Allocator Interactive Calculator */}
+          <div className="rounded-xl border border-border/80 bg-card p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/60 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Sliders className="size-4 text-primary" />
+                  Interactive Capital Deployment Calculator (USD & INR)
+                </h3>
+                <span className="text-xs text-muted-foreground">Apna investment capital enter karein:</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Portfolio Capital:</span>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
+                  <input
+                    type="number"
+                    value={capitalInr}
+                    onChange={e => setCapitalInr(Math.max(50000, Number(e.target.value)))}
+                    className="w-36 rounded border border-border bg-secondary/50 pl-6 pr-2.5 py-1 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Buckets Breakdown Grid */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Bucket 1: Indian Defence */}
+              <div className="rounded-xl border border-cyan-500/40 bg-secondary/30 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-cyan-400 text-xs">BUCKET 1: INDIAN DEFENCE & AEROSPACE</span>
+                  <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[11px] font-black text-cyan-300">
+                    25% · ₹{(capitalInr * 0.25).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Monopoly order books (₹1.7 Lakh Cr combined), debt-free fortress balance sheets, and soaring export demand to 85+ partner countries.
+                </p>
+                <div className="space-y-1.5 border-t border-border/60 pt-2 text-xs">
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">HAL (Hindustan Aeronautics):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Tejas Mk1A & Prachand Monopoly · Order Book ₹94k Cr</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-cyan-400">15% · ₹{(capitalInr * 0.15).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">Target ₹5,200</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">BEL (Bharat Electronics):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Military Radars, EW & Missile Electronics · Order Book ₹76k Cr</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-cyan-400">10% · ₹{(capitalInr * 0.10).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">Target ₹365</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bucket 2: Indian Renewable Energy */}
+              <div className="rounded-xl border border-emerald-500/40 bg-secondary/30 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-emerald-400 text-xs">BUCKET 2: INDIAN RENEWABLE ENERGY</span>
+                  <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[11px] font-black text-emerald-300">
+                    25% · ₹{(capitalInr * 0.25).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  500 GW national target by 2030, PM Surya Ghar Muft Bijli Yojana (₹75k Cr), and explosive hybrid solar-wind commercial adoption.
+                </p>
+                <div className="space-y-1.5 border-t border-border/60 pt-2 text-xs">
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Tata Power (TATAPOWER):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Integrated Clean Utility · 5.5 GW Pipeline + Rooftop EPC</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-emerald-400">15% · ₹{(capitalInr * 0.15).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">Target ₹540</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">KPI Green Energy (KPIGREEN):</strong>
+                      <span className="text-[10px] text-muted-foreground block">3Y PAT CAGR 112% · 2.8+ GW Hybrid Pipeline · IPP/CPP</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-emerald-400">10% · ₹{(capitalInr * 0.10).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">Target ₹1,150</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bucket 3: US AI Hardware & Cloud */}
+              <div className="rounded-xl border border-primary/40 bg-secondary/30 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-primary text-xs">BUCKET 3: US AI ACCELERATORS & CLOUD</span>
+                  <span className="rounded bg-primary/20 px-2 py-0.5 text-[11px] font-black text-primary">
+                    25% · ₹{(capitalInr * 0.25).toLocaleString()} (${Math.round((capitalInr * 0.25) / liveUsdInr).toLocaleString()})
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  $1 Trillion data center transition to parallel computing; Nvidia 85–90% AI chip dominance and Microsoft Azure enterprise Copilot monetization.
+                </p>
+                <div className="space-y-1.5 border-t border-border/60 pt-2 text-xs">
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Nvidia (NVDA):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Blackwell Architecture · 55% Net Margin · CUDA Software Lock-in</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-primary">15% · ₹{(capitalInr * 0.15).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">${Math.round((capitalInr * 0.15) / liveUsdInr).toLocaleString()} · Target $175</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Microsoft (MSFT):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Azure AI Cloud (+33%) · 400M Office Seats · Maia Silicon</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-primary">10% · ₹{(capitalInr * 0.10).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">${Math.round((capitalInr * 0.10) / liveUsdInr).toLocaleString()} · Target $480</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bucket 4: US Biotech & Robotic Surgery */}
+              <div className="rounded-xl border border-amber-500/40 bg-secondary/30 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-amber-400 text-xs">BUCKET 4: US BIOTECH & SURGICAL ROBOTICS</span>
+                  <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[11px] font-black text-amber-300">
+                    25% · ₹{(capitalInr * 0.25).toLocaleString()} (${Math.round((capitalInr * 0.25) / liveUsdInr).toLocaleString()})
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Metabolic GLP-1/GIP weight loss megatrend ($100B+ TAM) and robotic surgery platform with 83% recurring revenue.
+                </p>
+                <div className="space-y-1.5 border-t border-border/60 pt-2 text-xs">
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Eli Lilly (LLY):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Zepbound & Mounjaro Global Demand ($55B–$65B Projections)</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-amber-400">15% · ₹{(capitalInr * 0.15).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">${Math.round((capitalInr * 0.15) / liveUsdInr).toLocaleString()} · Target $1,120</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center bg-black/30 p-2 rounded">
+                    <div>
+                      <strong className="text-foreground">Intuitive Surgical (ISRG):</strong>
+                      <span className="text-[10px] text-muted-foreground block">Da Vinci 5 System · 83% Recurring Revenue · Zero Debt</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-amber-400">10% · ₹{(capitalInr * 0.10).toLocaleString()}</span>
+                      <span className="text-[10px] text-muted-foreground block">${Math.round((capitalInr * 0.10) / liveUsdInr).toLocaleString()} · Target $580</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tranche Accumulation Strategy */}
+            <div className="rounded-xl border border-border/80 bg-slate-900/90 p-4 space-y-2 text-xs">
+              <span className="font-bold text-foreground flex items-center gap-1.5">
+                <Layers className="size-4 text-primary" />
+                Institutional Tranche Deployment Rulebook (Never Buy 100% in One Go)
+              </span>
+              <div className="grid gap-2 sm:grid-cols-3 text-[11px]">
+                <div className="bg-black/40 p-2.5 rounded border border-border/60">
+                  <strong className="text-primary block">Tranche 1 (33% Capital):</strong>
+                  <span className="text-muted-foreground">Initial anchor entry within the planned structural demand zone on confirmation candle.</span>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded border border-border/60">
+                  <strong className="text-emerald-400 block">Tranche 2 (33% Capital):</strong>
+                  <span className="text-muted-foreground">Add on a healthy pullback or retest of the daily 20/50 EMA that holds support.</span>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded border border-border/60">
+                  <strong className="text-cyan-400 block">Tranche 3 (34% Capital):</strong>
+                  <span className="text-muted-foreground">Final tranche deployed upon breakout confirmation above recent consolidation swing high.</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

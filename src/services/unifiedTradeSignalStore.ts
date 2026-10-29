@@ -38,6 +38,18 @@ import {
   evaluateBtcUsdtConfluence,
   evaluateGoldDxyConfluence
 } from './intermarketConfluenceEngine';
+import {
+  evaluateDeeeprDecisionEngineV4,
+  MasterVerdict,
+  DeeeprDecisionV4Output
+} from './deeeprDecisionEngineV4';
+import {
+  masterVerdictStore,
+  computeWorstEdgeRr,
+  formatPrice,
+  formatPriceWithDollar,
+  formatRr
+} from './masterVerdictStore';
 
 export interface StepByStepTradeGuide {
   step1Entry: string;
@@ -58,6 +70,7 @@ export interface UnifiedTradingSignal {
   id: string;
   tradeNumber: number;
   symbol: string; // e.g. 'BTCUSDT', 'PAXGUSDT', 'SLVUSDT', 'ETHUSDT', 'SOLUSDT'
+  masterVerdict?: MasterVerdict;
   displaySymbol: string;
   name: string;
   icon: string;
@@ -297,8 +310,33 @@ export function buildUnifiedSignal(
     evaluated = evaluateSignal(symbol, formattedCandles, currentLive);
   }
 
-  // Determine final decision: Respect explicit user override if provided, otherwise trust engine
-  let decision: 'LONG' | 'SHORT' | 'WAIT' = preferredDecision || evaluated?.decision || 'WAIT';
+  // ─── DEEEPR DECISION ENGINE v4 (LOCATION-FIRST MASTER ARBITER) ───
+  let v4Output: DeeeprDecisionV4Output | null = null;
+  const candleList: CandleInput[] = (candles && candles.length >= 10)
+    ? candles.map((c: any) => ({
+        time: typeof c.time === 'number' ? c.time : Math.floor(new Date(c.time || 0).getTime() / 1000),
+        open: Number(c.open),
+        high: Number(c.high),
+        low: Number(c.low),
+        close: Number(c.close),
+        volume: Number(c.volume || 0)
+      }))
+    : [];
+
+  if (candleList.length >= 10) {
+    v4Output = evaluateDeeeprDecisionEngineV4({
+      asset: symbol.replace('USDT', ''),
+      symbol,
+      timeframe: '15m',
+      price: currentLive,
+      candles: candleList
+    });
+  }
+
+  // Determine final decision: Respect explicit user override if provided, otherwise single arbiter v4
+  let decision: 'LONG' | 'SHORT' | 'WAIT' =
+    preferredDecision ||
+    (v4Output ? (v4Output.master_verdict.state === 'LONG' ? 'LONG' : v4Output.master_verdict.state === 'SHORT' ? 'SHORT' : 'WAIT') : evaluated?.decision || 'WAIT');
 
   // Structural calculation based on candles
   let swingHigh = +(currentLive * 1.012).toFixed(2);
@@ -426,10 +464,13 @@ export function buildUnifiedSignal(
     targetTp1 = longTp1;
     targetTp2 = longTp2;
     targetTp3 = longTp3;
-    const effRisk = Math.max(0.1, entryPrice - stopLossPrice);
-    const tp1Rr = +((targetTp1 - entryPrice) / effRisk).toFixed(2);
-    const tp2Rr = +((targetTp2 - entryPrice) / effRisk).toFixed(2);
-    const tp3Rr = +((targetTp3 - entryPrice) / effRisk).toFixed(2);
+
+    // Worst Edge RR Calculation (Section 3.8 & Test T8)
+    const worstEdge = entryZoneHigh;
+    const effRisk = Math.max(0.1, worstEdge - stopLossPrice);
+    const tp1Rr = +((targetTp1 - worstEdge) / effRisk).toFixed(2);
+    const tp2Rr = +((targetTp2 - worstEdge) / effRisk).toFixed(2);
+    const tp3Rr = +((targetTp3 - worstEdge) / effRisk).toFixed(2);
     rrRatio = tp1Rr;
     if (tp1Rr < 1.40) {
       decision = 'WAIT';
@@ -438,9 +479,9 @@ export function buildUnifiedSignal(
       targetTp1 = 0;
       targetTp2 = 0;
       targetTp3 = 0;
-      rewardToRisk = `1 : ${tp1Rr} (WAIT — Minimum 1.4 RRR Required)`;
+      rewardToRisk = '—';
     } else {
-      rewardToRisk = `1 : ${tp1Rr} (TP1: +${tp1Points.toLocaleString()} pts) · 1 : ${tp2Rr} (TP2: +${tp2Points.toLocaleString()} pts) · 1 : ${tp3Rr} (TP3: +${tp3Points.toLocaleString()} pts)`;
+      rewardToRisk = `1 : ${tp1Rr.toFixed(2)} (TP1: +${tp1Points.toLocaleString()} pts) · 1 : ${tp2Rr.toFixed(2)} (TP2: +${tp2Points.toLocaleString()} pts) · 1 : ${tp3Rr.toFixed(2)} (TP3: +${tp3Points.toLocaleString()} pts)`;
       convictionPct = evaluated ? Math.max(75, evaluated.confidence) : 86;
       longScore = evaluated ? Math.max(75, evaluated.longScore) : 84;
       shortScore = evaluated ? Math.min(30, evaluated.shortScore) : 20;
@@ -454,10 +495,13 @@ export function buildUnifiedSignal(
     targetTp1 = shortTp1;
     targetTp2 = shortTp2;
     targetTp3 = shortTp3;
-    const effRisk = Math.max(0.1, stopLossPrice - entryPrice);
-    const tp1Rr = +((entryPrice - targetTp1) / effRisk).toFixed(2);
-    const tp2Rr = +((entryPrice - targetTp2) / effRisk).toFixed(2);
-    const tp3Rr = +((entryPrice - targetTp3) / effRisk).toFixed(2);
+
+    // Worst Edge RR Calculation (Section 3.8 & Test T8)
+    const worstEdge = entryZoneLow;
+    const effRisk = Math.max(0.1, stopLossPrice - worstEdge);
+    const tp1Rr = +((worstEdge - targetTp1) / effRisk).toFixed(2);
+    const tp2Rr = +((worstEdge - targetTp2) / effRisk).toFixed(2);
+    const tp3Rr = +((worstEdge - targetTp3) / effRisk).toFixed(2);
     rrRatio = tp1Rr;
     if (tp1Rr < 1.40) {
       decision = 'WAIT';
@@ -466,9 +510,9 @@ export function buildUnifiedSignal(
       targetTp1 = 0;
       targetTp2 = 0;
       targetTp3 = 0;
-      rewardToRisk = `1 : ${tp1Rr} (WAIT — Minimum 1.4 RRR Required)`;
+      rewardToRisk = '—';
     } else {
-      rewardToRisk = `1 : ${tp1Rr} (TP1: -${tp1Points.toLocaleString()} pts) · 1 : ${tp2Rr} (TP2: -${tp2Points.toLocaleString()} pts) · 1 : ${tp3Rr} (TP3: -${tp3Points.toLocaleString()} pts)`;
+      rewardToRisk = `1 : ${tp1Rr.toFixed(2)} (TP1: -${tp1Points.toLocaleString()} pts) · 1 : ${tp2Rr.toFixed(2)} (TP2: -${tp2Points.toLocaleString()} pts) · 1 : ${tp3Rr.toFixed(2)} (TP3: -${tp3Points.toLocaleString()} pts)`;
       convictionPct = evaluated ? Math.max(75, evaluated.confidence) : 86;
       longScore = evaluated ? Math.min(30, evaluated.longScore) : 20;
       shortScore = evaluated ? Math.max(75, evaluated.shortScore) : 84;
@@ -476,7 +520,7 @@ export function buildUnifiedSignal(
     }
   } else {
     // WAIT: NO ACTIVE POSITION! Stop Loss and TP levels are NOT active yet.
-    entryPrice = currentLive;
+    entryPrice = 0;
     entryZoneLow = swingLow;
     entryZoneHigh = swingHigh;
     stopLossPrice = 0;
@@ -485,7 +529,7 @@ export function buildUnifiedSignal(
     targetTp3 = 0;
     rewardToRisk = '—';
     rrRatio = 0;
-    convictionPct = 0;
+    convictionPct = evaluated ? evaluated.confidence : 48;
     longScore = evaluated ? evaluated.longScore : 24;
     shortScore = evaluated ? evaluated.shortScore : 22;
     status = 'WAITING';
@@ -545,13 +589,15 @@ export function buildUnifiedSignal(
       : `Limit Buy Order ${entryZone} zone me lagayein. FOMO buy na karein.`,
     step2StopLoss: isWait
       ? `Setup Trigger Par Strict Stop Loss Calculate Hoga (Capital Preservation Priority).`
-      : `Stop Loss strict $${stopLossPrice.toLocaleString()} USD (~680 pts) par 100% FIXED rahega. Market kitna bhi reverse kare, SL kabhi nahi khiskaya jayega! Invalidation par discipline compulsory hai.`,
+      : `Stop Loss strict $${stopLossPrice.toLocaleString()} USD (~680 pts) par strictly anchored rahega (Disciplined Invalidation). Market reverse kare to SL par discipline compulsory hai.`,
     step3ProfitTaking: isWait
-      ? `Dynamic Take Profit Levels (TP1 +2,000 pts, TP2 +2,500 pts, TP3 +3,000 pts) setup confirm hone par chart par lock honge.`
+      ? `Dynamic Take Profit Levels (TP1, TP2, TP3) setup confirm hone par chart par lock honge.`
       : isShort
-      ? `🎯 TP1 ($${targetTp1.toLocaleString()} | -2,000 pts): 4H Liquidity Sweep par 50% profit book karein aur SL ko turant Entry Cost par shift karein (Zero-Risk Trade). 🎯 TP2 ($${targetTp2.toLocaleString()} | -2,500 pts): Order Block Rebalance par agla 30% book karein. 🏆 TP3 ($${targetTp3.toLocaleString()} | -3,000 pts): Bacha hua 20% runner macro swing expansion ke liye ride karein.`
-      : `🎯 TP1 ($${targetTp1.toLocaleString()} | +2,000 pts): 4H Liquidity Sweep par 50% profit book karein aur SL ko turant Entry Cost par shift karein (Zero-Risk Trade). 🎯 TP2 ($${targetTp2.toLocaleString()} | +2,500 pts): Order Block Rebalance par agla 30% book karein. 🏆 TP3 ($${targetTp3.toLocaleString()} | +3,000 pts): Bacha hua 20% runner macro swing expansion ke liye ride karein.`,
-    riskTip: 'Proper Logic Rule: TP1 (+2,000 pts) hit hote hi Stop Loss ko entry cost par lock karna compulsory hai taaki trade 100% risk-free ho jaye.'
+      ? `🎯 TP1 ($${targetTp1.toLocaleString()} | -${tp1Points.toLocaleString()} pts): 4H Liquidity Sweep par 50% profit book karein aur SL ko turant Entry Cost par shift karein (Capital Protection). 🎯 TP2 ($${targetTp2.toLocaleString()} | -${tp2Points.toLocaleString()} pts): Order Block Rebalance par agla 30% book karein. 🏆 TP3 ($${targetTp3.toLocaleString()} | -${tp3Points.toLocaleString()} pts): Bacha hua 20% runner macro swing expansion ke liye ride karein.`
+      : `🎯 TP1 ($${targetTp1.toLocaleString()} | +${tp1Points.toLocaleString()} pts): 4H Liquidity Sweep par 50% profit book karein aur SL ko turant Entry Cost par shift karein (Capital Protection). 🎯 TP2 ($${targetTp2.toLocaleString()} | +${tp2Points.toLocaleString()} pts): Order Block Rebalance par agla 30% book karein. 🏆 TP3 ($${targetTp3.toLocaleString()} | +${tp3Points.toLocaleString()} pts): Bacha hua 20% runner macro swing expansion ke liye ride karein.`,
+    riskTip: isWait
+      ? 'Patience Rule: Capital preservation is priority — setup trigger hone ka disciplined wait karein.'
+      : 'Disciplined Risk Rule: TP1 hit hote hi Stop Loss ko entry cost par lock karna compulsory hai taaki capital secure ho jaye.'
   };
 
   // Top 5 Reasons
@@ -618,7 +664,9 @@ export function buildUnifiedSignal(
       name: 'Fixed Structural Invalidation',
       weight: 15,
       bias: isShort ? -0.9 : isLong ? 0.85 : 0,
-      note: `Strict Fixed Invalidation at $${stopLossPrice.toLocaleString()} USD. Zero floating risk.`,
+      note: isWait
+        ? 'Awaiting structural trigger breakout.'
+        : `Strict Fixed Invalidation at $${stopLossPrice.toLocaleString()} USD. Zero floating risk.`,
       available: true
     },
     {
@@ -634,6 +682,7 @@ export function buildUnifiedSignal(
     id: `${symbol.toLowerCase()}-signal-${tradeNumber}`,
     tradeNumber,
     symbol,
+    masterVerdict: v4Output?.master_verdict,
     displaySymbol,
     name,
     icon,
@@ -654,7 +703,9 @@ export function buildUnifiedSignal(
     liquidityNote: isShort ? 'Sell-side liquidity target.' : isLong ? 'Buy-side liquidity target.' : 'No active sweep.',
     usdtMacroNote: 'Inverse USDT.D correlation verified.',
     orderFlowNote: 'Taker delta aligns with directional bias.',
-    invalidationRule: `Candle close ${isShort ? 'above' : 'below'} $${stopLossPrice.toLocaleString()} strictly invalidates setup. Stop loss is 100% fixed.`,
+    invalidationRule: isWait
+      ? `Awaiting breakout beyond wait zone: LONG above $${momentumLevels.longTriggerPrice.toLocaleString()} | SHORT below $${momentumLevels.shortTriggerPrice.toLocaleString()}.`
+      : `Candle close ${isShort ? 'above' : 'below'} $${stopLossPrice.toLocaleString()} strictly invalidates setup (Disciplined structural invalidation).`,
     status,
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -742,8 +793,46 @@ class UnifiedTradingSignalService {
         const isSlHit = isLong ? livePrice <= existing.stopLossPrice : livePrice >= existing.stopLossPrice;
 
         if (isSlHit) {
-          // STOP LOSS HIT: Anchor SL at exact level, mark SL_HIT, do not slide SL down!
-          existing.status = 'SL_HIT';
+          // STOP LOSS HIT: Delegate to Master Verdict Store (Rule 3.4 & Test T1)
+          masterVerdictStore.updatePrice(key, livePrice);
+
+          // Clear active setup immediately to WAIT
+          existing.decision = 'WAIT';
+          existing.status = 'WAITING';
+          existing.entryPrice = 0;
+          existing.stopLossPrice = 0;
+          existing.targetTp1 = 0;
+          existing.targetTp2 = 0;
+          existing.targetTp3 = 0;
+          existing.rewardToRisk = '—';
+          existing.rrRatio = 0;
+          existing.entryZone = 'Awaiting Key Level Tap';
+          existing.hindiExplanation = `Trade #${existing.tradeNumber} ka Stop Loss touch ho gaya aur trade close ho chuka hai. Capital strictly safe hai. Naye closed-candle trigger tak state WAIT hai.`;
+          existing.stepByStepGuide = {
+            step1Entry: `Abhi trade nahi hai. Long: close above $${existing.momentumLevels?.longTriggerPrice?.toLocaleString() || '—'} with volume · Short: close below $${existing.momentumLevels?.shortTriggerPrice?.toLocaleString() || '—'} with volume.`,
+            step2StopLoss: 'No active Stop Loss (engine in WAIT mode).',
+            step3ProfitTaking: 'Targets trigger ke baad structure se calculate honge.',
+            riskTip: 'Capital preservation priority hai — market range me entry bilkul na karein.'
+          };
+          existing.updatedAt = Date.now();
+          this.saveToStorage();
+          this.notifyListeners(existing);
+          return existing;
+        }
+
+        // Check Master Store sync
+        const master = masterVerdictStore.getVerdict(key, livePrice);
+        if (master.state === 'WAIT' && existing.decision !== 'WAIT') {
+          existing.decision = 'WAIT';
+          existing.status = 'WAITING';
+          existing.entryPrice = 0;
+          existing.stopLossPrice = 0;
+          existing.targetTp1 = 0;
+          existing.targetTp2 = 0;
+          existing.targetTp3 = 0;
+          existing.rewardToRisk = '—';
+          existing.rrRatio = 0;
+          existing.entryZone = 'Awaiting Key Level Tap';
           existing.updatedAt = Date.now();
           this.saveToStorage();
           this.notifyListeners(existing);

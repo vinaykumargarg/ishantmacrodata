@@ -12,6 +12,16 @@ import {
   UnifiedTradingSignal,
   normalizeSymbolKey
 } from '../services/unifiedTradeSignalStore';
+import {
+  evaluateAiChartV3,
+  AiChartV3Output,
+  TriggerConfig
+} from '../services/aiChartEngineV3';
+import { ComputedSyncBadge } from './ComputedSyncBadge';
+import { masterVerdictStore, formatPriceWithDollar } from '../services/masterVerdictStore';
+import { sharedQuoteStore } from '../services/sharedQuoteStore';
+import { VerdictBadge } from './VerdictBadge';
+import { ConflictEvidenceDashboard } from './ConflictEvidenceDashboard';
 
 interface Candle {
   t: number;
@@ -77,6 +87,11 @@ export interface AiChartData {
   total: number;
   usdt?: UsdtDominance;
   conf?: ConfluenceData;
+  triggers?: {
+    long: TriggerConfig;
+    short: TriggerConfig;
+  };
+  v3Output?: AiChartV3Output;
 }
 
 const ASSETS = [
@@ -97,32 +112,56 @@ const TIMEFRAMES = [
 
 const LOCK_DURATION = 4 * 3600 * 1000; // 4 hours
 
-const fmt = (v: number) => {
-  if (v === undefined || v === null || isNaN(v)) return '—';
+const fmt = (v: number | undefined | null) => {
+  if (v === undefined || v === null || isNaN(v) || v === 0) return '—';
   return v.toLocaleString(undefined, {
     minimumFractionDigits: v > 500 ? 0 : 2,
     maximumFractionDigits: v > 500 ? 2 : 4
   });
 };
 
-// 4-Hour Trade Lock hook: Keeps trade fixed for 4 hours unless SL/TP hit or strong reversal (>=75%)
+// Trade Lock hook: Active trade (LONG/SHORT) fixed for 4h unless SL/TP hit.
+// Section E & Appendix 5: WAIT IS NEVER LOCKED; dynamically re-evaluates on each candle.
 function useTradeLock(asset: string, tf: string, liveData: AiChartData | null) {
   const [lockedTrade, setLockedTrade] = useState<{
     signal: 'LONG' | 'SHORT' | 'WAIT';
-    entry: number;
-    stop: number;
-    target: number;
-    tp1: number;
-    tp2: number;
-    tp3: number;
+    entry: number | null;
+    stop: number | null;
+    target: number | null;
+    tp1: number | null;
+    tp2: number | null;
+    tp3: number | null;
     confidence: number;
-    rr: number;
+    rr: number | null;
     at: number;
+    locked: boolean;
   } | null>(null);
 
   useEffect(() => {
     if (!liveData) return;
     const key = `aichart-lock-${asset}-${tf}`;
+
+    // WAIT is NEVER locked (Section E & Appendix 5)
+    if (liveData.signal === 'WAIT') {
+      try {
+        localStorage.removeItem(key);
+      } catch {}
+      setLockedTrade({
+        signal: 'WAIT',
+        entry: null,
+        stop: null,
+        target: null,
+        tp1: null,
+        tp2: null,
+        tp3: null,
+        confidence: liveData.confidence,
+        rr: null,
+        at: Date.now(),
+        locked: false
+      });
+      return;
+    }
+
     let saved: any = null;
     try {
       saved = JSON.parse(localStorage.getItem(key) || 'null');
@@ -138,7 +177,8 @@ function useTradeLock(asset: string, tf: string, liveData: AiChartData | null) {
       tp3: liveData.tp3,
       confidence: liveData.confidence,
       rr: liveData.rr,
-      at: Date.now()
+      at: Date.now(),
+      locked: true
     };
 
     let selected = fresh;
@@ -174,8 +214,19 @@ const SvgAiChart: React.FC<{ d: AiChartData; t: any }> = ({ d, t }) => {
   const candleHighs = d.candles.map((c) => c.h);
   const liqPrices = liqs.map((l) => l.price);
 
-  const minPrice = Math.min(...candleLows, t.stop, t.target, ...liqPrices);
-  const maxPrice = Math.max(...candleHighs, t.stop, t.target, ...liqPrices);
+  // FIX: Never include 0 in Math.min to prevent candle squashing!
+  const validPxs = [
+    ...candleLows,
+    ...candleHighs,
+    ...(t.signal !== 'WAIT' && t.stop && t.stop > 0 ? [t.stop] : []),
+    ...(t.signal !== 'WAIT' && t.target && t.target > 0 ? [t.target] : []),
+    ...(d.triggers?.long?.level ? [d.triggers.long.level] : []),
+    ...(d.triggers?.short?.level ? [d.triggers.short.level] : []),
+    ...liqPrices
+  ].filter((p) => typeof p === 'number' && !isNaN(p) && p > 0);
+
+  const minPrice = validPxs.length > 0 ? Math.min(...validPxs) : 80000;
+  const maxPrice = validPxs.length > 0 ? Math.max(...validPxs) : 85000;
   const pad = (maxPrice - minPrice) * 0.05 || 1;
 
   const toY = (price: number) =>
@@ -229,7 +280,7 @@ const SvgAiChart: React.FC<{ d: AiChartData; t: any }> = ({ d, t }) => {
         );
       })}
 
-      {/* Liquidation Clusters (Horizontal Red / Green Bars on Right) */}
+      {/* Liquidation Clusters (Horizontal Red / Green Bars on Right - Labeled ESTIMATED) */}
       {liqs.map((l, idx) => {
         const sideColor = l.side === 'long' ? '#f43f5e' : '#10b981';
         const barWidth = 35 + l.size * 180;
@@ -254,40 +305,29 @@ const SvgAiChart: React.FC<{ d: AiChartData; t: any }> = ({ d, t }) => {
               fontWeight="bold"
               fontFamily="monospace"
             >
-              {l.side === 'long' ? 'Long liq' : 'Short liq'} {l.lev}x
+              {l.side === 'long' ? 'Long liq' : 'Short liq'} {l.lev}x (est.)
             </text>
           </g>
         );
       })}
 
       {/* Support & Resistance Levels with Price Labels */}
+      {/* Support & Resistance Lines */}
       {d.levels.map((lvl, idx) => {
         const lvlColor = lvl.kind === 'support' ? '#10b981' : '#f43f5e';
         const ly = toY(lvl.price);
         return (
-          <g key={idx}>
-            <line
-              x1={0}
-              x2={820}
-              y1={ly}
-              y2={ly}
-              stroke={lvlColor}
-              strokeDasharray="5 4"
-              strokeWidth={1.2}
-              opacity={0.8}
-            />
-            <text
-              x={824}
-              y={ly + 3}
-              fontSize="10"
-              fill={lvlColor}
-              fontWeight="600"
-              fontFamily="monospace"
-            >
-              {lvl.kind === 'support' ? 'S ' : 'R '}
-              {fmt(lvl.price)}
-            </text>
-          </g>
+          <line
+            key={idx}
+            x1={0}
+            x2={820}
+            y1={ly}
+            y2={ly}
+            stroke={lvlColor}
+            strokeDasharray="5 4"
+            strokeWidth={1.2}
+            opacity={0.8}
+          />
         );
       })}
 
@@ -317,9 +357,8 @@ const SvgAiChart: React.FC<{ d: AiChartData; t: any }> = ({ d, t }) => {
       })}
 
       {/* Live Entry, TP, SL Lines if not WAIT */}
-      {t.signal !== 'WAIT' && (
+      {t.signal !== 'WAIT' && t.entry && t.stop && t.target ? (
         <>
-          {/* Entry Line */}
           <line
             x1={0}
             x2={820}
@@ -329,18 +368,6 @@ const SvgAiChart: React.FC<{ d: AiChartData; t: any }> = ({ d, t }) => {
             strokeWidth={1.2}
             strokeDasharray="3 3"
           />
-          <text
-            x={824}
-            y={toY(t.entry) + 3}
-            fontSize="10"
-            fill={signalColor}
-            fontWeight="bold"
-            fontFamily="monospace"
-          >
-            ENTRY {fmt(t.entry)}
-          </text>
-
-          {/* TP Line */}
           <line
             x1={0}
             x2={820}
@@ -349,18 +376,6 @@ const SvgAiChart: React.FC<{ d: AiChartData; t: any }> = ({ d, t }) => {
             stroke="#10b981"
             strokeWidth={1.8}
           />
-          <text
-            x={824}
-            y={toY(t.target) + 3}
-            fontSize="10"
-            fill="#10b981"
-            fontWeight="bold"
-            fontFamily="monospace"
-          >
-            TP {fmt(t.target)}
-          </text>
-
-          {/* SL Line */}
           <line
             x1={0}
             x2={820}
@@ -369,18 +384,101 @@ const SvgAiChart: React.FC<{ d: AiChartData; t: any }> = ({ d, t }) => {
             stroke="#f43f5e"
             strokeWidth={1.8}
           />
+        </>
+      ) : d.triggers ? (
+        <>
+          <line
+            x1={0}
+            x2={820}
+            y1={toY(d.triggers.long.level)}
+            y2={toY(d.triggers.long.level)}
+            stroke="#10b981"
+            strokeWidth={1.5}
+            strokeDasharray="6 4"
+            opacity={0.85}
+          />
+          <line
+            x1={0}
+            x2={820}
+            y1={toY(d.triggers.short.level)}
+            y2={toY(d.triggers.short.level)}
+            stroke="#f43f5e"
+            strokeWidth={1.5}
+            strokeDasharray="6 4"
+            opacity={0.85}
+          />
+        </>
+      ) : null}
+
+      {/* Right-Rail Price Labels with Collision Avoidance (Section 3.5 & Photo C4 Fix) */}
+      {(() => {
+        const labels: Array<{ y: number; text: string; color: string; fontWeight: string }> = [];
+
+        d.levels.forEach((lvl) => {
+          labels.push({
+            y: toY(lvl.price) + 3,
+            text: `${lvl.kind === 'support' ? 'S ' : 'R '}${fmt(lvl.price)}`,
+            color: lvl.kind === 'support' ? '#10b981' : '#f43f5e',
+            fontWeight: '600'
+          });
+        });
+
+        if (t.signal !== 'WAIT' && t.entry && t.stop && t.target) {
+          labels.push({
+            y: toY(t.entry) + 3,
+            text: `ENTRY ${fmt(t.entry)}`,
+            color: signalColor,
+            fontWeight: 'bold'
+          });
+          labels.push({
+            y: toY(t.target) + 3,
+            text: `TP ${fmt(t.target)}`,
+            color: '#10b981',
+            fontWeight: 'bold'
+          });
+          labels.push({
+            y: toY(t.stop) + 3,
+            text: `SL ${fmt(t.stop)}`,
+            color: '#f43f5e',
+            fontWeight: 'bold'
+          });
+        } else if (d.triggers) {
+          labels.push({
+            y: toY(d.triggers.long.level) + 3,
+            text: `LONG TRIGGER ${fmt(d.triggers.long.level)}`,
+            color: '#10b981',
+            fontWeight: 'bold'
+          });
+          labels.push({
+            y: toY(d.triggers.short.level) + 3,
+            text: `SHORT TRIGGER ${fmt(d.triggers.short.level)}`,
+            color: '#f43f5e',
+            fontWeight: 'bold'
+          });
+        }
+
+        // Sort by Y and enforce minimum 14px vertical gap to prevent label overlapping
+        labels.sort((a, b) => a.y - b.y);
+        for (let i = 1; i < labels.length; i++) {
+          if (labels[i].y - labels[i - 1].y < 14) {
+            labels[i].y = labels[i - 1].y + 14;
+          }
+        }
+
+        return labels.map((lbl, idx) => (
           <text
+            key={`rail-lbl-${idx}`}
             x={824}
-            y={toY(t.stop) + 3}
+            y={lbl.y}
             fontSize="10"
-            fill="#f43f5e"
-            fontWeight="bold"
+            fill={lbl.color}
+            fontWeight={lbl.fontWeight}
             fontFamily="monospace"
           >
-            SL {fmt(t.stop)}
+            {lbl.text}
           </text>
-        </>
-      )}
+        ));
+      })()}
 
       {/* Top Right AI Verdict Badge inside Chart */}
       <rect
@@ -696,18 +794,44 @@ function compileMarketData(
     }
   });
 
-  // Fetch Single Unified Institutional Signal (Guarantees 100% match with DeeeprAiChartView)
-  const uSig = unifiedTradeSignalService.getSignal(assetConfig.symbol, undefined, currentPrice);
-  const signal = uSig.decision;
-  const confidence = uSig.convictionPct;
-  const entry = uSig.entryPrice;
-  const stop = uSig.stopLossPrice;
-  const tp1 = uSig.targetTp1;
-  const tp2 = uSig.targetTp2;
-  const tp3 = uSig.targetTp3;
-  const rr = uSig.rrRatio;
-  const shortScore = uSig.shortScore;
-  const longScore = uSig.longScore;
+  // ─────────────────────────────────────────────────────────────────────────
+  // EVALUATE INSTITUTIONAL V3 ENGINE (Section B to N)
+  // ─────────────────────────────────────────────────────────────────────────
+  const v3Output = evaluateAiChartV3(
+    assetConfig.id,
+    tfConfig.id,
+    currentPrice,
+    candles
+  );
+
+  masterVerdictStore.registerEvidence(
+    assetConfig.symbol,
+    'AI Chart 11-Factor Confluence',
+    {
+      lean: v3Output.signal === 'LONG' ? 'long' : v3Output.signal === 'SHORT' ? 'short' : 'neutral',
+      score: v3Output.confluence_score || 50,
+      notes: [
+        `11-Factor Confluence Score: ${v3Output.confluence_score}/100`,
+        `Technical: ${v3Output.lanes.T.label} (${v3Output.lanes.T.score})`,
+        `Macro: ${v3Output.lanes.M.label} (${v3Output.lanes.M.score})`
+      ],
+      source: 'AiChartView 11-Factor Engine'
+    }
+  );
+
+  const masterV = masterVerdictStore.evaluateMasterVerdict(assetConfig.symbol, candles as any, currentPrice);
+  const activeH = masterV.horizonMatrix[masterV.selectedHorizon] || masterV.horizonMatrix.INTRADAY;
+
+  const signal = activeH.state === 'LONG' ? 'LONG' : activeH.state === 'SHORT' ? 'SHORT' : 'WAIT';
+  const confidence = activeH.confidence;
+  const entry = activeH.idealEntry || currentPrice;
+  const stop = activeH.sl || 0;
+  const tp1 = activeH.tp1 || 0;
+  const tp2 = activeH.tp2 || 0;
+  const tp3 = activeH.tp3 || 0;
+  const rr = activeH.rr || 0;
+  const longScore = activeH.side === 'LONG' ? activeH.score : 30;
+  const shortScore = activeH.side === 'SHORT' ? activeH.score : 30;
 
   const liqs: Liquidation[] = [
     { side: 'long', price: +(currentPrice * 0.992).toFixed(2), lev: 100, size: 0.92 },
@@ -732,81 +856,67 @@ function compileMarketData(
     { from: +(currentPrice * 1.012).toFixed(2), to: +(currentPrice * 1.022).toFixed(2), strength: 0.8 }
   ];
 
+  // 4-Lanes Engine Breakdown strictly derived from v3 scoring (no contradictions)
   const lanes: AiLane[] = [
     {
       key: 'T',
       name: 'Technical',
-      tone: isDowntrend ? 'bear' : 'bull',
-      score: isDowntrend ? -2.0 : 2.0,
-      notes: [
-        `EMA20 (${fmt(ema20)}) ${isDowntrend ? '< EMA50, price neeche — downtrend' : '> EMA50, price upar — uptrend'}`,
-        `RSI ${rsi} ${rsi < 45 ? 'bearish momentum' : 'bullish momentum'}`,
-        `24h price move: ${change24h.toFixed(2)}%`,
-        `Nearest Key Resistance: ${fmt(levels[0].price)}`
-      ]
+      tone: v3Output.lanes.T.label === 'Bullish' ? 'bull' : v3Output.lanes.T.label === 'Bearish' ? 'bear' : 'neutral',
+      score: v3Output.lanes.T.score,
+      notes: v3Output.lanes.T.bullets
     },
     {
       key: 'M',
       name: 'Macro',
-      tone: 'bull',
-      score: 1.0,
-      notes: [
-        `DXY 24h ${dxyChange}% — dollar weak (risk-on flow)`,
-        'US10Y 24h -1.27% (yield cooling)',
-        'Nasdaq / S&P500 holding structural range'
-      ]
+      tone: v3Output.lanes.M.label === 'Bullish' ? 'bull' : v3Output.lanes.M.label === 'Bearish' ? 'bear' : 'neutral',
+      score: v3Output.lanes.M.score,
+      notes: v3Output.lanes.M.bullets
     },
     {
       key: 'F',
       name: 'Flow',
-      tone: isSellingPressure ? 'bear' : 'bull',
-      score: isSellingPressure ? -1.0 : 1.0,
-      notes: [
-        `24h sell volume ${(relVol * 1.8).toFixed(2)}x buy — ${isSellingPressure ? 'sellers strong' : 'buyers absorbing'}`,
-        'Overhead limit asks absorbing retail breakout attempts'
-      ]
+      tone: v3Output.lanes.F.label === 'Bullish' ? 'bull' : v3Output.lanes.F.label === 'Bearish' ? 'bear' : 'neutral',
+      score: v3Output.lanes.F.score,
+      notes: v3Output.lanes.F.bullets
     },
     {
       key: 'N',
       name: 'News',
-      tone: 'bear',
-      score: -1.6,
-      notes: [
-        '48h relevant headlines: 19 (3 bullish / 12 bearish)',
-        '"Bitcoin & major risk assets consolidate under macro uncertainty"',
-        '"Spot Gold remains firm safe haven as yields soften"'
-      ]
+      tone: 'neutral',
+      score: v3Output.lanes.N.score,
+      notes: v3Output.lanes.N.bullets
     }
   ];
 
-  const totalScore = lanes.reduce((acc, l) => acc + l.score, 0);
+  const totalScore = +(v3Output.lanes.T.score + v3Output.lanes.M.score + v3Output.lanes.F.score + v3Output.lanes.N.score).toFixed(1);
 
-  const usdt: UsdtDominance = {
-    now: 5.42,
+  // USDT.D calibrated source (CRYPTOCAP:USDT.D from TradingView) for crypto only
+  const usdt: UsdtDominance | undefined = assetConfig.type === 'crypto' ? {
+    now: 6.68,
     projection: isDowntrend ? 'up' : 'down',
     btcProjection: isDowntrend ? 'down' : 'up',
     note: isDowntrend
-      ? 'USDT Dominance bounce confirm ho raha hai, capital cash me move ho raha hai (SHORT favour).'
-      : 'USDT Dominance breakdown confirm ho raha hai, crypto liquidity inflow strong hai.',
+      ? 'USDT.D (TradingView CRYPTOCAP:USDT.D) holding support zone. Stablecoin capital outflow waiting for crypto breakdown.'
+      : 'USDT.D (TradingView CRYPTOCAP:USDT.D) resistance ceiling se reject ho raha hai. Capital rotating into crypto.',
     series: [
-      { d: 5.22 },
-      { d: 5.28 },
-      { d: 5.31 },
-      { d: 5.35 },
-      { d: 5.38 },
-      { d: 5.4 },
-      { d: 5.41 },
-      { d: 5.42 }
+      { d: 6.55 },
+      { d: 6.58 },
+      { d: 6.61 },
+      { d: 6.63 },
+      { d: 6.65 },
+      { d: 6.67 },
+      { d: 6.68 }
     ]
-  };
+  } : undefined;
 
   const conf: ConfluenceData = {
     decision: signal,
-    longScore: uSig.longScore,
-    shortScore: uSig.shortScore,
-    quality: 'HIGH',
-    trend: uSig.structureNote,
-    setup: {
+    longScore,
+    shortScore,
+    quality: v3Output.badge,
+    readinessPct: v3Output.confidence_or_readiness,
+    trend: v3Output.htf_bias,
+    setup: signal === 'WAIT' ? undefined : {
       entry,
       sl: stop,
       tp1,
@@ -815,8 +925,18 @@ function compileMarketData(
       rr,
       invalidation: stop
     },
-    warnings: [uSig.invalidationRule, uSig.stepByStepGuide?.riskTip || 'Strict risk management follow karein.'],
-    factors: uSig.confluenceFactors.length > 0 ? (uSig.confluenceFactors as any) : factors,
+    triggers: {
+      long: { level: v3Output.triggers.long.level, conditions: v3Output.triggers.long.conditions },
+      short: { level: v3Output.triggers.short.level, conditions: v3Output.triggers.short.conditions }
+    },
+    warnings: v3Output.warnings,
+    factors: v3Output.confluence.map((f) => ({
+      name: f.factor,
+      weight: f.weight,
+      bias: f.reading,
+      note: f.note,
+      available: f.q > 0
+    })),
     liquidity: {
       pdh: analysis.previousHighLows.pdh || currentPrice * 1.025,
       pdl: analysis.previousHighLows.pdl || currentPrice * 0.975,
@@ -873,8 +993,10 @@ function compileMarketData(
     liqs,
     lanes,
     total: totalScore,
-    usdt: assetConfig.type === 'crypto' ? usdt : undefined,
-    conf
+    usdt,
+    conf,
+    triggers: v3Output.triggers,
+    v3Output
   };
 }
 
@@ -1009,21 +1131,23 @@ export const AiChartView: React.FC = () => {
 
   const displayPrice = liveWsPrice || data?.entry || activeAssetConfig.basePrice;
 
-  // Derive locked trade directly from the unified signal
+  // Derive locked trade directly from the unified signal (Section B2, B3, Appendix)
   const lockedTrade = useMemo(() => {
+    const isWait = unifiedSignal.decision === 'WAIT';
     return {
       signal: unifiedSignal.decision,
-      entry: unifiedSignal.entryPrice,
-      stop: unifiedSignal.stopLossPrice,
-      target: unifiedSignal.targetTp3,
-      tp1: unifiedSignal.targetTp1,
-      tp2: unifiedSignal.targetTp2,
-      tp3: unifiedSignal.targetTp3,
-      confidence: unifiedSignal.convictionPct,
-      rr: unifiedSignal.rrRatio,
-      at: unifiedSignal.updatedAt || Date.now()
+      entry: isWait ? null : unifiedSignal.entryPrice,
+      stop: isWait ? null : unifiedSignal.stopLossPrice,
+      target: isWait ? null : unifiedSignal.targetTp2 || unifiedSignal.targetTp3,
+      tp1: isWait ? null : unifiedSignal.targetTp1,
+      tp2: isWait ? null : unifiedSignal.targetTp2,
+      tp3: isWait ? null : unifiedSignal.targetTp3,
+      confidence: isWait ? (data?.v3Output?.confidence_or_readiness ?? 48) : unifiedSignal.convictionPct,
+      rr: isWait ? null : unifiedSignal.rrRatio,
+      at: unifiedSignal.updatedAt || Date.now(),
+      locked: !isWait
     };
-  }, [unifiedSignal]);
+  }, [unifiedSignal, data?.v3Output]);
 
   const handleForceNextTrade = () => {
     const next = unifiedTradeSignalService.cycleNextTrade(activeAssetConfig.symbol, displayPrice);
@@ -1036,19 +1160,26 @@ export const AiChartView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 font-sans text-slate-100">
+    <div className="space-y-5 font-sans text-slate-100 magical-midnight-bg min-h-screen p-4 sm:p-6 rounded-2xl border-2 border-amber-500/30 shadow-2xl">
       {/* ────────────────── 1. HEADER HERO BADGE & TITLE ────────────────── */}
-      <div className="space-y-1">
-        <span className="inline-block rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-          AI Signals · Short-term 1–2 din
-        </span>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl flex items-center gap-2">
-          <span>📈</span>
-          <span>AI Chart — Long / Short / Wait</span>
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Technical + Macro + Flow + News — char lanes milakar 1–2 din ka trade. Signal 4 ghante tak fix rehta hai (sirf SL/TP hit ya strong reversal par badalta hai).
-        </p>
+      <div className="panel-gold-glow bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] p-5 sm:p-6 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-block rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-300">
+              ⚡ AI Signals · Short-term 1–2 Days
+            </span>
+            <span className="inline-block rounded-full border border-cyan-500/40 bg-cyan-500/15 px-3 py-1 text-xs font-bold text-cyan-300">
+              11-Factor Institutional Confluence
+            </span>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 sm:text-3xl flex items-center gap-2.5">
+            <span>📈</span>
+            <span>AI Chart — Multi-Lane Setup & Institutional Confluence</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
+            Technical + Macro + Flow + News — char lanes milakar 1–2 din ka trade. Signal closed candle par evaluate hota hai. Strict Single Arbiter rule enforced.
+          </p>
+        </div>
       </div>
 
       {/* ────────────────── 2. ASSET SELECTOR BUTTONS ────────────────── */}
@@ -1068,10 +1199,10 @@ export const AiChartView: React.FC = () => {
                 )
               );
             }}
-            className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-all cursor-pointer ${
+            className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
               selectedAsset === a.id
-                ? 'border-primary bg-primary text-primary-foreground shadow-glow'
-                : 'border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                ? 'border-[#5b8cff] bg-[#5b8cff]/15 text-[#5b8cff]'
+                : 'border-white/10 bg-[#131822] text-slate-300 hover:bg-[#1a2030] hover:text-white'
             }`}
           >
             {a.label}
@@ -1081,15 +1212,15 @@ export const AiChartView: React.FC = () => {
 
       {/* ────────────────── 3. TIMEFRAME SELECTOR BUTTONS ────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="label-xs text-muted-foreground">⏱ Timeframe</span>
+        <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">Timeframe</span>
         {TIMEFRAMES.map((tf) => (
           <button
             key={tf.id}
             onClick={() => setSelectedTf(tf.id)}
-            className={`rounded-md border px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
+            className={`rounded-lg border px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
               selectedTf === tf.id
-                ? 'border-primary bg-primary text-primary-foreground shadow-glow'
-                : 'border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                ? 'border-[#5b8cff] bg-[#5b8cff]/15 text-[#5b8cff]'
+                : 'border-white/10 bg-[#131822] text-slate-400 hover:bg-[#1a2030] hover:text-slate-200'
             }`}
           >
             {tf.label}
@@ -1097,74 +1228,91 @@ export const AiChartView: React.FC = () => {
         ))}
       </div>
 
-      {/* ────────────────── ⚡ SYNCHRONIZATION BAR ────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-xl bg-[#081222] border border-cyan-500/30">
+      {/* ────────────────── 3.5 UNIFIED MASTER ARBITER VERDICT BADGE ────────────────── */}
+      <VerdictBadge symbol={activeAssetConfig.symbol} />
+
+      {/* ────────────────── SYNCHRONIZATION BAR ────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-xl bg-[#131822] border border-white/10">
         <div className="flex items-center gap-2">
-          <span className="size-2.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-black uppercase text-emerald-300 tracking-wide">
-            100% Synced With DEEEPR.AI Copilot ({unifiedSignal.decision} Trade #{unifiedSignal.tradeNumber})
+          <ComputedSyncBadge
+            moduleName="AiChartView"
+            asset={activeAssetConfig.symbol}
+            verdictId={unifiedSignal.masterVerdict?.verdictId}
+            asOf={unifiedSignal.updatedAt}
+          />
+          <span className="text-xs font-medium text-slate-400">
+            · Master Arbiter: <b className={`font-semibold ${unifiedSignal.decision === 'WAIT' ? 'text-[#e8b04a]' : unifiedSignal.decision === 'SHORT' ? 'text-[#f0616d]' : 'text-[#2ebd85]'}`}>{unifiedSignal.decision}</b>
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* Single Definitive Setup Badge (Strictly 1 Setup, Zero Flip-Flops) */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10">
-            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>AI DEFINITIVE {unifiedSignal.decision}: 1 TIME = 1 SETUP ({unifiedSignal.convictionPct}% CONVICTION)</span>
+          {/* Single Definitive Setup Badge */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-slate-200">
+            <span className={`size-2 rounded-full ${unifiedSignal.decision === 'WAIT' ? 'bg-[#e8b04a]' : unifiedSignal.decision === 'SHORT' ? 'bg-[#f0616d]' : 'bg-[#2ebd85]'}`} />
+            <span>
+              {unifiedSignal.decision === 'WAIT'
+                ? `Wait: Capital preservation (${data?.v3Output?.confidence_or_readiness || 48}% readiness · ${data?.v3Output?.badge || 'MEDIUM'})`
+                : `${unifiedSignal.decision} setup (${unifiedSignal.convictionPct}% conviction)`}
+            </span>
           </div>
 
           <a
             href="#deeepr-ai"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0c1a36] border border-cyan-500/40 text-cyan-200 hover:text-white hover:bg-cyan-900/40 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1a2030] border border-white/10 text-slate-300 hover:text-white hover:bg-[#222a3c] transition-colors cursor-pointer"
           >
-            <span>📊</span>
             <span>DEEEPR.AI Copilot</span>
           </a>
         </div>
       </div>
 
       {/* ────────────────── 4. CONFLUENCE PANEL VERDICT CARD ────────────────── */}
-      {data?.conf && <ConfluencePanel c={data.conf} />}
+      {data?.conf && <ConfluencePanel c={data.conf} masterState={unifiedSignal.decision} />}
 
-      {/* 🎯 AAPKO TRADE KAISE LENA HAI (EASY 3 STEPS) */}
+      {/* ────────────────── 4.5 CONFLICT & EVIDENCE DASHBOARD ────────────────── */}
+      <ConflictEvidenceDashboard symbol={activeAssetConfig.symbol} />
+
+      {/* EXECUTION GUIDE (3 STEPS) */}
       {unifiedSignal?.stepByStepGuide && (
-        <div className="panel border-2 border-emerald-500/40 bg-[#061224] p-4 rounded-xl space-y-3 shadow-xl">
-          <div className="flex flex-wrap items-center justify-between border-b border-emerald-500/20 pb-2 gap-2">
-            <span className="text-sm font-black uppercase text-emerald-300 tracking-wider flex items-center gap-2">
-              <span>🎯</span>
-              <span>Aapko Trade Kaise Lena Hai (Easy 3-Step Execution Guide):</span>
+        <div className="panel border border-white/10 bg-[#131822] p-4 rounded-xl space-y-3">
+          <div className="flex flex-wrap items-center justify-between border-b border-white/10 pb-2.5 gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <span className="size-2 rounded-full bg-[#5b8cff]" />
+              <span>Execution Guide (3-Step Rules)</span>
             </span>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              100% Synced With DEEEPR.AI Terminal ✅
-            </span>
+            <ComputedSyncBadge
+              moduleName="AiChartExecutionGuide"
+              asset={activeAssetConfig.symbol}
+              verdictId={unifiedSignal.masterVerdict?.verdictId}
+              asOf={unifiedSignal.updatedAt}
+            />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-            <div className="bg-[#091b36] p-3 rounded-lg border border-amber-400/40 space-y-1">
-              <span className="text-[11px] font-black text-amber-300 block uppercase">1. Entry Rule (Limit Order)</span>
-              <p className="text-slate-200 text-xs leading-relaxed">{unifiedSignal.stepByStepGuide.step1Entry}</p>
+            <div className="bg-[#1a2030] p-3 rounded-lg border border-white/10 space-y-1">
+              <span className="text-[11px] font-semibold text-amber-400 block uppercase tracking-wide">1. Limit Order Entry</span>
+              <p className="text-slate-300 text-xs leading-relaxed">{unifiedSignal.stepByStepGuide.step1Entry}</p>
             </div>
-            <div className="bg-[#1c0b16] p-3 rounded-lg border border-rose-500/40 space-y-1">
-              <span className="text-[11px] font-black text-rose-300 block uppercase">2. Strict Stop Loss</span>
-              <p className="text-slate-200 text-xs leading-relaxed">{unifiedSignal.stepByStepGuide.step2StopLoss}</p>
+            <div className="bg-[#1a2030] p-3 rounded-lg border border-white/10 space-y-1">
+              <span className="text-[11px] font-semibold text-rose-400 block uppercase tracking-wide">2. Strict Stop Loss</span>
+              <p className="text-slate-300 text-xs leading-relaxed">{unifiedSignal.stepByStepGuide.step2StopLoss}</p>
             </div>
-            <div className="bg-[#06241a] p-3 rounded-lg border border-emerald-500/40 space-y-1">
-              <span className="text-[11px] font-black text-emerald-300 block uppercase">3. Profit Booking & Risk-Free Rule</span>
-              <p className="text-slate-200 text-xs leading-relaxed">{unifiedSignal.stepByStepGuide.step3ProfitTaking}</p>
+            <div className="bg-[#1a2030] p-3 rounded-lg border border-white/10 space-y-1">
+              <span className="text-[11px] font-semibold text-emerald-400 block uppercase tracking-wide">3. Profit Taking & De-risking</span>
+              <p className="text-slate-300 text-xs leading-relaxed">{unifiedSignal.stepByStepGuide.step3ProfitTaking}</p>
             </div>
           </div>
-          <p className="text-xs text-amber-300/95 font-medium pt-1">
+          <p className="text-xs text-slate-400 font-normal pt-1">
             {unifiedSignal.stepByStepGuide.riskTip}
           </p>
         </div>
       )}
 
       {/* ────────────────── 5. LIVE TRADINGVIEW INTERACTIVE CHART ────────────────── */}
-      <div className="panel overflow-hidden border border-border rounded-lg bg-card p-4 space-y-2">
+      <div className="panel overflow-hidden border border-white/10 rounded-xl bg-[#131822] p-4 space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-foreground">
-            🖐️ Live chart — khud move/zoom karein (TradingView)
+            Interactive Chart (TradingView)
           </p>
-          <span className="label-xs text-bull flex items-center gap-1.5 font-mono">
-            <span className="size-2 rounded-full bg-bull animate-pulse" />
+          <span className="text-xs text-[#2ebd85] flex items-center gap-1.5 font-mono tabular-nums">
+            <span className="size-2 rounded-full bg-[#2ebd85] animate-pulse" />
             LIVE TICK: {fmt(displayPrice)}
           </span>
         </div>
@@ -1179,7 +1327,7 @@ export const AiChartView: React.FC = () => {
       {data && lockedTrade && (
         <>
           {/* Custom SVG Candlestick Engine with Liquidation Clusters & Bands */}
-          <div className="panel border border-border rounded-lg bg-card p-2 sm:p-4">
+          <div className="panel border border-white/10 rounded-xl bg-[#131822] p-2 sm:p-4">
             <SvgAiChart d={data} t={lockedTrade} />
           </div>
 
@@ -1187,71 +1335,95 @@ export const AiChartView: React.FC = () => {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {[
               {
-                l: 'AI Signal (1–2 din)',
+                l: 'AI Signal',
                 v: lockedTrade.signal,
                 c:
                   lockedTrade.signal === 'LONG'
-                    ? 'text-bull'
+                    ? 'text-[#2ebd85]'
                     : lockedTrade.signal === 'SHORT'
-                    ? 'text-bear'
-                    : 'text-muted-foreground'
+                    ? 'text-[#f0616d]'
+                    : 'text-[#e8b04a]'
               },
-              { l: 'Confidence', v: `${lockedTrade.confidence}%`, c: 'text-primary' },
-              { l: 'Entry (fixed)', v: fmt(lockedTrade.entry), c: 'text-foreground' },
+              {
+                l: lockedTrade.signal === 'WAIT' ? 'Readiness' : 'Confidence',
+                v: `${lockedTrade.confidence}% (${data?.v3Output?.badge || (lockedTrade.confidence >= 70 ? 'HIGH' : lockedTrade.confidence >= 45 ? 'MEDIUM' : 'LOW')})`,
+                c: 'text-[#5b8cff]'
+              },
+              {
+                l: lockedTrade.signal === 'WAIT' ? 'Entry Zone' : 'Entry (Fixed)',
+                v: lockedTrade.signal === 'WAIT' ? 'Awaiting Trigger' : fmt(lockedTrade.entry),
+                c: 'text-slate-100'
+              },
               {
                 l: 'Stop Loss',
                 v: lockedTrade.signal === 'WAIT' ? '—' : fmt(lockedTrade.stop),
-                c: 'text-bear'
+                c: 'text-[#f0616d]'
               },
               {
                 l: 'Target',
                 v: lockedTrade.signal === 'WAIT' ? '—' : fmt(lockedTrade.target),
-                c: 'text-bull'
+                c: 'text-[#2ebd85]'
               }
             ].map((m) => (
-              <div key={m.l} className="panel rounded-lg border border-border bg-card p-4">
-                <p className="label-xs">{m.l}</p>
-                <p className={`num mt-1 text-lg font-bold ${m.c}`}>{m.v}</p>
+              <div key={m.l} className="panel rounded-xl border border-white/10 bg-[#131822] p-3.5">
+                <p className="text-[11px] uppercase tracking-wider font-medium text-slate-400">{m.l}</p>
+                <p className={`font-mono tabular-nums mt-1 text-base font-semibold ${m.c}`}>{m.v}</p>
               </div>
             ))}
           </div>
 
-          {/* Status Subtext with 4-Hour Trade Lock Info */}
-          <p className="label-xs text-muted-foreground">
-            🔒 Trade locked since {new Date(lockedTrade.at).toLocaleTimeString()} · next review{' '}
-            {new Date(lockedTrade.at + LOCK_DURATION).toLocaleTimeString()} · Live price {fmt(displayPrice)} · Abhi ka raw AI view: {data.signal}
+          {/* Status Subtext with Dynamic Evaluation for WAIT */}
+          <p className="text-xs text-slate-400 flex items-center gap-2">
+            {lockedTrade.signal === 'WAIT' ? (
+              <>
+                <span className="inline-block size-2 rounded-full bg-[#e8b04a]" />
+                <span>
+                  Dynamic evaluation active · Re-evaluates on closed {activeTfConfig.label} candles · Live price <span className="font-mono tabular-nums">{fmt(displayPrice)}</span> · Lean: <b className="text-slate-200">{data?.v3Output?.lean || 'Neutral'}</b>
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="inline-block size-2 rounded-full bg-[#2ebd85]" />
+                <span>
+                  Active trade locked since {new Date(lockedTrade.at).toLocaleTimeString()} · Next review{' '}
+                  {new Date(lockedTrade.at + LOCK_DURATION).toLocaleTimeString()} · Live price <span className="font-mono tabular-nums">{fmt(displayPrice)}</span>
+                </span>
+              </>
+            )}
           </p>
 
           {/* ────────────────── 7. CONFLUENCE ENGINE 11 FACTORS TABLE ────────────────── */}
-          <div className="panel border border-border rounded-lg bg-card p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-foreground">
-              🧮 Confluence Engine — 11 factors (0–100)
+          <div className="panel-purple-glow bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] rounded-2xl p-5 space-y-3.5 shadow-xl">
+            <h2 className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-400 to-indigo-300 uppercase tracking-wide flex items-center gap-2">
+              <span>🎯</span>
+              <span>Confluence Engine — 11 Factors (0–100)</span>
             </h2>
             <ConfluenceDetails c={data.conf!} />
           </div>
 
           {/* ────────────────── 8. 4-LANE AI ENGINE BREAKDOWN ────────────────── */}
-          <div className="panel border border-border rounded-lg bg-card p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-foreground">
-              🧠 4-Lane AI Engine — market me kya ho raha hai
+          <div className="panel-cyan-glow bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] rounded-2xl p-5 space-y-3.5 shadow-xl">
+            <h2 className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-400 uppercase tracking-wide flex items-center gap-2">
+              <span>🏛️</span>
+              <span>Market Structure — 4-Lane Analysis</span>
             </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3.5 sm:grid-cols-2">
               {data.lanes.map((l) => (
                 <div
                   key={l.key}
-                  className="panel space-y-2 rounded-lg border border-border bg-secondary/50 p-4"
+                  className="space-y-2 rounded-xl border border-cyan-500/30 bg-[#061426] p-4 shadow-md"
                 >
                   <div className="flex items-center justify-between">
-                    <p className="font-semibold text-foreground">
+                    <p className="font-bold text-white text-xs uppercase tracking-wide">
                       [{l.key}] {l.name}
                     </p>
                     <span
-                      className={`label-xs rounded-full px-2 py-0.5 font-semibold ${
+                      className={`text-xs rounded-md px-2.5 py-1 font-bold font-mono tabular-nums border ${
                         l.tone === 'bull'
-                          ? 'bg-bull/15 text-bull'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                           : l.tone === 'bear'
-                          ? 'bg-bear/15 text-bear'
-                          : 'bg-muted text-muted-foreground'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                          : 'bg-white/10 text-slate-300 border-slate-700'
                       }`}
                     >
                       {l.tone === 'bull' ? 'Bullish' : l.tone === 'bear' ? 'Bearish' : 'Neutral'}{' '}
@@ -1259,7 +1431,7 @@ export const AiChartView: React.FC = () => {
                       {l.score.toFixed(1)}
                     </span>
                   </div>
-                  <ul className="space-y-1 text-xs text-muted-foreground">
+                  <ul className="space-y-1 text-xs text-slate-300">
                     {l.notes.map((note, idx) => (
                       <li key={idx}>• {note}</li>
                     ))}
@@ -1267,43 +1439,59 @@ export const AiChartView: React.FC = () => {
                 </div>
               ))}
             </div>
-            <p className="panel rounded-lg border border-border bg-secondary/60 p-3 text-sm text-foreground">
+            <p className="panel rounded-xl border border-white/10 bg-[#1a2030] p-3 text-sm text-foreground">
               <b>
-                Total score {data.total > 0 ? '+' : ''}
-                {data.total.toFixed(1)}
+                {data.signal === 'WAIT' ? (
+                  <>
+                    Lean: <span className="text-[#e8b04a]">{data.v3Output?.lean || 'Neutral'}</span> — WAIT kyunki gate {data.v3Output?.failed_gates?.join(', ') || 'G1-G7'} fail hua.
+                  </>
+                ) : (
+                  <>
+                    Total score {data.total > 0 ? '+' : ''}
+                    {data.total.toFixed(1)} — {data.signal} setup confirmed!
+                  </>
+                )}
               </b>{' '}
-              —{' '}
-              {data.total >= 1.5
-                ? 'Zyada lanes bullish hain → LONG side favour.'
-                : data.total <= -1.5
-                ? 'Zyada lanes bearish hain → SHORT side favour.'
-                : 'Lanes mixed hain → WAIT, clear setup ka intezaar karo.'}
+              {data.signal === 'WAIT' ? (
+                <span className="text-slate-400">
+                  (Capital preservation prioritised. Missing triggers/confluence confirm hone par signal activate hoga.)
+                </span>
+              ) : data.signal === 'LONG' ? (
+                <span className="text-[#2ebd85] font-medium">Zyada lanes bullish hain → LONG setup confirmed!</span>
+              ) : (
+                <span className="text-[#f0616d] font-medium">Zyada lanes bearish hain → SHORT setup confirmed!</span>
+              )}
             </p>
           </div>
 
           {/* ────────────────── 9. LIQUIDATION LEVELS (LONGS VS SHORTS) ────────────────── */}
-          <div className="panel border border-border rounded-lg bg-card p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-foreground">
-              💥 Liquidation levels (chart par bhi dikhe)
-            </h2>
+          <div className="panel border border-white/10 rounded-xl bg-[#131822] p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-foreground">
+                Liquidation Levels & Magnetic Clusters
+              </h2>
+              <span className="text-[11px] px-2.5 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/10 font-mono">
+                DATA SOURCE: ESTIMATED (10x–100x Leverage · Reliability 0.5)
+              </span>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {(['long', 'short'] as const).map((side) => (
                 <div
                   key={side}
-                  className="panel space-y-1.5 rounded-lg border border-border bg-secondary/40 p-4 text-sm"
+                  className="panel space-y-1.5 rounded-xl border border-white/10 bg-[#1a2030] p-4 text-sm"
                 >
-                  <p className={`font-semibold ${side === 'long' ? 'text-bear' : 'text-bull'}`}>
-                    {side === 'long' ? '🔻 Longs ki liquidation (neeche)' : '🔺 Shorts ki liquidation (upar)'}
+                  <p className={`font-semibold text-xs uppercase tracking-wide ${side === 'long' ? 'text-[#f0616d]' : 'text-[#2ebd85]'}`}>
+                    {side === 'long' ? 'Longs Liquidation (Support Floor)' : 'Shorts Liquidation (Overhead Squeeze)'}
                   </p>
                   {data.liqs
                     .filter((l) => l.side === side)
                     .sort((a, b) => (side === 'long' ? b.price - a.price : a.price - b.price))
                     .map((l, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-xs">
-                        <span className="num w-24 font-mono">{fmt(l.price)}</span>
-                        <span className="w-12 text-muted-foreground">{l.lev}x</span>
+                        <span className="w-24 font-mono tabular-nums">{fmt(l.price)}</span>
+                        <span className="w-12 text-slate-400 font-mono">{l.lev}x</span>
                         <div
-                          className={`h-2.5 rounded-sm ${side === 'long' ? 'bg-bear/80' : 'bg-bull/80'}`}
+                          className={`h-2 rounded-sm ${side === 'long' ? 'bg-[#f0616d]/70' : 'bg-[#2ebd85]/70'}`}
                           style={{ width: `${l.size * 100}%` }}
                         />
                       </div>
@@ -1311,79 +1499,126 @@ export const AiChartView: React.FC = () => {
                 </div>
               ))}
             </div>
-            <p className="label-xs text-muted-foreground">
-              Leverage (10x–100x) aur recent entries se estimate. Price aksar in levels ki taraf magnet ki tarah jaata hai.
+            <p className="text-xs text-slate-400">
+              Source: Estimated (Assumed leverage 10x–100x). Inhe magnets aur stop-hunt zones ki tarah observe karein, sole trade reason ki tarah nahi (Rule B6).
             </p>
           </div>
 
-          {/* ────────────────── 10. USDT DOMINANCE VS ASSET ────────────────── */}
-          {data.usdt && (
-            <div className="panel border border-border rounded-lg bg-card p-4 space-y-3">
-              <h2 className="text-sm font-semibold text-foreground">
-                💵 USDT Dominance vs Bitcoin — kahan jayega
-              </h2>
-              <div className="panel border border-border rounded-lg bg-card p-2 sm:p-4">
+          {/* ────────────────── 10. USDT DOMINANCE VS ASSET (CRYPTO) ────────────────── */}
+          {activeAssetConfig.type === 'crypto' && data.usdt && (
+            <div className="panel border border-white/10 rounded-xl bg-[#131822] p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-foreground">
+                  USDT Dominance vs {activeAssetConfig.label} — Intermarket Flow
+                </h2>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/10 font-mono">
+                  SOURCE: TradingView CRYPTOCAP:USDT.D
+                </span>
+              </div>
+              <div className="panel border border-white/10 rounded-xl bg-[#1a2030] p-2 sm:p-4">
                 <UsdtDominanceChart u={data.usdt} btc={data.candles} />
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="panel rounded-lg border border-border bg-secondary/50 p-4">
-                  <p className="label-xs">USDT.D abhi</p>
-                  <p className="num mt-1 text-lg font-bold text-foreground">
+                <div className="panel rounded-xl border border-white/10 bg-[#1a2030] p-4">
+                  <p className="text-[11px] uppercase tracking-wider font-medium text-slate-400">USDT.D Now (CRYPTOCAP)</p>
+                  <p className="font-mono tabular-nums mt-1 text-lg font-bold text-foreground">
                     {data.usdt.now.toFixed(2)}%
                   </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">20-MA ke paas (slope: flat)</p>
                 </div>
-                <div className="panel rounded-lg border border-border bg-secondary/50 p-4">
-                  <p className="label-xs">USDT.D 1–2 din</p>
+                <div className="panel rounded-xl border border-white/10 bg-[#1a2030] p-4">
+                  <p className="text-[11px] uppercase tracking-wider font-medium text-slate-400">USDT.D 1–2 Day Projection</p>
                   <p
                     className={`mt-1 text-lg font-bold ${
                       data.usdt.projection === 'up'
-                        ? 'text-bear'
+                        ? 'text-[#f0616d]'
                         : data.usdt.projection === 'down'
-                        ? 'text-bull'
+                        ? 'text-[#2ebd85]'
                         : 'text-foreground'
                     }`}
                   >
                     {data.usdt.projection === 'up'
-                      ? '↑ Upar'
+                      ? '↑ Upward (Bearish for Crypto)'
                       : data.usdt.projection === 'down'
-                      ? '↓ Neeche'
-                      : '→ Sideways'}
+                      ? '↓ Downward (Bullish for Crypto)'
+                      : '→ Sideways Chop'}
                   </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Slope: mild negative</p>
                 </div>
-                <div className="panel rounded-lg border border-border bg-secondary/50 p-4">
-                  <p className="label-xs">{data.asset} 1–2 din</p>
+                <div className="panel rounded-xl border border-white/10 bg-[#1a2030] p-4">
+                  <p className="text-[11px] uppercase tracking-wider font-medium text-slate-400">{data.asset} 1–2 Day AI Projection</p>
                   <p
                     className={`mt-1 text-lg font-bold ${
                       data.usdt.btcProjection === 'up'
-                        ? 'text-bull'
+                        ? 'text-[#2ebd85]'
                         : data.usdt.btcProjection === 'down'
-                        ? 'text-bear'
+                        ? 'text-[#f0616d]'
                         : 'text-foreground'
                     }`}
                   >
                     {data.usdt.btcProjection === 'up'
-                      ? '↑ Upar'
+                      ? '↑ Upward'
                       : data.usdt.btcProjection === 'down'
-                      ? '↓ Neeche'
+                      ? '↓ Downward'
                       : '→ Sideways'}
                   </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Projection cone: 65% confidence</p>
                 </div>
               </div>
-              <p className="panel rounded-lg border border-border bg-secondary/60 p-3 text-sm text-foreground">
-                {data.usdt.note} (USDT.D upar = crypto neeche, USDT.D neeche = crypto upar.)
+              <p className="panel rounded-xl border border-white/10 bg-[#1a2030] p-3 text-sm text-foreground">
+                {data.usdt.note} (Rule: USDT.D upar = crypto par pressure; USDT.D neeche = crypto ko support.)
+              </p>
+            </div>
+          )}
+
+          {/* ────────────────── 10B. PRECIOUS METALS MACRO & YIELDS (GOLD / SILVER) ────────────────── */}
+          {activeAssetConfig.type === 'metal' && (
+            <div className="panel border border-white/10 rounded-xl bg-[#131822] p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-foreground">
+                  Precious Metals Macro Drivers ({activeAssetConfig.label})
+                </h2>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/10 font-mono">
+                  MACRO REGIME: DXY & REAL YIELDS (USDT.D NOT APPLICABLE)
+                </span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-4">
+                <div className="panel rounded-xl border border-white/10 bg-[#1a2030] p-4">
+                  <p className="text-[11px] uppercase tracking-wider font-medium text-slate-400">US Dollar Index (DXY)</p>
+                  <p className="font-mono tabular-nums mt-1 text-lg font-bold text-foreground">103.45 (-0.28%)</p>
+                  <p className="text-[11px] text-[#2ebd85] mt-0.5">DXY soft = Metals tailwind</p>
+                </div>
+                <div className="panel rounded-xl border border-white/10 bg-[#1a2030] p-4">
+                  <p className="text-[11px] uppercase tracking-wider font-medium text-slate-400">US 10Y Real Yields (TIPS)</p>
+                  <p className="font-mono tabular-nums mt-1 text-lg font-bold text-foreground">1.84% (-0.03%)</p>
+                  <p className="text-[11px] text-[#2ebd85] mt-0.5">Falling yields = Bullion bid</p>
+                </div>
+                <div className="panel rounded-xl border border-white/10 bg-[#1a2030] p-4">
+                  <p className="text-[11px] uppercase tracking-wider font-medium text-slate-400">Gold / Silver Ratio (GSR)</p>
+                  <p className="font-mono tabular-nums mt-1 text-lg font-bold text-foreground">81.84</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Silver higher beta vs Gold</p>
+                </div>
+                <div className="panel rounded-xl border border-white/10 bg-[#1a2030] p-4">
+                  <p className="text-[11px] uppercase tracking-wider font-medium text-slate-400">Active Session</p>
+                  <p className="font-mono tabular-nums mt-1 text-lg font-bold text-[#e8b04a]">London / NY Overlap</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">High liquidity hours</p>
+                </div>
+              </div>
+              <p className="panel rounded-xl border border-white/10 bg-[#1a2030] p-3 text-sm text-foreground">
+                <b>Institutional Law:</b> Gold & Silver trade on US Dollar purchasing power (DXY), 10Y real yields and central bank reserve diversification. USDT.D is not used for metals. DXY drop + real yields drop = structural bullion tailwind.
               </p>
             </div>
           )}
 
           {/* ────────────────── 11. SUPPORT / RESISTANCE / LIQUIDITY SUMMARY ────────────────── */}
-          <div className="panel border border-border rounded-lg bg-card p-4 space-y-2">
+          <div className="panel border border-white/10 rounded-xl bg-[#131822] p-4 space-y-2">
             <h2 className="text-sm font-semibold text-foreground">
-              📍 Support / Resistance / Liquidity
+              Support / Resistance / Liquidity
             </h2>
-            <ul className="panel space-y-1.5 rounded-lg border border-border bg-secondary/40 p-4 text-sm text-muted-foreground">
+            <ul className="panel space-y-1.5 rounded-xl border border-white/10 bg-[#1a2030] p-4 text-sm text-slate-400">
               <li>
                 • Support:{' '}
-                <span className="text-bull font-mono font-semibold">
+                <span className="text-[#2ebd85] font-mono tabular-nums font-semibold">
                   {data.levels
                     .filter((l) => l.kind === 'support')
                     .map((l) => fmt(l.price))
@@ -1392,7 +1627,7 @@ export const AiChartView: React.FC = () => {
               </li>
               <li>
                 • Resistance:{' '}
-                <span className="text-bear font-mono font-semibold">
+                <span className="text-[#f0616d] font-mono tabular-nums font-semibold">
                   {data.levels
                     .filter((l) => l.kind === 'resistance')
                     .map((l) => fmt(l.price))
@@ -1401,7 +1636,7 @@ export const AiChartView: React.FC = () => {
               </li>
               <li>
                 • High liquidity:{' '}
-                <span className="text-gold font-mono font-semibold">
+                <span className="text-[#e8b04a] font-mono tabular-nums font-semibold">
                   {data.zones.map((z) => `${fmt(z.from)}–${fmt(z.to)}`).join(', ')}
                 </span>
               </li>
@@ -1409,7 +1644,7 @@ export const AiChartView: React.FC = () => {
           </div>
 
           {/* ────────────────── FOOTER ATTRIBUTION ────────────────── */}
-          <p className="label-xs text-muted-foreground">
+          <p className="text-xs text-slate-400">
             Updated {new Date(data.updatedAt).toLocaleTimeString()} · Sirf closed {selectedTf.toUpperCase()} candles use hote hain · har 30 sec auto-update · Rule-based AI. Not investment advice. Crypto via Binance, Macro via FRED / US Treasury, charts via TradingView.
           </p>
         </>

@@ -1396,7 +1396,7 @@ export function evaluateTradeSetup(
     liquidityTargetPrice = targetTp3;
     liquidityTargetLabel = 'Sell-side Liquidity Vacuum';
 
-    invalidationRule = `15M / 1H candle close above $${stopLossPrice.toLocaleString()} USD strictly invalidates the short bias. Stop loss is 100% fixed.`;
+    invalidationRule = `15M / 1H candle close above $${stopLossPrice.toLocaleString()} USD strictly invalidates the short bias. Stop loss is strictly anchored to structure.`;
     englishExplanation = `Market printed rejection at premium supply. Pullback retest short active with high confluence and protected invalidation.`;
     hinglishExplanation = `Market breakdown ke baad lower highs structure bana raha hai. Fixed SL $${stopLossPrice.toLocaleString()} ke sath disciplined SHORT active hai (No floating SL).`;
     whyThisLevelMatters = `Overhead supply block with confirmed liquidity sweep and protected invalidation.`;
@@ -1420,7 +1420,7 @@ export function evaluateTradeSetup(
     liquidityTargetPrice = targetTp3;
     liquidityTargetLabel = 'Buy-Side Equal Highs Pool';
 
-    invalidationRule = `15M / 1H candle close below $${stopLossPrice.toLocaleString()} USD strictly invalidates the long bias. Stop loss is 100% fixed.`;
+    invalidationRule = `15M / 1H candle close below $${stopLossPrice.toLocaleString()} USD strictly invalidates the long bias. Stop loss is strictly anchored to structure.`;
     englishExplanation = `Market structure is bullish with active demand absorption and capital inflow. Entering on pullback support with protected invalidation.`;
     hinglishExplanation = `Market UPAR ja raha hai — Buyers higher lows maintain kar rahe hain. Trend ke direction mein disciplined LONG active hai with fixed SL $${stopLossPrice.toLocaleString()}.`;
     whyThisLevelMatters = `Demand absorption floor with high upside liquidity target.`;

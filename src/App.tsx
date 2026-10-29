@@ -6,52 +6,93 @@ import { BiasGauge } from './components/BiasGauge';
 import { AccountModal } from './components/AccountModal';
 import TradingViewWidget from './components/TradingViewWidget';
 import EconCalendar from './components/EconCalendar';
-import StockAiView from './components/StockAiView';
-import AiChartView from './components/AiChartView';
-import GoldDashboardView from './components/GoldDashboardView';
-import GoldTradingAiView from './components/GoldTradingAiView';
-import GoldAiMarketIntelligenceView from './components/GoldAiMarketIntelligenceView';
-import CryptoTradingAiView from './components/CryptoTradingAiView';
-import IndianStockAiView from './components/IndianStockAiView';
-import UsaTop1000AiView from './components/UsaTop1000AiView';
-import LiquidationTerminalView from './components/LiquidationTerminalView';
-import VolumeProfileTerminalView from './components/VolumeProfileTerminalView';
-import OrderFlowTerminal from './components/OrderFlowTerminal';
-import { UltraInstitutionalDecisionEngine } from './components/UltraInstitutionalDecisionEngine';
-import DeltaIntelligenceEngineView from './components/DeltaIntelligenceEngineView';
-import DeeeprAiChartView from './components/DeeeprAiChartView';
-import { DeeeprDecisionEngineView } from './components/DeeeprDecisionEngineView';
-import { DeeeprPrecisionEntryView } from './components/DeeeprPrecisionEntryView';
-import InstitutionalAiTerminalView from './components/InstitutionalAiTerminalView';
-import AdvancedInstitutionalChart from './components/AdvancedInstitutionalChart';
-import InstitutionalMultiAssetEngineView from './components/InstitutionalMultiAssetEngineView';
-import MarketChartAnalyserTerminalView from './components/MarketChartAnalyserTerminalView';
-import CryptoWealthIntelligenceTerminalView from './components/CryptoWealthIntelligenceTerminalView';
+import { TerminalSkeleton } from './components/ui/TerminalSkeleton';
+import { X } from 'lucide-react';
+
+const StockAiView = React.lazy(() => import('./components/StockAiView'));
+const AiChartView = React.lazy(() => import('./components/AiChartView'));
+const InstitutionalXauusdTerminalView = React.lazy(() => import('./components/InstitutionalXauusdTerminalView'));
+const TrendAnalysisView = React.lazy(() => import('./components/TrendAnalysisView'));
+const GoldDashboardView = React.lazy(() => import('./components/GoldDashboardView'));
+const GoldTradingAiView = React.lazy(() => import('./components/GoldTradingAiView'));
+const GoldAiMarketIntelligenceView = React.lazy(() => import('./components/GoldAiMarketIntelligenceView'));
+const CryptoTradingAiView = React.lazy(() => import('./components/CryptoTradingAiView'));
+const IndianStockAiView = React.lazy(() => import('./components/IndianStockAiView'));
+const UsaTop1000AiView = React.lazy(() => import('./components/UsaTop1000AiView'));
+const LiquidationTerminalView = React.lazy(() => import('./components/LiquidationTerminalView'));
+const VolumeProfileTerminalView = React.lazy(() => import('./components/VolumeProfileTerminalView'));
+const OrderFlowTerminal = React.lazy(() => import('./components/OrderFlowTerminal'));
+const UltraInstitutionalDecisionEngine = React.lazy(() =>
+  import('./components/UltraInstitutionalDecisionEngine').then((m) => ({ default: m.UltraInstitutionalDecisionEngine }))
+);
+const DeltaIntelligenceEngineView = React.lazy(() => import('./components/DeltaIntelligenceEngineView'));
+const DeeeprAiChartView = React.lazy(() => import('./components/DeeeprAiChartView'));
+const DeeeprDecisionEngineView = React.lazy(() =>
+  import('./components/DeeeprDecisionEngineView').then((m) => ({ default: m.DeeeprDecisionEngineView }))
+);
+const DeeeprPrecisionEntryView = React.lazy(() =>
+  import('./components/DeeeprPrecisionEntryView').then((m) => ({ default: m.DeeeprPrecisionEntryView }))
+);
+const DeeeprBigPlayerRadarView = React.lazy(() =>
+  import('./components/DeeeprBigPlayerRadarView').then((m) => ({ default: m.DeeeprBigPlayerRadarView }))
+);
+const DeeeprGoldEntryReasonView = React.lazy(() =>
+  import('./components/DeeeprGoldEntryReasonView').then((m) => ({ default: m.DeeeprGoldEntryReasonView }))
+);
+const DeeeprVolumeProfileScannerView = React.lazy(() =>
+  import('./components/DeeeprVolumeProfileScannerView').then((m) => ({ default: m.DeeeprVolumeProfileScannerView }))
+);
+const DeeeprAutoFibonacciView = React.lazy(() =>
+  import('./components/DeeeprAutoFibonacciView').then((m) => ({ default: m.DeeeprAutoFibonacciView }))
+);
+const InstitutionalAiTerminalView = React.lazy(() => import('./components/InstitutionalAiTerminalView'));
+const AdvancedInstitutionalChart = React.lazy(() => import('./components/AdvancedInstitutionalChart'));
+const InstitutionalMultiAssetEngineView = React.lazy(() => import('./components/InstitutionalMultiAssetEngineView'));
+const MarketChartAnalyserTerminalView = React.lazy(() => import('./components/MarketChartAnalyserTerminalView'));
+const CryptoWealthIntelligenceTerminalView = React.lazy(() => import('./components/CryptoWealthIntelligenceTerminalView'));
+const LiquidationHeatmapTerminalView = React.lazy(() => import('./components/LiquidationHeatmapTerminalView'));
+const BookmapLiquidationTerminalView = React.lazy(() => import('./components/BookmapLiquidationTerminalView'));
+const OrderBookHeatmapView = React.lazy(() => import('./components/OrderBookHeatmapView'));
+const RetailCrowdSentimentView = React.lazy(() => import('./components/RetailCrowdSentimentView'));
+const DeeeprNewsEventsView = React.lazy(() => import('./components/DeeeprNewsEventsView'));
+const DeeeprUsEventsView = React.lazy(() => import('./components/DeeeprUsEventsView'));
+const SubscriptionPricingView = React.lazy(() => import('./components/SubscriptionPricingView'));
+const BtcUsdtRelationshipEngine = React.lazy(() => import('./components/BtcUsdtRelationshipEngine'));
+const CrossAssetConfirmationEngineView = React.lazy(() =>
+  import('./components/CrossAssetConfirmationEngineView').then((m) => ({ default: m.CrossAssetConfirmationEngineView }))
+);
+const LiquiditySweepIntelligenceView = React.lazy(() =>
+  import('./components/LiquiditySweepIntelligenceView').then((m) => ({ default: m.LiquiditySweepIntelligenceView }))
+);
+const TelegramAiAlertsView = React.lazy(() =>
+  import('./components/TelegramAiAlertsView').then((m) => ({ default: m.TelegramAiAlertsView }))
+);
+const DeltaSwingScannerView = React.lazy(() => import('./components/DeltaSwingScannerView'));
+const UsaStockScannerView = React.lazy(() => import('./components/UsaStockScannerView'));
+const EventImpactEngineView = React.lazy(() => import('./components/EventImpactEngineView'));
+const OilIntelligenceTerminalView = React.lazy(() => import('./components/OilIntelligenceTerminalView'));
+const GoldSignalPanelView = React.lazy(() => import('./components/GoldSignalPanelView'));
+const IshantMacroPortalView = React.lazy(() =>
+  import('./components/IshantMacroPortalView').then((m) => ({ default: m.IshantMacroPortalView }))
+);
+const GlobalStockScoreEngineView = React.lazy(() => import('./components/GlobalStockScoreEngineView'));
+const DeeeprStockResearchEngineView = React.lazy(() => import('./components/DeeeprStockResearchEngineView'));
+const DeeeprLiquidationHubView = React.lazy(() => import('./components/DeeeprLiquidationHubView'));
+const DeeeprAtoZPipelineView = React.lazy(() => import('./components/DeeeprAtoZPipelineView'));
+const IntermarketCorrelationRadarView = React.lazy(() => import('./components/IntermarketCorrelationRadarView'));
+const AuthPageView = React.lazy(() =>
+  import('./components/AuthPageView').then((m) => ({ default: m.AuthPageView }))
+);
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthModal } from './components/AuthModal';
+import { UserProfileModal } from './components/UserProfileModal';
+import { JarvisVoiceMarketAssistant } from './components/JarvisVoiceMarketAssistant';
+import { JarvisFloatingWidget } from './components/JarvisFloatingWidget';
+import { OtpNotificationBanner } from './components/OtpNotificationBanner';
 import {
   ALL_WORLD_GLOBAL_NEWS_FEED,
   UPCOMING_MACRO_CALENDAR_EVENTS
 } from './data/institutionalMarketIntelligenceData';
-import LiquidationHeatmapTerminalView from './components/LiquidationHeatmapTerminalView';
-import BookmapLiquidationTerminalView from './components/BookmapLiquidationTerminalView';
-import SubscriptionPricingView from './components/SubscriptionPricingView';
-import { JarvisVoiceMarketAssistant } from './components/JarvisVoiceMarketAssistant';
-import { JarvisFloatingWidget } from './components/JarvisFloatingWidget';
-import BtcUsdtRelationshipEngine from './components/BtcUsdtRelationshipEngine';
-import { CrossAssetConfirmationEngineView } from './components/CrossAssetConfirmationEngineView';
-import { LiquiditySweepIntelligenceView } from './components/LiquiditySweepIntelligenceView';
-import { TelegramAiAlertsView } from './components/TelegramAiAlertsView';
-import DeltaSwingScannerView from './components/DeltaSwingScannerView';
-import UsaStockScannerView from './components/UsaStockScannerView';
-import EventImpactEngineView from './components/EventImpactEngineView';
-import OilIntelligenceTerminalView from './components/OilIntelligenceTerminalView';
-import GoldSignalPanelView from './components/GoldSignalPanelView';
-import { IshantMacroPortalView } from './components/IshantMacroPortalView';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { AuthModal } from './components/AuthModal';
-import { UserProfileModal } from './components/UserProfileModal';
-import GlobalStockScoreEngineView from './components/GlobalStockScoreEngineView';
-import { OtpNotificationBanner } from './components/OtpNotificationBanner';
-import { AuthPageView } from './components/AuthPageView';
 import { BrandLogo } from './components/BrandLogo';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import PremiumFeatureLockGate from './components/PremiumFeatureLockGate';
@@ -82,22 +123,36 @@ import { MarketTicker } from './types';
 
 /* ────────────────────────── LIVE TICKERS DATA ────────────────────────── */
 const BASE_TICKERS: MarketTicker[] = [
-  { symbol: 'BTC/USD', name: 'Bitcoin', price: '$82,374', change: '+1.08%', isPositive: true, category: 'Crypto' },
-  { symbol: 'ETH/USD', name: 'Ethereum', price: '$2,535', change: '+3.45%', isPositive: true, category: 'Crypto' },
-  { symbol: 'SOL/USD', name: 'Solana', price: '$112.99', change: '+2.88%', isPositive: true, category: 'Crypto' },
-  { symbol: 'XRP/USD', name: 'XRP', price: '$1.39', change: '+1.45%', isPositive: true, category: 'Crypto' },
-  { symbol: 'BNB/USD', name: 'BNB', price: '$761.51', change: '+1.35%', isPositive: true, category: 'Crypto' },
-  { symbol: 'DOGE/USD', name: 'Dogecoin', price: '$0.3870', change: '+2.25%', isPositive: true, category: 'Crypto' },
-  { symbol: 'XAU/USD', name: 'Gold Spot', price: '$4,125', change: '+0.77%', isPositive: true, category: 'Commodities' },
+  { symbol: 'NIFTY 50', name: 'NIFTY 50', price: '25,014', change: '+1.18%', isPositive: true, category: 'Equities' },
+  { symbol: 'SENSEX', name: 'BSE SENSEX', price: '81,720', change: '-0.45%', isPositive: false, category: 'Equities' },
+  { symbol: 'INDIA VIX', name: 'India Volatility Index', price: '15.20', change: '-6.43%', isPositive: false, category: 'Equities' },
+  { symbol: 'VIX', name: 'CBOE Volatility Index', price: '16.65', change: '-1.54%', isPositive: false, category: 'Equities' },
+  { symbol: 'XAU/USD', name: 'Gold Spot', price: '4,033.1', change: '+0.28%', isPositive: true, category: 'Commodities' },
+  { symbol: 'XAG/USD', name: 'Silver Spot', price: '52.72', change: '+0.32%', isPositive: true, category: 'Commodities' },
+  { symbol: 'BTC/USD', name: 'Bitcoin', price: '81,073', change: '+0.66%', isPositive: true, category: 'Crypto' },
+  { symbol: 'ETH/USD', name: 'Ethereum', price: '2,343.6', change: '+0.49%', isPositive: true, category: 'Crypto' },
+  { symbol: 'SOL/USD', name: 'Solana', price: '101.74', change: '+0.55%', isPositive: true, category: 'Crypto' },
   { symbol: 'S&P 500', name: 'S&P 500', price: '5,782', change: '+0.42%', isPositive: true, category: 'Equities' },
-  { symbol: 'NIFTY 50', name: 'NIFTY 50', price: '25,014', change: '+0.35%', isPositive: true, category: 'Equities' },
+  { symbol: 'NASDAQ', name: 'Nasdaq 100', price: '20,410', change: '+0.58%', isPositive: true, category: 'Equities' },
   { symbol: 'DXY', name: 'US Dollar', price: '102.45', change: '-0.28%', isPositive: false, category: 'Forex' },
-  { symbol: 'US10Y', name: 'US 10-Yr Yield', price: '4.08%', change: '-0.04%', isPositive: false, category: 'Forex' }
+  { symbol: 'CRUDE OIL', name: 'Crude WTI', price: '71.45', change: '+0.62%', isPositive: true, category: 'Commodities' },
+  { symbol: 'US10Y', name: 'US 10-Yr Yield', price: '4.08%', change: '-0.04%', isPositive: false, category: 'Forex' },
+  { symbol: 'USDT.D', name: 'Tether Dominance', price: '5.42%', change: '-0.31%', isPositive: false, category: 'Crypto' },
+  { symbol: 'XRP/USD', name: 'XRP', price: '1.39', change: '+1.45%', isPositive: true, category: 'Crypto' },
+  { symbol: 'BNB/USD', name: 'BNB', price: '761.51', change: '+1.35%', isPositive: true, category: 'Crypto' },
+  { symbol: 'DOGE/USD', name: 'Dogecoin', price: '0.3870', change: '+2.25%', isPositive: true, category: 'Crypto' }
 ];
 
 /* ────────────────────────── FEATURE TITLES FOR LOCK GATES ────────────────────────── */
 function getFeatureTitle(tab: string): string {
   const map: Record<string, string> = {
+    'deeepr-atoz': 'DEEEPR A-to-Z Quantitative Pipeline (Analyze → Track Record)',
+    'analyze': 'DEEEPR 4-Lane Analyze Engine',
+    'strategy-builder': 'Plain-English Strategy Builder & DSL',
+    'backtest': 'Deterministic Backtest Replay Engine',
+    'paper-trading': 'Simulated Paper Trading Terminal',
+    'track-record': 'Verifiable Production Track Record',
+    'deeepr-pipeline': 'DEEEPR A-to-Z Quantitative Pipeline',
     'institutional-multi-asset': 'Institutional Multi-Asset Analysis Engine (BTC, ETH, Gold, Crude Oil)',
     'multi-asset-engine': 'Institutional Multi-Asset Analysis Engine',
     'institutional-multi-asset-engine': 'Institutional Multi-Asset Analysis Engine',
@@ -121,16 +176,29 @@ function getFeatureTitle(tab: string): string {
     'oil-inventory-engine': 'EIA & API Inventory Event Radar',
     'oil-geopolitical-radar': 'Oil Geopolitics & OPEC+ Radar',
     'oil-position-sizer': 'Oil Institutional Risk Sizer',
+    'deeepr-stock-research': 'DEEEPR Stock Research & Positional Plan Engine v1 (5–12M)',
+    'stock-research': 'DEEEPR Stock Research & Positional Plan Engine v1 (5–12M)',
+    'deeepr-stocks': 'DEEEPR Stock Research & Positional Plan Engine v1 (5–12M)',
     'stock-ai': 'AI Stocks (US + NIFTY 100)',
     'indian-stock-ai': 'Indian Stocks AI (Nifty 500 Deep Research)',
     'usa-stock-ai': 'USA Top 1000 AI Terminal (INDmoney & Russell)',
     'volume-profile-ai': 'Volume Profile & Bookmap AI (POC/VAH/VAL)',
+    'trend-analysis': 'Multi-Timeframe Trend Analysis Engine (Multi-Asset)',
+    'trend-engine': 'Multi-Timeframe Trend Analysis Engine (Multi-Asset)',
+    'trend': 'Multi-Timeframe Trend Analysis Engine (Multi-Asset)',
+    'xauusd-institutional': 'Institutional XAUUSD Intelligence Terminal (Gold Pro Max v2)',
+    'xauusd-terminal': 'Institutional XAUUSD Intelligence Terminal (Gold Pro Max v2)',
+    'gold-pro': 'Institutional XAUUSD Intelligence Terminal (Gold Pro Max v2)',
     'gold-ai': 'Gold Trading AI Terminal',
     'gold-signal-panel': 'Gold Signal Panel — Institutional Long / Short (TP & SL)',
     'gold': 'Gold Macro Overview',
     'global-intel': 'Global Intelligence Desk',
     'ultra-ai': 'TradeAI Institutional Terminal',
     'order-flow': 'Order Flow & Bookmap AI Terminal (CVD & Footprint)',
+    'order-book-heatmap': 'Order Book Liquidity Heatmap (Bookmap / ATAS 1:1)',
+    'deeepr-liquidation-hub': 'DEEEPR Liquidation Hub v1 (Map + Heatmap + Max Pain + Cascades)',
+    'liquidation-hub': 'DEEEPR Liquidation Hub v1',
+    'deeepr-liquidation': 'DEEEPR Liquidation Hub v1',
     'liquidation-heatmap': 'Liquidation Heatmap Bookmap Terminal',
     'bookmap-liquidation': 'Bookmap Liquidation Live Engine (BTC & Gold 1:1)',
     'market-chart-analyse': 'Market Chart AI Analyzer (A-to-Z Read)',
@@ -138,6 +206,16 @@ function getFeatureTitle(tab: string): string {
     'market-chart-analyses': 'Market Chart AI Analyzer (A-to-Z Read)',
     'institutional-terminal': 'Institutional AI Terminal (BTC + Gold)',
     'deeepr-ai': 'DEEEPR.AI Copilot & Market Structure Terminal',
+    'deeepr-big-player-radar': 'DEEEPR Big Player Radar v1 (Weekly Smart-Money Analysis)',
+    'deeepr-gold-entry-engine': 'DEEEPR Gold Entry + Reason Engine v1 (XAUUSD Why Engine)',
+    'gold-entry-engine': 'DEEEPR Gold Entry + Reason Engine v1 (XAUUSD Why Engine)',
+    'gold-why-engine': 'DEEEPR Gold Entry + Reason Engine v1 (XAUUSD Why Engine)',
+    'deeepr-volume-profile-scanner': 'DEEEPR Volume Profile Confluence Scanner v1 (Multi-Asset)',
+    'volume-profile-scanner': 'DEEEPR Volume Profile Confluence Scanner v1 (Multi-Asset)',
+    'vp-scanner': 'DEEEPR Volume Profile Confluence Scanner v1 (Multi-Asset)',
+    'deeepr-auto-fibonacci': 'DEEEPR Auto-Fibonacci + Golden Zone Engine v1 (Gold & BTC)',
+    'auto-fibonacci': 'DEEEPR Auto-Fibonacci + Golden Zone Engine v1 (Gold & BTC)',
+    'golden-zone-engine': 'DEEEPR Auto-Fibonacci + Golden Zone Engine v1 (Gold & BTC)',
     'crypto-wealth-intelligence': 'Crypto Long-Term Wealth Intelligence (Delta 1-4M+)',
     'delta-intelligence': 'Delta Exchange India Multi-Coin Engine (231+ Coins)',
     'crypto-ai': 'Crypto Trading AI (BTC / ETH / SOL)',
@@ -169,6 +247,11 @@ function getFeatureTitle(tab: string): string {
     'yields': 'Yield Curve & Treasury Bonds',
     'central-banks': 'Central Banks Balance Sheet Tracker',
     'us-economy': 'US Economic Data Indicators',
+    'usa-events': 'DEEEPR US News & Events Impact Engine (FOMC / CPI / NFP → Gold + Bitcoin)',
+    'us-events': 'DEEEPR US News & Events Impact Engine (FOMC / CPI / NFP → Gold + Bitcoin)',
+    'us-news': 'DEEEPR US News & Events Impact Engine (FOMC / CPI / NFP → Gold + Bitcoin)',
+    'us-events-engine': 'DEEEPR US News & Events Impact Engine (FOMC / CPI / NFP → Gold + Bitcoin)',
+    'fomc-cpi-engine': 'DEEEPR US News & Events Impact Engine (FOMC / CPI / NFP → Gold + Bitcoin)',
     'gdp': 'GDP & Economic Growth Nowcast',
     'inflation': 'Inflation & CPI/PCE Dashboard',
     'labour': 'Labour Market & Non-Farm Payrolls',
@@ -179,13 +262,21 @@ function getFeatureTitle(tab: string): string {
     'jarvis-voice-ai': 'Jarvis AI Market Voice Assistant',
     'liquidity-sweep-map': 'Liquidity Sweep & Liquidation Map (Pro)',
     'btc-usdt-momentum': 'BTC–USDT Momentum Prediction Engine',
+    'intermarket-radar': 'BTC ⚡ USDT.D & Gold ⚡ DXY Intermarket Correlation Radar',
+    'intermarket-dual-radar': 'BTC ⚡ USDT.D & Gold ⚡ DXY Intermarket Correlation Radar',
+    'btc-usdt-gold-dxy': 'BTC ⚡ USDT.D & Gold ⚡ DXY Intermarket Correlation Radar',
     'cross-asset-confirmation': 'Cross-Asset Confirmation Engine (BTC/USDT ↔ DXY/Gold)',
     'risk': 'Institutional Risk Console',
     'journal': 'Institutional Trading Journal',
     'reports': 'Performance Analytics & Journal Reports',
     'telegram-alerts': 'Telegram AI Alerts & Live VIP Bot',
     'daily-report': 'Daily Market Intelligence Report',
-    'crowd': 'Crowd Long / Short Positioning',
+    'crowd': 'Retail vs Whales Long/Short Skew & Crowd Sentiment',
+    'crowd-sentiment': 'Retail vs Whales Long/Short Skew & Crowd Sentiment',
+    'retail-position': 'Retail vs Whales Long/Short Skew & Crowd Sentiment',
+    'retail-sentiment': 'Retail vs Whales Long/Short Skew & Crowd Sentiment',
+    'deeepr-news-events': 'DEEEPR News & Economic Events Engine (US Monetary Policy, CPI, FOMC & Blackout Windows)',
+    'news-events': 'DEEEPR News & Economic Events Engine',
     'onchain': 'On-Chain Analysis Engine'
   };
   return map[tab] || 'Institutional Trading Terminal Module';
@@ -255,6 +346,7 @@ function TerminalApp() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isAccountOpen, setIsAccountOpen] = useState<boolean>(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [theme, setTheme] = useState<'dark' | 'light' | 'gold'>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('theme');
@@ -265,6 +357,44 @@ function TerminalApp() {
   const isDarkMode = theme !== 'light';
   const [liveTickers, setLiveTickers] = useState<MarketTicker[]>(BASE_TICKERS);
   const [isLiveWs, setIsLiveWs] = useState<boolean>(false);
+
+  // ── Resizable Sidebar Width (Default: 230px, Min: 160px, Max: 420px) ──
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('ishant_sidebar_width');
+        if (saved) {
+          const parsed = parseInt(saved, 10);
+          if (!isNaN(parsed) && parsed >= 160 && parsed <= 420) return parsed;
+        }
+      } catch {}
+    }
+    return 230;
+  });
+  const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isResizingSidebar) return;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const newWidth = Math.max(160, Math.min(420, e.clientX));
+      setSidebarWidth(newWidth);
+    };
+
+    const handlePointerUp = () => {
+      setIsResizingSidebar(false);
+      try {
+        localStorage.setItem('ishant_sidebar_width', String(sidebarWidth));
+      } catch {}
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [isResizingSidebar, sidebarWidth]);
 
   // Setup real-time WebSocket for live crypto prices
   useEffect(() => {
@@ -375,46 +505,118 @@ function TerminalApp() {
         onOpenAccount={() => setIsProfileModalOpen(true)}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onNavigateHome={() => setActiveTab('landing')}
-        onNavigateLanding={() => setActiveTab('landing')}
         onNavigatePricing={() => setActiveTab('pricing')}
-        onNavigateJarvis={() => setActiveTab('jarvis-voice-ai')}
-        onNavigateBtcUsdt={() => setActiveTab('btc-usdt-momentum')}
-        onNavigateLiquiditySweep={() => setActiveTab('liquidity-sweep-map')}
-        onNavigateDeltaSwing={() => setActiveTab('delta-swing-scanner')}
-        onNavigateUsaSwing={() => setActiveTab('usa-swing-scanner')}
-        onNavigateEventImpact={() => setActiveTab('event-impact-engine')}
-        onNavigateOil={() => setActiveTab('oil-trading-ai')}
-        onNavigateDeeeprAi={() => setActiveTab('deeepr-ai')}
-        onNavigateAiChart={() => setActiveTab('ai-chart')}
-        onNavigateChartAnalyser={() => setActiveTab('market-chart-analyse')}
-        onNavigateInstitutionalChart={() => setActiveTab('institutional-chart')}
-        onNavigateMultiAssetEngine={() => setActiveTab('institutional-multi-asset')}
-        onNavigateVolumeProfile={() => setActiveTab('volume-profile-ai')}
+        onSelectTab={setActiveTab}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
       />
 
-      {/* 3. Main Workspace Row: Left Sidebar + Right Viewport */}
-      <div className="flex flex-1">
-        {/* Sidebar Navigation */}
+      {/* Mobile Drawer (Matches User Screenshot Phone View) */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 flex lg:hidden">
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+          <div className="relative flex flex-col w-[310px] max-w-[88vw] h-full bg-[#f6f1f1] border-r border-[#e6dede] shadow-2xl z-10 overflow-hidden animate-fadeIn">
+            <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-[#e6dede] bg-[#f6f1f1]">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="flex items-center justify-center shrink-0 w-[30px] h-[30px] rounded-[8px] text-white font-bold text-xs shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}
+                >
+                  IM
+                </div>
+                <div className="flex flex-col leading-tight">
+                  <span className="font-['Inter'] text-[13px] font-bold text-[#1f2937]">
+                    IshantMacro
+                  </span>
+                  <span className="font-['JetBrains_Mono'] text-[8.5px] font-medium tracking-[1px] text-[#6b7390] uppercase">
+                    AI MACRO PANEL
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="p-1.5 rounded-lg text-[#6b7390] hover:text-[#1f2937] hover:bg-[#ebe7ee] cursor-pointer transition-colors"
+                aria-label="Close navigation menu"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <Sidebar
+                activeTab={activeTab}
+                onSelectTab={(id) => {
+                  setActiveTab(id);
+                  setIsMobileSidebarOpen(false);
+                }}
+                isDarkMode={isDarkMode}
+                isMobile={true}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Main Workspace Row: Left Sidebar + Resizable Divider + Right Viewport */}
+      <div className={`flex flex-1 ${isResizingSidebar ? 'select-none cursor-col-resize' : ''}`}>
+        {/* Sidebar Navigation (Resizable: 160px - 420px, Default 230px) */}
         <Sidebar
           activeTab={activeTab}
           onSelectTab={setActiveTab}
+          isDarkMode={isDarkMode}
+          width={sidebarWidth}
         />
 
-        {/* Scrollable Main Viewport */}
-        <main id="main" className="min-w-0 flex-1 space-y-4 p-3 sm:p-4 overflow-y-auto">
+        {/* Draggable Vertical Resize Divider */}
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          tabIndex={0}
+          onPointerDown={(e) => {
+            e.preventDefault();
+            setIsResizingSidebar(true);
+          }}
+          onDoubleClick={() => {
+            setSidebarWidth(230);
+            try {
+              localStorage.setItem('ishant_sidebar_width', '230');
+            } catch {}
+          }}
+          className={`hidden lg:flex items-center justify-center relative cursor-col-resize select-none shrink-0 z-30 transition-colors ${
+            isResizingSidebar
+              ? 'w-2 bg-blue-500/25'
+              : 'w-2 hover:bg-blue-500/15'
+          }`}
+          style={{ touchAction: 'none' }}
+          title="Drag left/right to resize sidebar (Double click to reset to 230px)"
+        >
+          {/* Visible thin line */}
+          <div
+            className={`w-[1px] h-full pointer-events-none transition-colors ${
+              isResizingSidebar
+                ? 'bg-blue-500 w-[2px]'
+                : isDarkMode
+                ? 'bg-[#1e293b]'
+                : 'bg-[#e2e8f0]'
+            }`}
+          />
+        </div>
+
+        {/* Scrollable Main Viewport (Compact Spacing) */}
+        <main id="main" className="min-w-0 flex-1 space-y-3 p-2.5 sm:p-3 overflow-y-auto">
           {/* Mobile horizontal scrollable pill navigation */}
           <nav aria-label="Section navigation" className="-mx-3 flex snap-x gap-1.5 overflow-x-auto px-3 pb-1 lg:hidden">
             {Array.from(new Map(NAV_CATEGORIES.flatMap(c => c.items).map(item => [item.id, item])).values()).map(item => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`shrink-0 snap-start rounded-full border px-2.5 py-1.5 text-[11px] transition-all flex items-center cursor-pointer ${
+                className={`shrink-0 snap-start rounded-full border px-3 py-1.5 text-xs transition-all flex items-center cursor-pointer ${
                   activeTab === item.id
-                    ? 'border-primary bg-primary/10 font-semibold text-primary'
-                    : 'border-border bg-card/60 text-muted-foreground hover:bg-card hover:text-foreground'
+                    ? 'border-amber-400/80 bg-gradient-to-r from-amber-500/25 via-yellow-500/15 to-transparent font-bold text-amber-300 shadow-[0_0_15px_rgba(238,186,48,0.35)]'
+                    : 'border-slate-800 bg-[#0c1426]/70 text-slate-300 hover:bg-[#121c38] hover:text-white'
                 }`}
               >
-                <span aria-hidden="true" className="mr-1">{item.icon}</span>
                 <span>{item.label}</span>
               </button>
             ))}
@@ -430,7 +632,19 @@ function TerminalApp() {
               onUnlocked={reloadSub}
             />
           ) : (
-            <>
+            <React.Suspense fallback={<TerminalSkeleton />}>
+              {(activeTab === 'deeepr-atoz' || activeTab === 'analyze' || activeTab === 'strategy-builder' || activeTab === 'backtest' || activeTab === 'paper-trading' || activeTab === 'track-record' || activeTab === 'deeepr-pipeline') && (
+                <DeeeprAtoZPipelineView
+                  onNavigate={setActiveTab}
+                  initialTab={
+                    activeTab === 'strategy-builder' ? 'strategy' :
+                    activeTab === 'backtest' ? 'backtest' :
+                    activeTab === 'paper-trading' ? 'paper' :
+                    activeTab === 'track-record' ? 'track_record' :
+                    activeTab === 'analyze' ? 'analyze' : 'analyze'
+                  }
+                />
+              )}
               {(activeTab === 'institutional-multi-asset' || activeTab === 'multi-asset-engine' || activeTab === 'institutional-multi-asset-engine' || activeTab === 'multi-asset-analysis') && <InstitutionalMultiAssetEngineView onNavigate={setActiveTab} />}
               {(activeTab === 'institutional-chart' || activeTab === 'all-in-one-chart' || activeTab === 'institutional-trading-chart' || activeTab === 'smc-ict-chart') && <AdvancedInstitutionalChart />}
               {(activeTab === 'delta-swing-scanner' || activeTab === 'delta-scanner' || activeTab === 'delta-4h' || activeTab === 'delta-swing' || activeTab === 'delta-swing-top5' || activeTab === 'delta-wealth-1-3m') && <DeltaSwingScannerView onNavigate={setActiveTab} />}
@@ -438,24 +652,32 @@ function TerminalApp() {
               {(activeTab === 'event-impact-engine' || activeTab === 'news-impact' || activeTab === 'event-impact' || activeTab === 'macro-news-engine' || activeTab === 'macro-scenarios-matrix' || activeTab === 'gold-btc-transmission' || activeTab === 'voice-query-assistant') && <EventImpactEngineView onNavigate={setActiveTab} />}
               {(activeTab === 'oil-trading-ai' || activeTab === 'oil-intelligence' || activeTab === 'oil-terminal' || activeTab === 'crude-oil' || activeTab === 'oil-inventory-engine' || activeTab === 'oil-geopolitical-radar' || activeTab === 'oil-position-sizer' || activeTab === 'wti-brent') && <OilIntelligenceTerminalView onNavigate={setActiveTab} />}
               {(activeTab === 'landing' || activeTab === 'portal' || activeTab === 'home') && <IshantMacroPortalView onLaunchTerminal={(t) => setActiveTab(t || 'global-score')} />}
+              {(activeTab === 'deeepr-stock-research' || activeTab === 'stock-research' || activeTab === 'deeepr-stocks') && <DeeeprStockResearchEngineView onNavigate={setActiveTab} />}
               {(activeTab === 'global-score' || activeTab === 'global-stock-score' || activeTab === 'stock-investment-engine') && <GlobalStockScoreEngineView onNavigate={setActiveTab} liveTickers={liveTickers} />}
               {activeTab === 'auth' && <AuthPageView onNavigateToTerminal={() => setActiveTab('ultra-ai')} />}
-              {activeTab === 'stock-ai' && <StockAiView />}
-              {(activeTab === 'indian-stock-ai' || activeTab === 'indian-stocks' || activeTab === 'nifty-500') && <IndianStockAiView />}
-              {(activeTab === 'usa-stock-ai' || activeTab === 'usa-stocks' || activeTab === 'russell-1000' || activeTab === 'indmoney-us') && <UsaTop1000AiView />}
+              {activeTab === 'stock-ai' && <StockAiView onNavigate={setActiveTab} />}
+              {(activeTab === 'indian-stock-ai' || activeTab === 'indian-stocks' || activeTab === 'nifty-500') && <IndianStockAiView onNavigate={setActiveTab} />}
+              {(activeTab === 'usa-stock-ai' || activeTab === 'usa-stocks' || activeTab === 'russell-1000' || activeTab === 'indmoney-us') && <UsaTop1000AiView onNavigate={setActiveTab} />}
               {(activeTab === 'volume-profile-ai' || activeTab === 'volume-profile' || activeTab === 'volume-profile-pro' || activeTab === 'volume-profile-setup' || activeTab === 'vp-terminal' || activeTab === 'volume-profile-confluence' || activeTab === 'vp-confluence') && <VolumeProfileTerminalView />}
-              {(activeTab === 'gold-ai' || activeTab === 'gold-trading-ai' || activeTab === 'gold' || activeTab === 'gold-macro' || activeTab === 'gold-intelligence' || activeTab === 'gold-dashboard') && <GoldAiMarketIntelligenceView onNavigate={setActiveTab} />}
+              {(activeTab === 'xauusd-institutional' || activeTab === 'xauusd-terminal' || activeTab === 'gold-pro' || activeTab === 'xauusd' || activeTab === 'gold-pro-max') && <InstitutionalXauusdTerminalView onNavigate={setActiveTab} />}
+              {(activeTab === 'trend-analysis' || activeTab === 'trend' || activeTab === 'trend-engine' || activeTab === 'mtf-trend') && <TrendAnalysisView onNavigate={setActiveTab} />}
+              {(activeTab === 'gold-ai' || activeTab === 'gold-trading-ai' || activeTab === 'gold-macro' || activeTab === 'gold-intelligence' || activeTab === 'gold-dashboard') && <GoldAiMarketIntelligenceView onNavigate={setActiveTab} />}
               {(activeTab === 'gold-signal-panel' || activeTab === 'gold-signals' || activeTab === 'gold-long-short') && <GoldSignalPanelView onNavigate={setActiveTab} />}
               {activeTab === 'global-intel' && <GlobalIntelView />}
               {activeTab === 'ultra-ai' && <UltraInstitutionalDecisionEngine onNavigate={setActiveTab} />}
               {activeTab === 'order-flow' && <OrderFlowTerminal onNavigate={setActiveTab} />}
+              {(activeTab === 'order-book-heatmap' || activeTab === 'order-book-liquidity-heatmap' || activeTab === 'bookmap-heatmap' || activeTab === 'obh') && <OrderBookHeatmapView onNavigate={setActiveTab} />}
               {(activeTab === 'bookmap-liquidation' || activeTab === 'bookmap' || activeTab === 'bookmap-chart') && <BookmapLiquidationTerminalView />}
-              {(activeTab === 'liquidation-heatmap' || activeTab === 'liquidation-chart' || activeTab === 'liq-heatmap') && <LiquidationHeatmapTerminalView />}
+              {(activeTab === 'liquidation-heatmap' || activeTab === 'liquidation-chart' || activeTab === 'liq-heatmap') && <LiquidationHeatmapTerminalView onNavigate={setActiveTab} />}
               {(activeTab === 'market-chart-analyse' || activeTab === 'market-chart-analysis' || activeTab === 'market-chart-analyses' || activeTab === 'chart-ai-vision' || activeTab === 'chart-analyzer') && <MarketChartAnalyserTerminalView />}
               {(activeTab === 'institutional-terminal' || activeTab === 'institutional-ai' || activeTab === 'institutional-intelligence' || activeTab === 'btc-gold-terminal') && <InstitutionalAiTerminalView />}
               {(activeTab === 'deeepr-ai' || activeTab === 'deeepr' || activeTab === 'deeepr-ai-chart' || activeTab === 'deeepr-copilot' || activeTab === 'deeepr-chart') && <DeeeprAiChartView />}
               {(activeTab === 'deeepr-precision-entry' || activeTab === 'precision-entry' || activeTab === 'entry-engine') && <DeeeprPrecisionEntryView onNavigate={setActiveTab} />}
               {(activeTab === 'deeepr-decision-engine' || activeTab === 'decision-engine' || activeTab === 'deeepr-engine') && <DeeeprDecisionEngineView onNavigate={setActiveTab} />}
+              {(activeTab === 'deeepr-big-player-radar' || activeTab === 'big-player-radar' || activeTab === 'smart-money-radar' || activeTab === 'smart-money') && <DeeeprBigPlayerRadarView onNavigate={setActiveTab} />}
+              {(activeTab === 'deeepr-gold-entry-engine' || activeTab === 'gold-entry-engine' || activeTab === 'gold-why-engine') && <DeeeprGoldEntryReasonView onNavigate={setActiveTab} />}
+              {(activeTab === 'deeepr-volume-profile-scanner' || activeTab === 'volume-profile-scanner' || activeTab === 'vp-scanner') && <DeeeprVolumeProfileScannerView onNavigate={setActiveTab} />}
+              {(activeTab === 'deeepr-auto-fibonacci' || activeTab === 'auto-fibonacci' || activeTab === 'golden-zone-engine' || activeTab === 'auto-fib') && <DeeeprAutoFibonacciView onNavigate={setActiveTab} />}
               {(activeTab === 'crypto-wealth-intelligence' || activeTab === 'wealth-intelligence' || activeTab === 'delta-wealth' || activeTab === 'crypto-long-term-wealth') && <CryptoWealthIntelligenceTerminalView />}
               {(activeTab === 'delta-intelligence' || activeTab === 'delta-engine' || activeTab === 'delta-crypto' || activeTab === 'delta-exchange' || activeTab === 'delta-india') && <DeltaIntelligenceEngineView />}
               {(activeTab === 'crypto-ai' || activeTab === 'crypto-trading-ai' || activeTab === 'btc-trading-ai' || activeTab === 'eth-trading-ai' || activeTab === 'sol-trading-ai') && <CryptoTradingAiView />}
@@ -464,7 +686,7 @@ function TerminalApp() {
               {activeTab === 'btc-engine' && <BtcEngineView />}
               {activeTab === 'eth-engine' && <EthEngineView />}
               {activeTab === 'whales' && <WhaleEngineView />}
-              {(activeTab === 'liquidation-map' || activeTab === 'liquidation') && <LiquidationTerminalView />}
+              {(activeTab === 'deeepr-liquidation-hub' || activeTab === 'liquidation-hub' || activeTab === 'deeepr-liquidation' || activeTab === 'liquidation-map' || activeTab === 'liquidation') && <DeeeprLiquidationHubView onNavigate={setActiveTab} />}
               {activeTab === 'derivatives-engine' && <DerivativesEngineView />}
               {activeTab === 'options' && <OptionsEngineView />}
               {activeTab === 'etf' && <EtfEngineView />}
@@ -475,8 +697,12 @@ function TerminalApp() {
               {activeTab === 'smart-money' && <SmartMoneyView />}
               {activeTab === 'crypto-calendar' && <CryptoCalendarView />}
               {activeTab === 'overview' && <LiveMarketOverviewView />}
-              {activeTab === 'economic-events' && <EconomicEventsView />}
-              {activeTab === 'calendar' && <EconomicEventsView />}
+              {(activeTab === 'usa-events' || activeTab === 'us-events' || activeTab === 'us-news' || activeTab === 'us-events-engine' || activeTab === 'deeepr-us-events' || activeTab === 'fomc-cpi-engine') && (
+                <DeeeprUsEventsView onNavigate={setActiveTab} />
+              )}
+              {(activeTab === 'deeepr-news-events' || activeTab === 'news-events' || activeTab === 'economic-events' || activeTab === 'macro-news' || activeTab === 'news-engine' || activeTab === 'calendar') && (
+                <DeeeprNewsEventsView onNavigate={setActiveTab} />
+              )}
               {activeTab === 'confluence' && <ConfluenceEngineView />}
               {activeTab === 'scanner' && <BullBearScannerView />}
               {activeTab === 'regime' && <RegimeMatrixView />}
@@ -497,25 +723,28 @@ function TerminalApp() {
               {activeTab === 'geopolitics' && <GeopoliticsView />}
               {activeTab === 'socioeconomic' && <SocioeconomicView />}
               {activeTab === 'news' && <NewsView />}
-              {activeTab === 'sentiment' && <SentimentView />}
+              {activeTab === 'sentiment-legacy' && <SentimentView />}
               {activeTab === 'put-call' && <PutCallView />}
               {(activeTab === 'jarvis-voice-ai' || activeTab === 'jarvis' || activeTab === 'voice-ai' || activeTab === 'jarvis-ai' || activeTab === 'assistant') && <JarvisVoiceMarketAssistant />}
               {(activeTab === 'liquidity-sweep-map' || activeTab === 'liquidity-sweep-intelligence' || activeTab === 'liquidity-sweep' || activeTab === 'liquidity-map') && <LiquiditySweepIntelligenceView />}
               {(activeTab === 'btc-usdt-momentum' || activeTab === 'btc-usdt' || activeTab === 'usdt-btc' || activeTab === 'momentum-engine') && <BtcUsdtRelationshipEngine />}
+              {(activeTab === 'intermarket-radar' || activeTab === 'intermarket-dual-radar' || activeTab === 'btc-usdt-gold-dxy' || activeTab === 'correlation-radar') && (
+                <IntermarketCorrelationRadarView />
+              )}
               {(activeTab === 'cross-asset-confirmation' || activeTab === 'cross-asset' || activeTab === 'intermarket-confirmation' || activeTab === 'btc-gold-correlation' || activeTab === 'cross-asset-engine') && <CrossAssetConfirmationEngineView />}
               {activeTab === 'risk' && <RiskConsoleView />}
               {activeTab === 'journal' && <TradingJournalView />}
               {activeTab === 'reports' && <JournalReportsView />}
-              {(activeTab === 'telegram-alerts' || activeTab === 'alerts' || activeTab === 'telegram-ai-alerts' || activeTab === 'telegram') && <TelegramAiAlertsView />}
-              {activeTab === 'daily-report' && <DailyReportView />}
-              {activeTab === 'crowd' && <CrowdView />}
+              {(activeTab === 'crowd-sentiment' || activeTab === 'crowd' || activeTab === 'retail-sentiment' || activeTab === 'retail-position' || activeTab === 'sentiment') && (
+                <RetailCrowdSentimentView onNavigate={setActiveTab} />
+              )}
               {activeTab === 'onchain' && <OnChainView />}
               {activeTab === 'onchain-engine' && <OnChainView />}
               {activeTab === 'derivatives' && <DerivativesEngineView />}
               {activeTab === 'macro-engine' && <MacroEconomyView />}
               {activeTab === 'account' && <AccountPageView onOpenAccount={() => setIsAccountOpen(true)} />}
               {(activeTab === 'pricing' || activeTab === 'subscription' || activeTab === 'membership' || activeTab === 'plans') && <SubscriptionPricingView onPlanActivated={reloadSub} />}
-            </>
+            </React.Suspense>
           )}
           </ErrorBoundary>
 
@@ -2783,33 +3012,6 @@ function DailyReportView() {
         <p>
           Key technical levels remain respected across Bitcoin ($82.3K) and Gold ($4,125). Spot exchange balances continue to print multi-year drawdown lows.
         </p>
-      </div>
-    </div>
-  );
-}
-
-function CrowdView() {
-  return (
-    <div className="space-y-6">
-      <div className="border-b border-border pb-4">
-        <span className="inline-block rounded bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary uppercase tracking-wide">
-          Dashboard
-        </span>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground font-sans">
-          👥 Crowd Long / Short Ratio
-        </h1>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 font-mono">
-        <div className="panel rounded-lg border border-border bg-card p-4 space-y-2">
-          <p className="text-xs text-muted-foreground">Retail Long / Short Ratio</p>
-          <p className="text-xl font-bold text-bear">1.28 (Crowded Long)</p>
-          <p className="text-xs text-muted-foreground">Secondary signal — contrarian caution.</p>
-        </div>
-        <div className="panel rounded-lg border border-border bg-card p-4 space-y-2">
-          <p className="text-xs text-muted-foreground">Institutional Positioning (CME)</p>
-          <p className="text-xl font-bold text-bull">Net Long (Controlled)</p>
-          <p className="text-xs text-muted-foreground">Basis spreads remain positive.</p>
-        </div>
       </div>
     </div>
   );

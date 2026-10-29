@@ -4,233 +4,209 @@ import { Lock } from 'lucide-react';
 
 export interface NavCategory {
   title: string;
-  icon: string;
-  items: { id: string; label: string; icon: string }[];
+  items: { id: string; label: string }[];
 }
 
-export const NAV_CATEGORIES: NavCategory[] = [
+export interface MenuItem {
+  id: string;
+  name: string;
+  cat: string;
+  color: string;
+}
+
+export interface SidebarSectionItem {
+  emoji: string;
+  name: string;
+  route: string;
+}
+
+export interface SidebarSection {
+  title: string;
+  color: string;
+  items: SidebarSectionItem[];
+}
+
+// ── COLOR-CODED MASTER SECTIONS CATALOG (BLOOMBERG / TRADINGVIEW / LINEAR) ──
+export const SECTIONS: SidebarSection[] = [
   {
-    title: 'AI Decision & Live Chart',
-    icon: '⚡',
+    title: 'AI & CONFLUENCE',
+    color: '#818cf8', // Indigo
     items: [
-      { id: 'landing', label: 'IshantMacro Portal ⭐ (Home)', icon: '🌐' },
-      { id: 'institutional-multi-asset', label: 'Institutional Multi-Asset Engine ⭐ (BTC/ETH/Gold/Oil)', icon: '🌐' },
-      { id: 'institutional-chart', label: 'Institutional All-in-One Chart ⭐🏛️', icon: '🏛️' },
-      { id: 'bookmap-liquidation', label: 'Bookmap Liquidation Live ⭐ (BTC & Gold 1:1)', icon: '🌊' },
-      { id: 'gold', label: 'Gold Macro Overview 🥇', icon: '🥇' },
-      { id: 'news', label: 'Financial News 📰', icon: '📰' },
-      { id: 'jarvis-voice-ai', label: 'Jarvis AI Market Voice Expert 🎙️⭐ (Hindi/Hinglish/Eng)', icon: '🎙️' },
-      { id: 'liquidity-sweep-map', label: 'Liquidity Sweep & Liquidation Map ⭐ (Pro)', icon: '🌊' },
-      { id: 'btc-usdt-momentum', label: 'BTC–USDT Momentum Prediction Engine ⭐ (Institutional)', icon: '🔄' },
-      { id: 'cross-asset-confirmation', label: 'Cross-Asset Confirmation Engine ⭐ (BTC/USDT ↔ DXY/Gold)', icon: '⚖️' },
-      { id: 'market-chart-analyse', label: 'Market Chart AI Analyzer ⭐ (A-to-Z Read)', icon: '🔬' },
-      { id: 'crypto-wealth-intelligence', label: 'Crypto Long-Term Wealth Intelligence ⭐ (Delta 1-4M+)', icon: '💎' },
-      { id: 'institutional-terminal', label: 'Institutional AI Terminal ⭐ (BTC + Gold)', icon: '🏛️' },
-      { id: 'deeepr-ai', label: 'DEEEPR.AI Copilot & Institutional Sniper Chart ⭐', icon: '📈' },
-      { id: 'deeepr-precision-entry', label: 'DEEEPR AI Precision Entry Engine ⭐ (Level-Based Setup)', icon: '🎯' },
-      { id: 'deeepr-decision-engine', label: 'DEEEPR AI Market Decision Engine ⭐ (30-Rule Verification)', icon: '🏛️' },
-      { id: 'volume-profile-confluence', label: 'Volume Profile Confluence ⭐ (BTC/USDT.D & Gold/DXY)', icon: '📶' },
-      { id: 'ai-chart', label: 'AI Sniper Chart (Long/Short) 🎯', icon: '🎯' }
-    ]
+      { emoji: '⚡', name: 'AI Decision & Live Chart', route: 'institutional-multi-asset' },
+      { emoji: '🤖', name: 'DEEEPR.AI Copilot', route: 'deeepr-ai' },
+      { emoji: '🎯', name: 'DEEEPR Precision Entry', route: 'deeepr-precision-entry' },
+      { emoji: '🏛️', name: 'Institutional AI Terminal', route: 'institutional-terminal' },
+      { emoji: '📈', name: 'Market Chart AI Analyzer', route: 'market-chart-analyse' },
+      { emoji: '🎯', name: 'AI Sniper Chart', route: 'ai-chart' },
+      { emoji: '✨', name: 'DEEEPR A-to-Z Pipeline', route: 'deeepr-atoz' },
+      { emoji: '🧭', name: 'MTF Trend Analysis', route: 'trend-analysis' },
+      { emoji: '📊', name: 'TradeAI Terminal', route: 'ultra-ai' },
+      { emoji: '🧩', name: 'Cross-Asset Confirmation', route: 'cross-asset-confirmation' },
+      { emoji: '📊', name: 'Confluence Engine', route: 'confluence' },
+      { emoji: '📡', name: 'Bull/Bear Scanner', route: 'scanner' },
+      { emoji: '📉', name: 'Market-Regime Matrix', route: 'regime' },
+    ],
   },
   {
-    title: 'Stocks & Global',
-    icon: '🏦',
+    title: 'LIQUIDATION & ORDER FLOW',
+    color: '#fb7185', // Rose
     items: [
-      { id: 'global-score', label: 'Global Stock Score Engine ⭐ (4–6M India & US)', icon: '🎯' },
-      { id: 'indian-stock-ai', label: 'Indian Stocks AI ⭐ (Top 500)', icon: '🇮🇳' },
-      { id: 'usa-stock-ai', label: 'USA Top 1000 AI ⭐ (INDmoney)', icon: '🇺🇸' },
-      { id: 'volume-profile-ai', label: 'Volume Profile Pro ⭐ (VAH/VAL/POC Setup)', icon: '📶' },
-      { id: 'gold-ai', label: 'Gold Trading AI ⭐', icon: '🥇' },
-      { id: 'gold-signal-panel', label: 'Gold Signal Panel ⭐ (Long/Short TP/SL)', icon: '🎯' },
-      { id: 'stock-ai', label: 'AI Stocks (US + NIFTY 100)', icon: '📊' },
-      { id: 'global-intel', label: 'Global Intelligence', icon: '🌍' },
-      { id: 'ultra-ai', label: 'TradeAI Terminal ⭐', icon: '⚡' },
-      { id: 'order-flow', label: 'Order Flow & Bookmap AI ⭐ (BTC/ETH/Gold/Silver/SOL)', icon: '🌊' }
-    ]
+      { emoji: '🌊', name: 'Bookmap Liquidation Live', route: 'bookmap-liquidation' },
+      { emoji: '💧', name: 'Liquidity Sweep & Liquidation', route: 'liquidity-sweep-map' },
+      { emoji: '📡', name: 'DEEEPR Big Player Radar', route: 'deeepr-big-player-radar' },
+      { emoji: '🔥', name: 'Liquidation Heatmap Pro', route: 'liquidation-heatmap' },
+      { emoji: '📊', name: 'Order Flow & Bookmap AI', route: 'order-flow' },
+      { emoji: '🗺️', name: 'Liquidation (CoinGlass)', route: 'liquidation-map' },
+      { emoji: '🐋', name: 'Whale Engine & Smart Money', route: 'whales' },
+      { emoji: '🏊', name: 'Banking & Global Liquidity', route: 'liquidity' },
+      { emoji: '👥', name: 'Crowd Long/Short Sentiment', route: 'crowd' },
+    ],
   },
   {
-    title: 'Delta 4H Swing Scanner ⭐',
-    icon: '⚡',
+    title: 'GOLD, METALS & COMMODITIES',
+    color: '#f5c451', // Gold
     items: [
-      { id: 'delta-swing-scanner', label: 'Delta 4H All-Coin Scanner ⭐ (SMC & Profile)', icon: '⚡' },
-      { id: 'delta-swing-top5', label: 'Top 5 Alpha Swings (Delta)', icon: '🔥' },
-      { id: 'delta-wealth-1-3m', label: 'Delta 1-3M Investment Outlook', icon: '💎' }
-    ]
+      { emoji: '🥇', name: 'Gold Macro Overview', route: 'gold' },
+      { emoji: '🪙', name: 'DEEEPR Gold Entry & Reason', route: 'deeepr-gold-entry-engine' },
+      { emoji: '🏆', name: 'Institutional XAUUSD Terminal', route: 'xauusd-institutional' },
+      { emoji: '🎯', name: 'Gold Signal Panel (TP/SL)', route: 'gold-signal-panel' },
+      { emoji: '🤖', name: 'Gold Trading AI', route: 'gold-ai' },
+      { emoji: '🔗', name: 'Gold & BTC Transmission', route: 'gold-btc-transmission' },
+      { emoji: '🛢️', name: 'Oil Intelligence Terminal', route: 'oil-trading-ai' },
+      { emoji: '⛽', name: 'EIA & API Inventory Radar', route: 'oil-inventory-engine' },
+      { emoji: '🌍', name: 'Oil Geopolitical Radar', route: 'oil-geopolitical-radar' },
+      { emoji: '📐', name: 'Oil Institutional Risk Sizer', route: 'oil-position-sizer' },
+    ],
   },
   {
-    title: 'USA Stock Swing & Invest ⭐',
-    icon: '🇺🇸',
+    title: 'ANALYSIS, VOLUME & MOMENTUM',
+    color: '#34d399', // Emerald
     items: [
-      { id: 'usa-swing-scanner', label: 'USA Stocks 4H Swing Scanner ⭐ (S&P/Nasdaq)', icon: '📈' },
-      { id: 'usa-earnings-guard', label: 'Earnings Risk Guard (<14D Warning)', icon: '🛡️' },
-      { id: 'usa-portfolio-builder', label: 'US 1-6M Portfolio Builder', icon: '💼' }
-    ]
+      { emoji: '🔮', name: 'BTC-USDT Momentum Prediction', route: 'btc-usdt-momentum' },
+      { emoji: '📊', name: 'DEEEPR Volume Profile Scanner', route: 'deeepr-volume-profile-scanner' },
+      { emoji: '📐', name: 'DEEEPR Auto-Fibonacci', route: 'deeepr-auto-fibonacci' },
+      { emoji: '📈', name: 'Volume Profile Pro (VAH/VAL)', route: 'volume-profile-ai' },
+      { emoji: '📶', name: 'Volume Profile Confluence', route: 'volume-profile-confluence' },
+      { emoji: '⚡', name: 'Intermarket Radar (USDT.D)', route: 'intermarket-radar' },
+      { emoji: '📉', name: 'Charts & Correlations', route: 'correlations' },
+    ],
   },
   {
-    title: 'Market News & Event Impact ⭐',
-    icon: '🌍',
+    title: 'STOCKS & EQUITY RESEARCH',
+    color: '#60a5fa', // Sky Blue
     items: [
-      { id: 'event-impact-engine', label: 'Live Event Impact Engine ⭐ (Live Scenarios)', icon: '🌍' },
-      { id: 'macro-scenarios-matrix', label: '3-Scenario Matrix (CPI/FOMC/NFP)', icon: '📊' },
-      { id: 'gold-btc-transmission', label: 'Gold & Bitcoin Transmission Models', icon: '🥇' },
-      { id: 'voice-query-assistant', label: 'AI Voice Macro Assistant 🎙️ (Hindi/Eng)', icon: '🎙️' }
-    ]
+      { emoji: '🇮🇳', name: 'Indian Stocks AI (Top 500)', route: 'indian-stock-ai' },
+      { emoji: '🇺🇸', name: 'USA Top 1000 AI (INDmoney)', route: 'usa-stock-ai' },
+      { emoji: '📈', name: 'AI Stocks (US + NIFTY 100)', route: 'stock-ai' },
+      { emoji: '📊', name: 'Global Stock Score Engine', route: 'global-score' },
+      { emoji: '⚡', name: 'USA Stocks 4H Swing Scanner', route: 'usa-swing-scanner' },
+      { emoji: '🛡️', name: 'Earnings Risk Guard (<14D)', route: 'usa-earnings-guard' },
+      { emoji: '💼', name: 'US 1-6M Portfolio Builder', route: 'usa-portfolio-builder' },
+      { emoji: '🔬', name: 'DEEEPR Stock Research (5-12M)', route: 'deeepr-stock-research' },
+    ],
   },
   {
-    title: 'Crude Oil Intelligence & AI Terminal ⭐',
-    icon: '🛢️',
+    title: 'CRYPTO & DELTA INDIA',
+    color: '#a78bfa', // Violet
     items: [
-      { id: 'oil-trading-ai', label: 'Oil Intelligence & AI Terminal ⭐ (WTI / Brent)', icon: '🛢️' },
-      { id: 'oil-inventory-engine', label: 'EIA & API Inventory Event Radar 📊', icon: '⏱️' },
-      { id: 'oil-geopolitical-radar', label: 'Oil Geopolitics & OPEC+ Radar 🌍', icon: '🔥' },
-      { id: 'oil-position-sizer', label: 'Oil Institutional Risk Sizer 📐', icon: '🧮' }
-    ]
+      { emoji: '🇮🇳', name: 'Delta India Multi-Coin Engine', route: 'delta-intelligence' },
+      { emoji: '⚡', name: 'Delta 4H All-Coin Scanner', route: 'delta-swing-scanner' },
+      { emoji: '🔥', name: 'Top 5 Alpha Swings (Delta)', route: 'delta-swing-top5' },
+      { emoji: '💎', name: 'Delta 1-3M Investment Outlook', route: 'delta-wealth-1-3m' },
+      { emoji: '💰', name: 'Crypto Wealth Intelligence', route: 'crypto-wealth-intelligence' },
+      { emoji: '🤖', name: 'Crypto Trading AI', route: 'crypto-ai' },
+      { emoji: '🧠', name: 'AI Crypto Brain', route: 'crypto-brain' },
+      { emoji: '₿', name: 'Bitcoin Macro Engine', route: 'btc-engine' },
+      { emoji: '⛓️', name: 'On-Chain Analytics Engine', route: 'onchain-engine' },
+      { emoji: '📊', name: 'Derivatives Engine', route: 'derivatives-engine' },
+      { emoji: '📉', name: 'Options Volatility Engine', route: 'options' },
+      { emoji: '🏦', name: 'ETF & Institutional Flows', route: 'etf' },
+      { emoji: '💵', name: 'Stablecoins & Liquidity', route: 'stablecoin-engine' },
+      { emoji: '⟠', name: 'Ethereum & Dominance', route: 'eth-engine' },
+      { emoji: '🪙', name: 'Altcoins & Token Unlocks', route: 'altcoins' },
+      { emoji: '🌾', name: 'DeFi & Ecosystems', route: 'defi' },
+      { emoji: '📢', name: 'Market Narratives Radar', route: 'narratives' },
+      { emoji: '📅', name: 'Crypto Calendar', route: 'crypto-calendar' },
+    ],
   },
   {
-    title: 'Crypto Engines',
-    icon: '🧬',
+    title: 'GLOBAL MACRO & ECONOMY',
+    color: '#38bdf8', // Cyan
     items: [
-      { id: 'bookmap-liquidation', label: 'Bookmap Liquidation Live ⭐ (BTC & Gold 1:1)', icon: '🌊' },
-      { id: 'liquidation-heatmap', label: 'Liquidation Heatmap Bookmap ⭐ (BTC/Gold/ETH/SOL)', icon: '🔥' },
-      { id: 'delta-intelligence', label: 'Delta India Multi-Coin Engine ⭐ (1-3M)', icon: '🏛️' },
-      { id: 'crypto-ai', label: 'Crypto Trading AI ⭐ (BTC/ETH/SOL)', icon: '⚡' },
-      { id: 'crypto-brain', label: 'AI Crypto Brain', icon: '🤖' },
-      { id: 'macro-engine', label: 'Macro Engine', icon: '🌐' },
-      { id: 'economic-events', label: 'News Events (CPI/FOMC)', icon: '📅' },
-      { id: 'btc-engine', label: 'Bitcoin Engine', icon: '₿' },
-      { id: 'onchain-engine', label: 'On-Chain Engine', icon: '⛓️' },
-      { id: 'whales', label: 'Whale Engine', icon: '🐋' },
-      { id: 'derivatives-engine', label: 'Derivatives Engine', icon: '🎲' },
-      { id: 'liquidation-map', label: 'Liquidation (CoinGlass Pro)', icon: '🔥' },
-      { id: 'options', label: 'Options Engine', icon: '🎯' },
-      { id: 'etf', label: 'ETF & Institutional', icon: '🏛️' },
-      { id: 'stablecoin-engine', label: 'Stablecoins & Flows', icon: '💵' },
-      { id: 'eth-engine', label: 'Ethereum & Dominance', icon: 'Ξ' },
-      { id: 'altcoins', label: 'Altcoins & Unlocks', icon: '🪙' },
-      { id: 'defi', label: 'DeFi & Ecosystems', icon: '🧱' },
-      { id: 'narratives', label: 'Narratives', icon: '📡' },
-      { id: 'smart-money', label: 'Smart Money', icon: '🧠' },
-      { id: 'crypto-calendar', label: 'Crypto Calendar', icon: '🗓️' }
-    ]
+      { emoji: '🌐', name: 'Global Macro Overview', route: 'landing' },
+      { emoji: '📊', name: 'Live Market Overview', route: 'overview' },
+      { emoji: '⚡', name: 'Live Event Impact Engine', route: 'event-impact-engine' },
+      { emoji: '🎯', name: '3-Scenario Matrix (CPI/FOMC)', route: 'macro-scenarios-matrix' },
+      { emoji: '🌍', name: 'Global Intelligence', route: 'global-intel' },
+      { emoji: '📅', name: 'US Events & News', route: 'usa-events' },
+      { emoji: '📅', name: 'Economic Calendar', route: 'calendar' },
+      { emoji: '🏛️', name: 'Federal Reserve (FOMC)', route: 'fed' },
+      { emoji: '🏦', name: 'Global Central Banks', route: 'central-banks' },
+      { emoji: '📈', name: 'Yield Curve & Treasuries', route: 'yields' },
+      { emoji: '💵', name: 'US Economic Data', route: 'us-economy' },
+      { emoji: '📊', name: 'GDP & Growth', route: 'gdp' },
+      { emoji: '🔥', name: 'Inflation Dashboard', route: 'inflation' },
+      { emoji: '👷', name: 'Labour Market & NFP', route: 'labour' },
+      { emoji: '💱', name: 'Forex Dashboard', route: 'forex' },
+      { emoji: '🛡️', name: 'Geopolitical Risk Radar', route: 'geopolitics' },
+      { emoji: '😱', name: 'Sentiment & Fear/Greed', route: 'sentiment' },
+      { emoji: '⚖️', name: 'Put/Call Ratio', route: 'put-call' },
+    ],
   },
   {
-    title: 'Dashboard',
-    icon: '📊',
+    title: 'NEWS, VOICE & ALERTS',
+    color: '#c084fc', // Purple
     items: [
-      { id: 'global-score', label: 'Global Stock Score Engine ⭐ (4–6M)', icon: '🎯' },
-      { id: 'overview', label: 'Live Market Overview', icon: '📈' },
-      { id: 'daily-report', label: 'Daily Market Report', icon: '🗞️' },
-      { id: 'crowd', label: 'Crowd Long/Short', icon: '👥' }
-    ]
+      { emoji: '📰', name: 'Financial News', route: 'news' },
+      { emoji: '🎙️', name: 'Jarvis AI Market Voice', route: 'jarvis-voice-ai' },
+      { emoji: '🤖', name: 'Jarvis Voice Assistant', route: 'assistant' },
+      { emoji: '📲', name: 'Telegram AI Alerts', route: 'telegram-alerts' },
+      { emoji: '📰', name: 'Daily Market Report', route: 'daily-report' },
+    ],
   },
   {
-    title: 'Confluence',
-    icon: '🧠',
+    title: 'ACCOUNT & JOURNAL',
+    color: '#f472b6', // Pink
     items: [
-      { id: 'confluence', label: 'Confluence Engine', icon: '⚙️' },
-      { id: 'scanner', label: 'Bull/Bear Scanner', icon: '🐂' },
-      { id: 'regime', label: 'Market-Regime Matrix', icon: '🧩' }
-    ]
+      { emoji: '📜', name: 'Trading Journal', route: 'journal' },
+      { emoji: '📑', name: 'Journal Reports', route: 'reports' },
+      { emoji: '🛡️', name: 'AI Risk Console', route: 'risk' },
+      { emoji: '💎', name: 'Subscription & Plans', route: 'pricing' },
+      { emoji: '👤', name: 'My Account & Profile', route: 'account' },
+    ],
   },
-  {
-    title: 'Economy',
-    icon: '🏛️',
-    items: [
-      { id: 'us-economy', label: 'US Economic Data', icon: '🇺🇸' },
-      { id: 'gdp', label: 'GDP & Growth', icon: '📐' },
-      { id: 'inflation', label: 'Inflation Dashboard', icon: '🔥' },
-      { id: 'labour', label: 'Labour Market', icon: '👷' },
-      { id: 'calendar', label: 'Economic Calendar', icon: '🗓️' }
-    ]
-  },
-  {
-    title: 'Policy & Money',
-    icon: '💵',
-    items: [
-      { id: 'fed', label: 'Federal Reserve', icon: '🏦' },
-      { id: 'liquidity', label: 'Banking & Liquidity', icon: '💧' },
-      { id: 'yields', label: 'Yield Curve & Bonds', icon: '📉' },
-      { id: 'central-banks', label: 'Global Central Banks', icon: '🌐' }
-    ]
-  },
-  {
-    title: 'Macro Economy',
-    icon: '🌡️',
-    items: [
-      { id: 'macro', label: 'Inflation & Growth', icon: '📊' }
-    ]
-  },
-  {
-    title: 'Crypto',
-    icon: '🪙',
-    items: [
-      { id: 'crypto', label: 'Crypto Market', icon: '₿' },
-      { id: 'onchain', label: 'On-Chain Analysis', icon: '⛓️' },
-      { id: 'derivatives', label: 'Derivatives', icon: '🎲' }
-    ]
-  },
-  {
-    title: 'Traditional',
-    icon: '🥇',
-    items: [
-      { id: 'gold', label: 'Gold Macro Overview', icon: '🥇' },
-      { id: 'stocks', label: 'Stock Market', icon: '🏢' }
-    ]
-  },
-  {
-    title: 'World',
-    icon: '🌍',
-    items: [
-      { id: 'forex', label: 'Forex Dashboard', icon: '💱' },
-      { id: 'geopolitics', label: 'Geopolitical Risk', icon: '⚠️' },
-      { id: 'socioeconomic', label: 'Socioeconomic Data', icon: '👥' },
-      { id: 'news', label: 'Financial News', icon: '📰' },
-      { id: 'sentiment', label: 'Market Sentiment', icon: '😨' },
-      { id: 'put-call', label: 'Put/Call Ratio', icon: '⚖️' }
-    ]
-  },
-  {
-    title: 'Tools',
-    icon: '🛠️',
-    items: [
-      { id: 'correlations', label: 'Charts & Correlations', icon: '📉' }
-    ]
-  },
-  {
-    title: 'Intelligence',
-    icon: '🤖',
-    items: [
-      { id: 'assistant', label: 'Jarvis Voice Assistant 🎙️', icon: '🤖' },
-      { id: 'risk', label: 'AI Risk Console', icon: '🛡️' },
-      { id: 'journal', label: 'Trading Journal', icon: '📖' },
-      { id: 'reports', label: 'Journal Reports', icon: '🧾' }
-    ]
-  },
-  {
-    title: 'Account',
-    icon: '👤',
-    items: [
-      { id: 'pricing', label: 'Subscription & Plans (₹)', icon: '💎' },
-      { id: 'account', label: 'My Account', icon: '👤' }
-    ]
-  },
-  {
-    title: 'Telegram & Alerts',
-    icon: '📲',
-    items: [
-      { id: 'telegram-alerts', label: 'Telegram AI Alerts 📲⭐ (Live Bot)', icon: '🔔' }
-    ]
-  }
 ];
 
-interface SidebarProps {
+// Preserving legacy MENU export for full backward compatibility
+export const MENU: MenuItem[] = SECTIONS.flatMap((sec) =>
+  sec.items.map((item) => ({
+    id: item.route,
+    name: item.name,
+    cat: sec.title,
+    color: sec.color,
+  }))
+);
+
+export const NAV_CATEGORIES: NavCategory[] = SECTIONS.map((s) => ({
+  title: s.title,
+  items: s.items.map((i) => ({ id: i.route, label: i.name })),
+}));
+
+export interface SidebarProps {
   activeTab: string;
   onSelectTab: (tabId: string) => void;
   isDarkMode?: boolean;
+  isMobile?: boolean;
+  width?: number;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  activeTab,
+  onSelectTab,
+  isDarkMode = true,
+  isMobile = false,
+  width = 240,
+}) => {
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     if (isFounderPassportActive()) return true;
@@ -240,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
         const parsed = JSON.parse(raw);
         return parsed.status === 'ACTIVE' && new Date(parsed.expiryDate) > new Date();
       }
-    } catch (e) {}
+    } catch {}
     return false;
   });
 
@@ -257,7 +233,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
           setIsUnlocked(parsed.status === 'ACTIVE' && new Date(parsed.expiryDate) > new Date());
           return;
         }
-      } catch (e) {}
+      } catch {}
       setIsUnlocked(false);
     };
 
@@ -266,65 +242,75 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
   }, []);
 
   return (
-    <nav
+    <aside
       aria-label="Terminal navigation"
-      className="sidebar-scroll-visible hidden w-64 shrink-0 sticky top-[84px] h-[calc(100vh-84px)] border-r border-sidebar-border bg-sidebar/95 px-4 py-6 shadow-[var(--shadow-sidebar)] backdrop-blur-xl lg:block"
+      style={isMobile ? undefined : { width: `${width}px`, minWidth: `${width}px` }}
+      className={`sidebar iitian-sidebar-root iitian-scroll select-none ${
+        isMobile
+          ? 'block w-full h-full border-none'
+          : 'hidden shrink-0 sticky top-[46px] h-[calc(100vh-46px)] lg:block'
+      } overflow-y-auto pb-12 z-20 transition-[width] duration-75`}
     >
-      {NAV_CATEGORIES.map((cat) => (
-        <div key={cat.title} className="mb-6">
-          <p className="label-xs mb-2.5 flex items-center gap-2 px-2 text-primary/70">
-            <span
-              aria-hidden="true"
-              className="flex size-6 items-center justify-center rounded-md bg-gold/12 text-sm"
+      <div className="py-2.5 px-2 space-y-3">
+        {SECTIONS.map((section) => (
+          <div key={section.title} className="space-y-1">
+            {/* Section Heading: 11px uppercase, letter-spacing 2px, section's color + 6px dot */}
+            <div
+              className="iitian-section-heading px-2 pt-2.5 pb-1 flex items-center gap-1.5"
+              style={{ color: section.color }}
             >
-              {cat.icon}
-            </span>
-            {cat.title}
-          </p>
-          <ul className="space-y-0.5">
-            {cat.items.map((item) => {
-              const isActive = activeTab === item.id;
-              const isLocked = isTabPremium(item.id) && !isUnlocked;
+              <span
+                className="section-dot"
+                style={{ backgroundColor: section.color, color: section.color }}
+              />
+              <span className="tracking-[2px]">{section.title}</span>
+            </div>
 
-              return (
-                <li key={item.id}>
+            {/* Section Items */}
+            <div className="space-y-[2px]">
+              {section.items.map((item) => {
+                const isActive = activeTab === item.route;
+                const isLocked = isTabPremium(item.route) && !isUnlocked;
+
+                return (
                   <button
-                    onClick={() => onSelectTab(item.id)}
-                    className={`flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-[13px] transition-all text-left cursor-pointer ${
+                    type="button"
+                    key={item.route + item.name}
+                    onClick={() => onSelectTab(item.route)}
+                    title={item.name}
+                    style={
                       isActive
-                        ? 'border-cyan-400/60 bg-gradient-to-r from-cyan-500/20 to-indigo-500/15 font-bold text-cyan-300 shadow-[0_0_16px_rgba(0,242,254,0.3)] ring-1 ring-cyan-400/40'
-                        : 'border-transparent text-sidebar-foreground/75 hover:border-cyan-500/30 hover:bg-slate-800/60 hover:text-white hover:shadow-sm'
+                        ? {
+                            background: `linear-gradient(90deg, color-mix(in srgb, ${section.color} 22%, transparent), transparent)`,
+                            borderLeftColor: section.color,
+                            color: 'var(--text)',
+                          }
+                        : undefined
+                    }
+                    className={`iitian-item-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[14px] leading-tight transition-all cursor-pointer border-l-[3px] ${
+                      isActive
+                        ? 'active font-semibold'
+                        : 'border-transparent text-[var(--text-2)] hover:bg-[var(--surface-3)] hover:text-[var(--text)]'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span
-                        aria-hidden="true"
-                        className="flex size-5 items-center justify-center text-[13px] leading-none shrink-0"
-                      >
-                        {item.icon}
-                      </span>
-                      <span className="truncate">{item.label}</span>
-                    </div>
-
+                    <span className="iitian-item-emoji text-[15px] shrink-0 w-4 text-center leading-none">
+                      {item.emoji}
+                    </span>
+                    <span className="iitian-item-label flex-1 leading-snug">
+                      {item.name}
+                    </span>
                     {isLocked && (
-                      <span
-                        title="Institutional Premium Feature — Requires Subscription or Passport Key"
-                        className="shrink-0 text-amber-400/80 hover:text-amber-300 ml-1.5"
-                      >
-                        <Lock className="w-3.5 h-3.5" />
-                      </span>
+                      <Lock className="w-3 h-3 text-amber-400 shrink-0 opacity-75 ml-1" />
                     )}
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </nav>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
   );
 };
 
 export default Sidebar;
-
-

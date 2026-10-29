@@ -16,6 +16,10 @@ import {
   EntryType
 } from '../services/deeeprPrecisionEntryEngine';
 import { telegramAlertService } from '../services/telegramAlertService';
+import { masterVerdictStore, MasterVerdictObject, formatPriceWithDollar } from '../services/masterVerdictStore';
+import { sharedQuoteStore } from '../services/sharedQuoteStore';
+import { VerdictBadge } from './VerdictBadge';
+import { ConflictEvidenceDashboard } from './ConflictEvidenceDashboard';
 
 interface DeeeprPrecisionEntryViewProps {
   onNavigate?: (tab: string) => void;
@@ -37,15 +41,28 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
 }) => {
   const [selectedSymbol, setSelectedSymbol] = useState<string>(defaultSymbol);
   const [livePrice, setLivePrice] = useState<number>(() => {
-    const a = SUPPORTED_ASSETS.find((item) => item.key === defaultSymbol);
-    return a ? a.defaultPrice : 84500;
+    return sharedQuoteStore.getPrice(defaultSymbol) || 81770;
   });
+
+  const [masterVerdict, setMasterVerdict] = useState<MasterVerdictObject>(() =>
+    masterVerdictStore.getVerdict(defaultSymbol, livePrice)
+  );
+
+  useEffect(() => {
+    setMasterVerdict(masterVerdictStore.getVerdict(selectedSymbol, livePrice));
+    const unsub = masterVerdictStore.subscribe(selectedSymbol, (updated) => {
+      setMasterVerdict({ ...updated });
+    });
+    return unsub;
+  }, [selectedSymbol]);
+
   const [priceFlash, setPriceFlash] = useState<'up' | 'down' | null>(null);
   const [candles, setCandles] = useState<any[]>([]);
   const [chartTimeframe, setChartTimeframe] = useState<string>('15m');
   const [showPriceLines, setShowPriceLines] = useState<boolean>(true);
   const [showVolume, setShowVolume] = useState<boolean>(true);
-  const [viewMode, setViewMode] = useState<'INTERACTIVE' | 'SECTION11_TEXT' | 'SECTION20_TEXT'>('INTERACTIVE');
+  const [viewMode, setViewMode] = useState<'INTERACTIVE' | 'MODULE18_TEXT' | 'SECTION11_TEXT' | 'SECTION20_TEXT'>('INTERACTIVE');
+  const [activeModuleTab, setActiveModuleTab] = useState<'ALL' | 'REGIME' | 'MTF' | 'SMC_ICT' | 'LIQUIDITY' | 'MICRO' | 'MACRO' | 'GLOBAL' | 'SENTIMENT' | 'CROSS' | 'EXECUTION' | 'CONFLUENCE' | 'MONITOR'>('ALL');
   const [copiedText, setCopiedText] = useState(false);
   const [telegramStatus, setTelegramStatus] = useState<string | null>(null);
   const [wsStatus, setWsStatus] = useState<'LIVE' | 'CONNECTING' | 'OFFLINE'>('CONNECTING');
@@ -93,8 +110,8 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
             setCandles(formatted);
             candlesRef.current = formatted;
             if (formatted.length > 0) {
-              const lastClose = formatted[formatted.length - 1].close;
               setLivePrice(lastClose);
+              masterVerdictStore.evaluateMasterVerdict(selectedSymbol, formatted, lastClose);
 
               // Calculate real-time USDT dominance inverse metric
               if (selectedSymbol === 'BTCUSDT') {
@@ -213,6 +230,21 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
       usdtTrend
     });
   }, [selectedSymbol, livePrice, candles, usdtDominance, usdtTrend]);
+
+  useEffect(() => {
+    if (entryOutput) {
+      masterVerdictStore.registerEvidence(selectedSymbol, 'Precision Entry (SMC/ICT)', {
+        lean: entryOutput.finalDecision === 'LONG' ? 'long' : entryOutput.finalDecision === 'SHORT' ? 'short' : 'neutral',
+        score: entryOutput.entryQualityScore,
+        notes: [
+          `Location: ${entryOutput.entryZone}`,
+          `Quality: ${entryOutput.entryQualityLabel} (${entryOutput.entryQualityScore}/100)`,
+          `Status: ${entryOutput.statusMessage}`
+        ],
+        source: 'Precision Entry Engine v12'
+      });
+    }
+  }, [selectedSymbol, entryOutput]);
 
   // 2. Initialize Lightweight Charts Candlestick Canvas
   useEffect(() => {
@@ -344,116 +376,129 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
 
     if (!showPriceLines) return;
 
+    const activeH = masterVerdict.horizonMatrix[masterVerdict.selectedHorizon] || masterVerdict.horizonMatrix.INTRADAY;
+    const isMasterTrade = activeH.state !== 'WAIT';
+
+    const idealPrice = isMasterTrade && activeH.idealEntry > 0 ? activeH.idealEntry : entryOutput.idealEntry;
+    const zoneHigh = isMasterTrade && activeH.entryZone[1] > 0 ? activeH.entryZone[1] : entryOutput.entryZoneHigh;
+    const zoneLow = isMasterTrade && activeH.entryZone[0] > 0 ? activeH.entryZone[0] : entryOutput.entryZoneLow;
+    const slPrice = isMasterTrade && activeH.sl > 0 ? activeH.sl : entryOutput.stopLossPrice;
+    const tp1Price = isMasterTrade && activeH.tp1 > 0 ? activeH.tp1 : entryOutput.tp1Price;
+    const tp2Price = isMasterTrade && activeH.tp2 > 0 ? activeH.tp2 : entryOutput.tp2Price;
+    const tp3Price = isMasterTrade && activeH.tp3 > 0 ? activeH.tp3 : entryOutput.tp3Price;
+
     // 1. Ideal Entry Line (Cyan / Sky)
-    if (entryOutput.idealEntry > 0) {
+    if (idealPrice > 0) {
       try {
         const line = candleSeriesRef.current.createPriceLine({
-          price: entryOutput.idealEntry,
+          price: idealPrice,
           color: '#38bdf8',
           lineWidth: 2,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          title: `🎯 IDEAL ENTRY ($${entryOutput.idealEntry.toFixed(1)})`
+          title: `🎯 MASTER ENTRY ($${idealPrice.toFixed(1)})`
         });
         priceLinesRef.current.push(line);
       } catch {}
     }
 
     // 2. Entry Zone High & Low (Amber)
-    if (entryOutput.entryZoneHigh > 0) {
+    if (zoneHigh > 0) {
       try {
         const line = candleSeriesRef.current.createPriceLine({
-          price: entryOutput.entryZoneHigh,
+          price: zoneHigh,
           color: '#f59e0b',
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
           axisLabelVisible: true,
-          title: `🟨 ZONE HIGH ($${entryOutput.entryZoneHigh.toFixed(1)})`
+          title: `🟨 ZONE HIGH ($${zoneHigh.toFixed(1)})`
         });
         priceLinesRef.current.push(line);
       } catch {}
     }
 
-    if (entryOutput.entryZoneLow > 0) {
+    if (zoneLow > 0) {
       try {
         const line = candleSeriesRef.current.createPriceLine({
-          price: entryOutput.entryZoneLow,
+          price: zoneLow,
           color: '#f59e0b',
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
           axisLabelVisible: true,
-          title: `🟨 ZONE LOW ($${entryOutput.entryZoneLow.toFixed(1)})`
+          title: `🟨 ZONE LOW ($${zoneLow.toFixed(1)})`
         });
         priceLinesRef.current.push(line);
       } catch {}
     }
 
     // 3. Structural Stop Loss / Invalidation (Red / Rose)
-    if (entryOutput.stopLossPrice > 0) {
+    if (slPrice > 0) {
       try {
         const line = candleSeriesRef.current.createPriceLine({
-          price: entryOutput.stopLossPrice,
+          price: slPrice,
           color: '#ef4444',
           lineWidth: 2,
           lineStyle: LineStyle.Solid,
           axisLabelVisible: true,
-          title: `🛑 STRUCTURAL SL ($${entryOutput.stopLossPrice.toFixed(1)})`
+          title: `🛑 STRUCTURAL SL ($${slPrice.toFixed(1)})`
         });
         priceLinesRef.current.push(line);
       } catch {}
     }
 
-    // 4. Target TP1 (Green dashed, R:R 1.3 - 1.4+)
-    if (entryOutput.tp1Price > 0) {
+    // 4. Target TP1 (Green dashed)
+    if (tp1Price > 0) {
       try {
         const line = candleSeriesRef.current.createPriceLine({
-          price: entryOutput.tp1Price,
+          price: tp1Price,
           color: '#22c55e',
           lineWidth: 2,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          title: `🏁 TP1 (${entryOutput.riskRewardRatio || '1:1.3'}) $${entryOutput.tp1Price.toFixed(1)}`
+          title: `🏁 TP1 (1:${activeH.rr.toFixed(1)}) $${tp1Price.toFixed(1)}`
         });
         priceLinesRef.current.push(line);
       } catch {}
     }
 
     // 5. Target TP2 (Emerald dashed)
-    if (entryOutput.tp2Price > 0) {
+    if (tp2Price > 0) {
       try {
         const line = candleSeriesRef.current.createPriceLine({
-          price: entryOutput.tp2Price,
+          price: tp2Price,
           color: '#10b981',
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          title: `🏁 TP2 $${entryOutput.tp2Price.toFixed(1)}`
+          title: `🏁 TP2 $${tp2Price.toFixed(1)}`
         });
         priceLinesRef.current.push(line);
       } catch {}
     }
 
     // 6. Target TP3 (Dark green dotted)
-    if (entryOutput.tp3Price > 0) {
+    if (tp3Price > 0) {
       try {
         const line = candleSeriesRef.current.createPriceLine({
-          price: entryOutput.tp3Price,
+          price: tp3Price,
           color: '#059669',
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
           axisLabelVisible: true,
-          title: `🏁 TP3 $${entryOutput.tp3Price.toFixed(1)}`
+          title: `🏁 TP3 $${tp3Price.toFixed(1)}`
         });
         priceLinesRef.current.push(line);
       } catch {}
     }
-  }, [entryOutput, showPriceLines]);
+  }, [entryOutput, masterVerdict, showPriceLines]);
 
-  // Copy verbatim Section 11 / Section 20
+  // Copy verbatim Module 18 / Section 11 / Section 20
   const handleCopyVerbatim = async () => {
     try {
       const textToCopy =
-        viewMode === 'SECTION11_TEXT'
+        viewMode === 'MODULE18_TEXT'
+          ? entryOutput.verbatimModule18Format
+          : viewMode === 'SECTION11_TEXT'
           ? entryOutput.verbatimInstitutionalReport
           : entryOutput.verbatimSection20Panel;
       await navigator.clipboard.writeText(textToCopy);
@@ -486,6 +531,8 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
     }
   };
 
+  const currentMasterState = masterVerdict.state === 'LONG' ? 'LONG' : masterVerdict.state === 'SHORT' ? 'SHORT' : 'WAIT';
+
   const decisionTheme = {
     LONG: {
       border: 'border-emerald-500/50',
@@ -505,12 +552,12 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
       pill: 'bg-amber-500/20 text-amber-400 border-amber-500/50',
       text: 'text-amber-400'
     }
-  }[entryOutput.finalDecision];
+  }[currentMasterState];
 
   return (
-    <div className="space-y-5 font-sans text-slate-100 bg-[#03060f] min-h-screen p-3 sm:p-5 rounded-2xl border border-slate-800 shadow-2xl">
+    <div className="space-y-5 font-sans text-slate-100 magical-midnight-bg min-h-screen p-3 sm:p-5 rounded-2xl border-2 border-amber-500/30 shadow-2xl">
       {/* ────────────────── 1. HEADER SECTION ────────────────── */}
-      <header className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-[#0d172e] via-[#091124] to-[#050a14] p-5 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+      <header className="rounded-2xl panel-gold-glow p-5 sm:p-6 shadow-2xl relative overflow-hidden">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
           <div>
@@ -526,7 +573,7 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
 
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-                {wsStatus === 'LIVE' ? '0-MS BINANCE WEBSOCKET LIVE' : 'CONNECTING...'}
+                {wsStatus === 'LIVE' ? 'BINANCE WEBSOCKET LIVE (<100ms)' : 'CONNECTING...'}
               </span>
 
               {entryOutput.isSignalLocked && (
@@ -536,9 +583,11 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
               )}
             </div>
 
-            <h1 className="mt-2.5 text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-              <span>{entryOutput.asset}</span>
-              <span className="text-xl sm:text-2xl font-mono font-bold text-slate-200">
+            <h1 className="mt-2.5 text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-3">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 flex items-center gap-2">
+                <span>🎯</span> {entryOutput.asset} Precision Entry Level Engine
+              </span>
+              <span className="text-xl sm:text-2xl font-mono font-bold text-white tabular-nums">
                 ${livePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               <span
@@ -554,8 +603,8 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
               </span>
             </h1>
 
-            <p className="mt-1 text-xs text-slate-400 max-w-3xl font-mono leading-relaxed">
-              WHERE TO ENTER → WHY ENTER THERE → WHAT CONFIRMS ENTRY → WHERE SL GOES → WHERE TP GOES → WHAT INVALIDATES THE TRADE.
+            <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
+              🎯 WHERE TO ENTER ➔ 💡 WHY ENTER THERE ➔ ⚡ WHAT CONFIRMS ENTRY ➔ 🛑 WHERE SL GOES ➔ 🏁 WHERE TP GOES ➔ 🔒 WHAT INVALIDATES.
             </p>
           </div>
 
@@ -632,16 +681,18 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
             <button
               onClick={() => (onNavigate ? onNavigate('deeepr-decision-engine') : (window.location.hash = '#deeepr-decision-engine'))}
               className="px-3 py-1.5 rounded-lg bg-[#0e1933] border border-purple-500/40 text-purple-300 hover:text-white transition-all cursor-pointer flex items-center gap-1 font-bold shadow-sm"
-              title="Switch to 30-Rule Market Decision Engine"
+              title="Switch to DEEEPR Decision Engine v4 (Location-First Master Arbiter)"
             >
               <span>🏛️</span>
-              <span>Decision Engine (30 Rules)</span>
+              <span>Decision Engine v4 (Location-First) ⭐</span>
             </button>
 
             <button
               onClick={() =>
                 setViewMode(
                   viewMode === 'INTERACTIVE'
+                    ? 'MODULE18_TEXT'
+                    : viewMode === 'MODULE18_TEXT'
                     ? 'SECTION11_TEXT'
                     : viewMode === 'SECTION11_TEXT'
                     ? 'SECTION20_TEXT'
@@ -652,6 +703,8 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
             >
               <span>
                 {viewMode === 'INTERACTIVE'
+                  ? '📜 Module 18 Verdict'
+                  : viewMode === 'MODULE18_TEXT'
                   ? '📜 Section 11 Report'
                   : viewMode === 'SECTION11_TEXT'
                   ? '📜 Section 20 Panel'
@@ -685,21 +738,27 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
         </div>
       </header>
 
+      {/* ────────────────── 1.5 UNIFIED MASTER ARBITER VERDICT BADGE ────────────────── */}
+      <VerdictBadge symbol={selectedSymbol} />
+
+      {/* ────────────────── 1.6 CONFLICT & EVIDENCE AUDIT DASHBOARD ────────────────── */}
+      <ConflictEvidenceDashboard symbol={selectedSymbol} />
+
       {/* ────────────────── 2. LIVE INTERACTIVE CANDLESTICK CHART CONTAINER ────────────────── */}
-      <section className="rounded-2xl border border-sky-500/40 bg-[#060c18] p-3 sm:p-5 shadow-2xl space-y-3 relative overflow-hidden backdrop-blur-xl">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <section className="rounded-2xl panel-cyan-glow p-3 sm:p-5 shadow-2xl space-y-3 relative overflow-hidden backdrop-blur-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-500/30 pb-3">
           <div className="flex items-center gap-3">
             <span className="size-8 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-400/40 flex items-center justify-center text-lg font-bold">
               📊
             </span>
             <div>
-              <h2 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-400 flex items-center gap-2">
                 <span>{selectedSymbol} — LIVE PRECISION ENTRY CANDLESTICK CHART</span>
                 <span className="text-xs px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/30 font-mono">
                   {chartTimeframe}
                 </span>
               </h2>
-              <p className="text-xs text-slate-400 font-mono">
+              <p className="text-xs text-slate-300 font-mono">
                 Real-time candles with Ideal Entry, Entry Zone, Structural SL, and TP1/TP2/TP3 overlays
               </p>
             </div>
@@ -759,21 +818,21 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
             <div className="p-3 rounded-xl bg-[#070e1c]/95 border border-slate-700/80 shadow-2xl backdrop-blur-md space-y-1.5 font-mono">
               <div className="flex items-center gap-2">
                 <span className={`px-2.5 py-1 rounded text-xs font-black uppercase border ${decisionTheme.pill}`}>
-                  {entryOutput.finalDecision === 'LONG'
-                    ? '🟢 LONG'
-                    : entryOutput.finalDecision === 'SHORT'
-                    ? '🔴 SHORT'
-                    : '🟡 WAIT'}
+                  {masterVerdict.state === 'LONG'
+                    ? '🟢 MASTER: LONG'
+                    : masterVerdict.state === 'SHORT'
+                    ? '🔴 MASTER: SHORT'
+                    : '🟡 MASTER: WAIT'}
                 </span>
                 <span className="text-xs font-bold text-white">
-                  Score: <strong className="text-amber-300 tabular-nums">{entryOutput.entryQualityScore}/100</strong>
+                  Horizon: <strong className="text-amber-300 font-mono">[{masterVerdict.selectedHorizon}]</strong>
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">
-                  RRR {entryOutput.riskRewardRatio}
+                <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold font-mono">
+                  Phase: {masterVerdict.phase?.code || 'P1'}
                 </span>
               </div>
               <div className="text-xs text-slate-200">
-                Action: <strong className="text-white underline">{entryOutput.action}</strong>
+                Action: <strong className="text-white underline">{masterVerdict.horizonMatrix[masterVerdict.selectedHorizon]?.headlineAction || entryOutput.action}</strong>
               </div>
               {entryOutput.idealEntry > 0 && (
                 <div className="text-[11px] text-sky-300">
@@ -814,15 +873,15 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
       </section>
 
       {/* ────────────────── 3. DUAL-MARKET INTELLIGENCE ENGINE (USDT.D + BITCOIN) ────────────────── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+      <section className="rounded-2xl panel-purple-glow p-4 sm:p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-purple-500/30 pb-2">
           <div className="flex items-center gap-2">
-            <span className="text-lg">⚖️</span>
-            <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider font-mono">
+            <span className="text-xl">⚖️</span>
+            <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider font-sans text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-400 to-amber-300">
               DEEEPR — USDT + BITCOIN DUAL-MARKET INTELLIGENCE ENGINE
             </h3>
           </div>
-          <span className="text-[11px] font-mono text-cyan-400">
+          <span className="text-[11px] font-mono text-cyan-300">
             Independent Evaluation · Intermarket Transmission Model
           </span>
         </div>
@@ -830,10 +889,10 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
         {/* SIDE-BY-SIDE DUAL CARDS: CARD 1 (USDT.D) & CARD 2 (BITCOIN) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 font-mono text-xs">
           {/* CARD 1: USDT / STABLECOIN MARKET */}
-          <div className="bg-[#081224] p-4 sm:p-5 rounded-2xl border border-cyan-500/30 space-y-3 shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div className="panel-cyan-glow p-4 sm:p-5 rounded-2xl space-y-3 shadow-xl">
+            <div className="flex items-center justify-between border-b border-cyan-500/30 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-base">🌊</span>
+                <span className="text-lg">🌊</span>
                 <h4 className="font-bold text-white text-sm">CARD 1: USDT / STABLECOIN MARKET</h4>
               </div>
               <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
@@ -846,12 +905,12 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-[#040814] border border-slate-800">
+              <div className="p-2.5 rounded-xl bg-[#040814] border border-cyan-500/20">
                 <span className="text-slate-400 text-[10px] block">USDT Dominance (USDT.D)</span>
                 <span className="text-lg font-black text-cyan-300">{usdtDominance}%</span>
                 <span className="text-[10px] text-slate-400 block mt-0.5">Equilibrium Mean: 6.57%</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[#040814] border border-slate-800">
+              <div className="p-2.5 rounded-xl bg-[#040814] border border-cyan-500/20">
                 <span className="text-slate-400 text-[10px] block">Liquidity & Capital Flow</span>
                 <span className="text-sm font-bold text-white">
                   {usdtTrend === 'FALLING' ? 'Inflow to Risk Assets' : 'Flight to Stablecoins'}
@@ -860,16 +919,16 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
               </div>
             </div>
 
-            <p className="text-slate-300 leading-relaxed text-[11px] bg-[#040814] p-2.5 rounded-xl border border-slate-800">
+            <p className="text-slate-300 leading-relaxed text-[11px] bg-[#040814] p-2.5 rounded-xl border border-cyan-500/20">
               <strong>USDT Context:</strong> When USDT dominance falls, capital leaves cash reserves to enter crypto assets (Bullish Tail-wind). When USDT.D rises, investors sell crypto for dollar stability (Bearish Head-wind).
             </p>
           </div>
 
           {/* CARD 2: BITCOIN PRICE ACTION */}
-          <div className="bg-[#121124] p-4 sm:p-5 rounded-2xl border border-amber-500/30 space-y-3 shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div className="panel-gold-glow p-4 sm:p-5 rounded-2xl space-y-3 shadow-xl">
+            <div className="flex items-center justify-between border-b border-amber-500/30 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-base">₿</span>
+                <span className="text-lg">₿</span>
                 <h4 className="font-bold text-white text-sm">CARD 2: BITCOIN PRICE ACTION (BTC/USDT)</h4>
               </div>
               <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
@@ -1187,71 +1246,381 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
         </div>
       </section>
 
-      {/* ────────────────── 7. SIMPLE HINGLISH INSTITUTIONAL EXPLANATION ────────────────── */}
-      <section className="bg-gradient-to-r from-[#0d162d] via-[#091124] to-[#060a14] p-5 rounded-2xl border border-cyan-500/30 space-y-4 shadow-xl">
+      {/* ────────────────── 7. INSTITUTIONAL MARKET INTELLIGENCE DASHBOARD (MODULE 17: SECTIONS A – L) ────────────────── */}
+      <section className="bg-[#050a17] p-4 sm:p-5 rounded-2xl border border-sky-500/40 space-y-4 shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="size-9 rounded-xl bg-gradient-to-tr from-sky-500/30 to-indigo-500/30 border border-sky-400/40 flex items-center justify-center text-lg shadow-md">
+              🏛️
+            </span>
+            <div>
+              <h3 className="text-sm sm:text-base font-extrabold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                <span>MODULE 17 — INSTITUTIONAL MARKET INTELLIGENCE DASHBOARD</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                  SECTIONS A – L
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 font-mono">
+                Real-Time Price Action · SMC & ICT · Liquidity Heatmap · Micro/Macro Mechanics · Cross-Market Telemetry
+              </p>
+            </div>
+          </div>
+
+          {/* Module Filter Pills */}
+          <div className="flex flex-wrap items-center gap-1 font-mono text-[11px]">
+            {[
+              { id: 'ALL', label: 'All Modules' },
+              { id: 'REGIME', label: 'A. Regime' },
+              { id: 'MTF', label: 'B. MTF' },
+              { id: 'SMC_ICT', label: 'C. SMC/ICT' },
+              { id: 'LIQUIDITY', label: 'D. Liquidity' },
+              { id: 'MICRO', label: 'E. Micro' },
+              { id: 'MACRO', label: 'F. Macro' },
+              { id: 'GLOBAL', label: 'G. Global' },
+              { id: 'SENTIMENT', label: 'H. Sentiment' },
+              { id: 'CROSS', label: 'I. Cross' },
+              { id: 'EXECUTION', label: 'J. Execution' },
+              { id: 'CONFLUENCE', label: 'K. Confluence' },
+              { id: 'MONITOR', label: 'L. Monitor' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveModuleTab(tab.id as any)}
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer font-bold ${
+                  activeModuleTab === tab.id
+                    ? 'bg-sky-500 text-slate-950 font-black shadow-sm'
+                    : 'bg-[#091124] text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 font-mono text-xs">
+          {/* SECTION A: MARKET REGIME & PRICE ACTION */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'REGIME') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-sky-500/30 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>📈</span> SECTION A: MARKET REGIME & PRICE ACTION
+                </span>
+                <span className="text-[10px] text-sky-400 font-bold uppercase">{entryOutput.modules.aMarketRegime.volatilityRegime}</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Trend: <strong className="text-white">{entryOutput.modules.aMarketRegime.trend}</strong> ({entryOutput.modules.aMarketRegime.transitions})</div>
+                <div>Swings: <strong className="text-amber-300">{entryOutput.modules.aMarketRegime.higherHighsLows}</strong> · <strong className="text-rose-300">{entryOutput.modules.aMarketRegime.lowerHighsLows}</strong></div>
+                <div>BOS/CHoCH: <strong className="text-cyan-300">{entryOutput.modules.aMarketRegime.breakOfStructure}</strong> ({entryOutput.modules.aMarketRegime.changeOfCharacter})</div>
+                <div>Support / Resistance: <strong className="text-emerald-400">${entryOutput.modules.aMarketRegime.support.toFixed(1)}</strong> / <strong className="text-rose-400">${entryOutput.modules.aMarketRegime.resistance.toFixed(1)}</strong></div>
+                <div>Displacement: <strong className="text-white">{entryOutput.modules.aMarketRegime.displacement}</strong></div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION B: MULTI-TIMEFRAME STRUCTURE */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'MTF') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-indigo-500/30 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>🏛️</span> SECTION B: MULTI-TIMEFRAME STRUCTURE
+                </span>
+                <span className="text-[10px] text-indigo-400 font-bold">DOMINANT: 4H</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>1D: <strong className="text-amber-300">{entryOutput.modules.bMultiTimeframe.timeframes.daily.bias}</strong> — {entryOutput.modules.bMultiTimeframe.timeframes.daily.structure}</div>
+                <div>4H: <strong className="text-amber-300">{entryOutput.modules.bMultiTimeframe.timeframes.h4.bias}</strong> — {entryOutput.modules.bMultiTimeframe.timeframes.h4.structure}</div>
+                <div>1H: <strong className="text-cyan-300">{entryOutput.modules.bMultiTimeframe.timeframes.h1.bias}</strong> — {entryOutput.modules.bMultiTimeframe.timeframes.h1.structure}</div>
+                <div>15M: <strong className="text-cyan-300">{entryOutput.modules.bMultiTimeframe.timeframes.m15.bias}</strong> — {entryOutput.modules.bMultiTimeframe.timeframes.m15.structure}</div>
+                <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800">{entryOutput.modules.bMultiTimeframe.dominantTimeframeReason}</div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION C: SMC & ICT ANALYSIS */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'SMC_ICT') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-amber-500/30 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>📐</span> SECTION C: SMC & ICT ANALYSIS
+                </span>
+                <span className="text-[10px] text-amber-400 font-bold uppercase">{entryOutput.modules.cSmcIct.zone} ZONE</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Bullish OB: <strong className="text-emerald-300">{entryOutput.modules.cSmcIct.bullishOrderBlock.range}</strong> ({entryOutput.modules.cSmcIct.bullishOrderBlock.status})</div>
+                <div>Bearish OB: <strong className="text-rose-300">{entryOutput.modules.cSmcIct.bearishOrderBlock.range}</strong> ({entryOutput.modules.cSmcIct.bearishOrderBlock.status})</div>
+                <div>Equilibrium (50%): <strong className="text-amber-300">${entryOutput.modules.cSmcIct.equilibrium50.toFixed(1)}</strong> (Range: ${entryOutput.modules.cSmcIct.dealingRange.low.toFixed(1)} – ${entryOutput.modules.cSmcIct.dealingRange.high.toFixed(1)})</div>
+                <div>OTE Fib (61.8–78.6%): <strong className="text-cyan-300">${entryOutput.modules.cSmcIct.optimalTradeEntryFib.fib618.toFixed(1)} – ${entryOutput.modules.cSmcIct.optimalTradeEntryFib.fib786.toFixed(1)}</strong></div>
+                <div>BSL / SSL: <strong className="text-white">${entryOutput.modules.cSmcIct.bslPrice.toFixed(1)}</strong> / <strong className="text-white">${entryOutput.modules.cSmcIct.sslPrice.toFixed(1)}</strong></div>
+                <div>Kill Zone: <strong className="text-purple-300">{entryOutput.modules.cSmcIct.sessionKillZone.name}</strong> ({entryOutput.modules.cSmcIct.judasSwingStatus})</div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION D: LIQUIDITY & LIQUIDATION MAP */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'LIQUIDITY') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-rose-500/30 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>🔥</span> SECTION D: LIQUIDITY & LIQUIDATION MAP
+                </span>
+                <span className="text-[10px] text-rose-400 font-bold uppercase">{entryOutput.modules.dLiquidityMap.longLiquidationCluster.status}</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Short Liq Cluster: <strong className="text-rose-400">{entryOutput.modules.dLiquidityMap.shortLiquidationCluster.priceRange}</strong> ({entryOutput.modules.dLiquidityMap.shortLiquidationCluster.estimatedVolume})</div>
+                <div>Long Liq Cluster: <strong className="text-emerald-400">{entryOutput.modules.dLiquidityMap.longLiquidationCluster.priceRange}</strong> ({entryOutput.modules.dLiquidityMap.longLiquidationCluster.estimatedVolume})</div>
+                <div>Open Interest: <strong className="text-white">{entryOutput.modules.dLiquidityMap.openInterest.value}</strong> ({entryOutput.modules.dLiquidityMap.openInterest.trend})</div>
+                <div>Funding Rate: <strong className="text-cyan-300">{entryOutput.modules.dLiquidityMap.fundingRate.rate}</strong> ({entryOutput.modules.dLiquidityMap.fundingRate.annualized} ann.)</div>
+                <div>Futures Basis: <strong className="text-amber-300">{entryOutput.modules.dLiquidityMap.futuresBasis.basis}</strong> ({entryOutput.modules.dLiquidityMap.futuresBasis.status})</div>
+                <div>Squeeze Risk: <strong className="text-rose-300">{entryOutput.modules.dLiquidityMap.squeezeRisk}</strong></div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION E: MICROECONOMIC & ORDER FLOW */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'MICRO') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-cyan-500/30 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>📊</span> SECTION E: MICROECONOMIC & ORDER FLOW
+                </span>
+                <span className="text-[10px] text-cyan-400 font-bold">{entryOutput.modules.eMicroeconomic.bidAskImbalance.dominantSide}</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Spot vs Perps: <strong className="text-white">{entryOutput.modules.eMicroeconomic.spotVsFuturesVolume.spotSharePct}% Spot / {entryOutput.modules.eMicroeconomic.spotVsFuturesVolume.futuresSharePct}% Perps</strong></div>
+                <div>CVD Delta: <strong className="text-cyan-300">{entryOutput.modules.eMicroeconomic.cvdDelta.value}</strong> ({entryOutput.modules.eMicroeconomic.cvdDelta.status})</div>
+                <div>Order Book: <strong className="text-white">{entryOutput.modules.eMicroeconomic.bidAskImbalance.ratio}</strong></div>
+                <div>ETF Net Flows: <strong className="text-emerald-400">{entryOutput.modules.eMicroeconomic.etfFlows.netInflow}</strong></div>
+                <div>Asset Driver: <strong className="text-slate-200">{entryOutput.modules.eMicroeconomic.assetSpecificDriver}</strong></div>
+                <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800">{entryOutput.modules.eMicroeconomic.microstructureVerdict}</div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION F: MACROECONOMIC CALENDAR & IMPACT */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'MACRO') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-emerald-500/30 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>🌐</span> SECTION F: MACROECONOMIC ENGINE
+                </span>
+                <span className="text-[10px] text-emerald-400 font-bold">FED BIAS</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Fed Funds Rate: <strong className="text-white">{entryOutput.modules.fMacroeconomic.fedRateExpectation.currentRate}</strong> ({entryOutput.modules.fMacroeconomic.fedRateExpectation.probability})</div>
+                <div>Inflation (CPI): <strong className="text-amber-300">{entryOutput.modules.fMacroeconomic.inflationCpi.latestCpi}</strong> (Core: {entryOutput.modules.fMacroeconomic.inflationCpi.coreCpi})</div>
+                <div>US 10Y Yield: <strong className="text-cyan-300">{entryOutput.modules.fMacroeconomic.usTreasuryYields.us10y}</strong> (Real Yield: {entryOutput.modules.fMacroeconomic.usTreasuryYields.realYield})</div>
+                <div className="text-[10px] text-slate-300 pt-1 border-t border-slate-800 leading-tight">{entryOutput.modules.fMacroeconomic.transmissionMechanism}</div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION G: GLOBAL MARKETS & CORRELATIONS */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'GLOBAL') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-purple-500/30 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>🌍</span> SECTION G: GLOBAL MARKETS & BETA
+                </span>
+                <span className="text-[10px] text-purple-400 font-bold">DXY: {entryOutput.modules.gGlobalMarkets.dxy.value}</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Dollar Index (DXY): <strong className="text-white">{entryOutput.modules.gGlobalMarkets.dxy.value}</strong> ({entryOutput.modules.gGlobalMarkets.dxy.trend}) ➔ {entryOutput.modules.gGlobalMarkets.dxy.impactOnAsset}</div>
+                <div>US Equities (S&P 500): <strong className="text-cyan-300">{entryOutput.modules.gGlobalMarkets.usEquitiesSp500.trend}</strong> ({entryOutput.modules.gGlobalMarkets.usEquitiesSp500.correlation})</div>
+                <div>VIX Volatility: <strong className="text-amber-300">{entryOutput.modules.gGlobalMarkets.vixVolatility.value}</strong> ({entryOutput.modules.gGlobalMarkets.vixVolatility.regime})</div>
+                <div>Crude Oil (WTI): <strong className="text-white">${entryOutput.modules.gGlobalMarkets.crudeOil.value}</strong> ({entryOutput.modules.gGlobalMarkets.crudeOil.impact})</div>
+                <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800">{entryOutput.modules.gGlobalMarkets.correlationReliability}</div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION H: SOCIOECONOMIC, SENTIMENT & POSITIONING */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'SENTIMENT') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-yellow-500/30 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>🧠</span> SECTION H: SENTIMENT & POSITIONING
+                </span>
+                <span className="text-[10px] text-amber-300 font-bold">{entryOutput.modules.hSocioeconomic.fearAndGreedIndex.label} ({entryOutput.modules.hSocioeconomic.fearAndGreedIndex.score})</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Fear & Greed Index: <strong className="text-amber-400">{entryOutput.modules.hSocioeconomic.fearAndGreedIndex.score} / 100</strong> ({entryOutput.modules.hSocioeconomic.fearAndGreedIndex.label})</div>
+                <div>Retail Margin Positioning: <strong className="text-white">{entryOutput.modules.hSocioeconomic.retailPositioning.longPct}% Long / {entryOutput.modules.hSocioeconomic.retailPositioning.shortPct}% Short</strong> ({entryOutput.modules.hSocioeconomic.retailPositioning.crowdedSide})</div>
+                <div>Market Narrative: <strong className="text-slate-200">{entryOutput.modules.hSocioeconomic.marketNarrative}</strong></div>
+                <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800">{entryOutput.modules.hSocioeconomic.sentimentPriceDivergence}</div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION I: CROSS-MARKET CONFIRMATION */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'CROSS') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-sky-500/30 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>⚖️</span> SECTION I: CROSS-MARKET CONFIRMATION
+                </span>
+                <span className={`text-[10px] font-bold ${entryOutput.modules.iCrossMarket.hasConflict ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {entryOutput.modules.iCrossMarket.hasConflict ? '⚠️ CONFLICT' : '✓ ALIGNED'}
+                </span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>BTC Trend: <strong className="text-white">{entryOutput.modules.iCrossMarket.btcTrend}</strong></div>
+                <div>USDT Dominance: <strong className="text-cyan-300">{entryOutput.modules.iCrossMarket.usdtDominanceValue}%</strong> ({entryOutput.modules.iCrossMarket.usdtDominanceTrend})</div>
+                <div>Dollar Index (DXY): <strong className="text-amber-300">{entryOutput.modules.iCrossMarket.dxyValue}</strong> ({entryOutput.modules.iCrossMarket.dxyTrend})</div>
+                <div>Verdict: <strong className="text-white">{entryOutput.modules.iCrossMarket.dualVerdict}</strong></div>
+                <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800">{entryOutput.modules.iCrossMarket.correlationMechanism}</div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION J: PRECISION ENTRY, SL & TP */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'EXECUTION') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-emerald-500/40 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>🎯</span> SECTION J: PRECISION ENTRY & TARGETS
+                </span>
+                <span className="text-[10px] text-emerald-300 font-black">RRR {entryOutput.modules.jPrecisionEntry.riskRewardRatio}</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Entry Zone: <strong className="text-amber-300">{entryOutput.modules.jPrecisionEntry.entryZone}</strong> (Ideal: ${entryOutput.modules.jPrecisionEntry.idealEntry > 0 ? entryOutput.modules.jPrecisionEntry.idealEntry.toFixed(1) : '—'})</div>
+                <div>Trigger: <strong className="text-white">{entryOutput.modules.jPrecisionEntry.entryTrigger}</strong></div>
+                <div>Structural SL: <strong className="text-rose-400">${entryOutput.modules.jPrecisionEntry.stopLossPrice > 0 ? entryOutput.modules.jPrecisionEntry.stopLossPrice.toFixed(1) : '—'}</strong></div>
+                <div>Targets: TP1: <strong className="text-emerald-400">${entryOutput.modules.jPrecisionEntry.tp1Price > 0 ? entryOutput.modules.jPrecisionEntry.tp1Price.toFixed(1) : '—'}</strong> · TP2: <strong className="text-emerald-400">${entryOutput.modules.jPrecisionEntry.tp2Price > 0 ? entryOutput.modules.jPrecisionEntry.tp2Price.toFixed(1) : '—'}</strong></div>
+                <div>Opposing Liquidity: <strong className="text-cyan-300">{entryOutput.modules.jPrecisionEntry.opposingLiquidity}</strong></div>
+                <div>Timeframe & Risk: <strong className="text-slate-300">{entryOutput.modules.jPrecisionEntry.holdingTimeframe}</strong> ({entryOutput.modules.jPrecisionEntry.eventRisk})</div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION K: CONFIRMATION SCORE & EVIDENCE */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'CONFLUENCE') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-amber-500/40 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>⚡</span> SECTION K: CONFLUENCE SCORE
+                </span>
+                <span className="text-[10px] text-amber-300 font-bold">{entryOutput.modules.kConfirmationScore.score}/100</span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Score: <strong className="text-amber-300">{entryOutput.modules.kConfirmationScore.score}/100</strong> ({entryOutput.modules.kConfirmationScore.qualityLabel})</div>
+                <div>Core Gates: <strong className={entryOutput.modules.kConfirmationScore.coreGatesSatisfied ? 'text-emerald-400' : 'text-amber-400'}>{entryOutput.modules.kConfirmationScore.coreGatesSatisfied ? '✓ Satisfied' : 'Pending Gates'}</strong></div>
+                <div>Missing: <strong className="text-slate-400">{entryOutput.modules.kConfirmationScore.missingConfirmations.length > 0 ? entryOutput.modules.kConfirmationScore.missingConfirmations.join(' · ') : 'None'}</strong></div>
+                <div>Conflicts: <strong className="text-rose-300">{entryOutput.modules.kConfirmationScore.conflictingEvidence.length > 0 ? entryOutput.modules.kConfirmationScore.conflictingEvidence.join(' · ') : 'None'}</strong></div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION L: ACTIVE DECISION & INVALIDATION MONITOR */}
+          {(activeModuleTab === 'ALL' || activeModuleTab === 'MONITOR') && (
+            <div className="bg-[#081224] p-4 rounded-xl border border-sky-500/40 space-y-2 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>🛡️</span> SECTION L: DECISION & INVALIDATION
+                </span>
+                <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${decisionTheme.pill}`}>
+                  {entryOutput.modules.lActiveDecisionMonitor.finalDecision} IDEA (Evidence Only)
+                </span>
+              </div>
+              <div className="space-y-1 text-[11px] text-slate-300 leading-snug">
+                <div>Action: <strong className="text-white underline">{entryOutput.modules.lActiveDecisionMonitor.action}</strong></div>
+                <div>Bias: <strong className="text-amber-300">{entryOutput.modules.lActiveDecisionMonitor.marketBias}</strong></div>
+                <div>Lock: <strong className="text-slate-300">{entryOutput.modules.lActiveDecisionMonitor.isSignalLocked ? '🔒 Locked State' : '🔓 Dynamic Live'}</strong></div>
+                <div>Invalidation Condition: <strong className="text-rose-300">{entryOutput.modules.lActiveDecisionMonitor.invalidationCondition}</strong></div>
+                <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800">
+                  Risk #1: {entryOutput.modules.lActiveDecisionMonitor.whatCanGoWrong[0]}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ────────────────── 8. MODULE 18 SIMPLE HINGLISH INSTITUTIONAL EXPLANATION ────────────────── */}
+      <section className="bg-gradient-to-r from-[#0d162d] via-[#091124] to-[#060a14] p-5 rounded-2xl border border-amber-500/40 space-y-4 shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
           <div className="flex items-center gap-2">
             <span className="text-xl">🎙️</span>
-            <h3 className="text-sm sm:text-base font-extrabold text-white uppercase tracking-wider font-mono">
-              SIMPLE HINGLISH INSTITUTIONAL EXPLANATION (आसान भाषा में मार्केट विश्लेषण)
-            </h3>
+            <div>
+              <h3 className="text-sm sm:text-base font-extrabold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                <span>MODULE 18 — SIMPLE HINGLISH INSTITUTIONAL VERDICT</span>
+                <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30 font-bold">
+                  आसान भाषा में 5 मुख्य सवाल
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 font-mono">
+                Institutional Analysis Made Simple · Evidence-Driven Q&A
+              </p>
+            </div>
           </div>
-          <span className="text-xs font-mono text-cyan-300">Evidence-Driven · Clear Q&A</span>
+          <span className="text-xs font-mono font-bold text-amber-300">
+            FINAL DECISION: {entryOutput.finalDecision}
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
-          <div className="p-3 rounded-xl bg-[#040814] border border-slate-800 space-y-1">
-            <span className="text-cyan-300 font-bold block">1. Abhi market kya kar raha hai?</span>
-            <p className="text-slate-200 leading-relaxed">
-              Price <strong>${livePrice.toFixed(1)}</strong> par trade kar rahi hai. Higher timeframe bias <strong>{entryOutput.marketBias}</strong> hai aur regime <strong>{entryOutput.marketRegime}</strong> sequence show kar raha hai.
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs font-mono">
+          {/* QUESTION 1: WHY THIS DECISION WAS SELECTED */}
+          <div className="p-3.5 rounded-xl bg-[#040814] border border-cyan-500/30 space-y-1.5 shadow-md">
+            <span className="text-cyan-300 font-bold block text-[13px] flex items-center gap-1.5">
+              <span>❓</span> 1. Ye decision (LONG/SHORT/WAIT) kyun select kiya gaya?
+            </span>
+            <p className="text-slate-200 leading-relaxed text-[11px]">
+              {entryOutput.hinglishSummary.whyDecisionSelected}
             </p>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#040814] border border-slate-800 space-y-1">
-            <span className="text-cyan-300 font-bold block">2. USDT.D kya indicate kar raha hai?</span>
-            <p className="text-slate-200 leading-relaxed">
-              USDT dominance <strong>{usdtDominance}%</strong> par hai aur trend <strong>{usdtTrend}</strong> hai. Iska matlab hai stablecoins se crypto assets ki taraf capital flow stable/positive hai.
+          {/* QUESTION 2: WHY THE OPPOSITE DIRECTION WAS REJECTED */}
+          <div className="p-3.5 rounded-xl bg-[#040814] border border-rose-500/30 space-y-1.5 shadow-md">
+            <span className="text-rose-300 font-bold block text-[13px] flex items-center gap-1.5">
+              <span>🚫</span> 2. Opposite direction kyun reject kiya gaya?
+            </span>
+            <p className="text-slate-200 leading-relaxed text-[11px]">
+              {entryOutput.hinglishSummary.whyOppositeRejected}
             </p>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#040814] border border-slate-800 space-y-1">
-            <span className="text-cyan-300 font-bold block">3. BTC independently kya indicate kar raha hai?</span>
-            <p className="text-slate-200 leading-relaxed">
-              BTC structure <strong>{entryOutput.setupType}</strong> form kar raha hai. Key demand zone aur liquidity levels hold kar rahe hain without premature breakdown.
+          {/* QUESTION 3: WHAT MUST HAPPEN NEXT */}
+          <div className="p-3.5 rounded-xl bg-[#040814] border border-emerald-500/30 space-y-1.5 shadow-md">
+            <span className="text-emerald-300 font-bold block text-[13px] flex items-center gap-1.5">
+              <span>⏳</span> 3. Aage trade lene ke liye kya hona zaroori hai?
+            </span>
+            <p className="text-slate-200 leading-relaxed text-[11px]">
+              {entryOutput.hinglishSummary.whatMustHappenNext}
             </p>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#040814] border border-slate-800 space-y-1">
-            <span className="text-cyan-300 font-bold block">4. Dono confirm kar rahe hain ya conflict?</span>
-            <p className="text-slate-200 leading-relaxed">
-              Intermarket status <strong>{relationshipVerdict}</strong> hai. Koi broad-scale divergence nahi hai, moves synchronized hain.
+          {/* QUESTION 4: WHICH EXACT CONDITION CHANGES THE THESIS */}
+          <div className="p-3.5 rounded-xl bg-[#040814] border border-amber-500/30 space-y-1.5 shadow-md">
+            <span className="text-amber-300 font-bold block text-[13px] flex items-center gap-1.5">
+              <span>🛑</span> 4. Kaunsi condition thesis ko badal/invalidate karegi?
+            </span>
+            <p className="text-slate-200 leading-relaxed text-[11px]">
+              {entryOutput.hinglishSummary.whichConditionChangesThesis}
             </p>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#040814] border border-slate-800 space-y-1">
-            <span className="text-cyan-300 font-bold block">5. BTC ke upar aur neeche important levels kya hain?</span>
-            <p className="text-slate-200 leading-relaxed">
-              Upar Targets: <strong>TP1: ${entryOutput.tp1Price > 0 ? entryOutput.tp1Price.toFixed(1) : '—'}</strong>, <strong>TP2: ${entryOutput.tp2Price > 0 ? entryOutput.tp2Price.toFixed(1) : '—'}</strong>. Neeche Invalidation/SL: <strong>${entryOutput.stopLossPrice > 0 ? entryOutput.stopLossPrice.toFixed(1) : '—'}</strong>.
-            </p>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#040814] border border-slate-800 space-y-1">
-            <span className="text-cyan-300 font-bold block">6. Entry abhi valid hai ya WAIT?</span>
-            <p className="text-slate-200 leading-relaxed">
-              Current status <strong>{entryOutput.finalDecision}</strong> hai ({entryOutput.action}). Minimum acceptable R:R 1:1.3 se 1:1.4 confirm hona zaroori hai.
+          {/* QUESTION 5: WHETHER CURRENT PRICE IS SUITABLE FOR ENTRY */}
+          <div className="p-3.5 rounded-xl bg-[#040814] border border-purple-500/30 space-y-1.5 shadow-md md:col-span-2 lg:col-span-2">
+            <span className="text-purple-300 font-bold block text-[13px] flex items-center gap-1.5">
+              <span>🎯</span> 5. Kya current market price par enter karna suitable hai?
+            </span>
+            <p className="text-slate-200 leading-relaxed text-[11px]">
+              {entryOutput.hinglishSummary.isCurrentPriceSuitable}
             </p>
           </div>
         </div>
       </section>
 
-      {/* ────────────────── 8. SECTION 11 / SECTION 20 EXACT TEXT PANEL (IF SELECTED) ────────────────── */}
-      {(viewMode === 'SECTION11_TEXT' || viewMode === 'SECTION20_TEXT') && (
+      {/* ────────────────── 9. VERBATIM REPORTS PANEL (MODULE 18 / SECTION 11 / SECTION 20) ────────────────── */}
+      {(viewMode === 'MODULE18_TEXT' || viewMode === 'SECTION11_TEXT' || viewMode === 'SECTION20_TEXT') && (
         <section className="rounded-2xl border-2 border-amber-500/50 bg-[#060b17] p-5 shadow-2xl space-y-4 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2">
               <span className="text-xl">📜</span>
               <h2 className="text-base sm:text-lg font-black text-white font-mono">
-                {viewMode === 'SECTION11_TEXT'
+                {viewMode === 'MODULE18_TEXT'
+                  ? 'DEEEPR AI — MODULE 18 MASTER VERDICT (VERBATIM REPORT)'
+                  : viewMode === 'SECTION11_TEXT'
                   ? 'DEEEPR AI — FINAL DECISION (SECTION 11 VERBATIM REPORT)'
                   : 'DEEEPR AI — PRECISION ENTRY (SECTION 20 VERBATIM REPORT)'}
               </h2>
@@ -1265,7 +1634,9 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
           </div>
 
           <pre className="p-4 rounded-xl bg-[#03060f] border border-slate-800 text-slate-200 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto whitespace-pre-wrap select-all">
-            {viewMode === 'SECTION11_TEXT'
+            {viewMode === 'MODULE18_TEXT'
+              ? entryOutput.verbatimModule18Format
+              : viewMode === 'SECTION11_TEXT'
               ? entryOutput.verbatimInstitutionalReport
               : entryOutput.verbatimSection20Panel}
           </pre>

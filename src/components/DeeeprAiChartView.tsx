@@ -32,6 +32,8 @@ import {
   FullIntermarketRadarState,
   IntermarketTradeSetup
 } from '../services/intermarketConfluenceEngine';
+import { ComputedSyncBadge } from './ComputedSyncBadge';
+import { masterVerdictStore, formatPrice, formatPriceWithDollar } from '../services/masterVerdictStore';
 
 export type AssetTradingPlan = UnifiedTradingSignal;
 
@@ -364,7 +366,7 @@ export const DeeeprAiChartView: React.FC = () => {
             lineWidth: 2,
             lineStyle: LineStyle.Dashed,
             axisLabelVisible: true,
-            title: '🚀 15M RESISTANCE (102.85): Dollar Reject ➔ BUY GOLD SPOT'
+            title: '🚀 15M RESISTANCE (102.85): Dollar Reject ➔ Gold Bullish Confluence'
           }),
           series.createPriceLine({
             price: 101.90,
@@ -372,7 +374,7 @@ export const DeeeprAiChartView: React.FC = () => {
             lineWidth: 2,
             lineStyle: LineStyle.Dashed,
             axisLabelVisible: true,
-            title: '🛑 15M SUPPORT (101.90): Dollar Bounce ➔ SELL GOLD SPOT'
+            title: '🛑 15M SUPPORT (101.90): Dollar Bounce ➔ Gold Bearish Confluence'
           }),
           series.createPriceLine({
             price: 102.35,
@@ -1854,26 +1856,27 @@ export const DeeeprAiChartView: React.FC = () => {
   const winRate = totalCompletedTrades > 0 ? Math.round((totalWins / totalCompletedTrades) * 100) : 100;
 
   return (
-    <div className="w-full space-y-4 font-sans text-slate-100 bg-[#050a14] min-h-screen p-3 sm:p-5 rounded-2xl border border-[#1e293b] shadow-2xl">
+    <div className="w-full space-y-5 font-sans text-slate-100 magical-midnight-bg min-h-screen p-3 sm:p-6 rounded-2xl border-2 border-amber-500/30 shadow-2xl">
       {/* ────────────────── TOP NAVIGATION & ACTIONS BAR ────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#081020] p-3 sm:p-4 rounded-xl border border-[#1e293b]">
+      <div className="panel-gold-glow bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] p-4 sm:p-5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4">
         {/* Brand & Live WebSocket Chip */}
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center text-xl shadow-lg shadow-cyan-500/25">
-            ⚡
+        <div className="flex items-center gap-3.5">
+          <div className="size-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-600 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 border border-amber-400/50">
+            📈
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-black tracking-wide text-white">
-                DEEEPR.AI™ INSTITUTIONAL SNIPER TERMINAL
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-base sm:text-xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 flex items-center gap-2">
+                <span>⚡</span>
+                <span>DEEEPR.AI™ INSTITUTIONAL SNIPER COPILOT TERMINAL</span>
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-500/20">
                 <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
                 {wsStatus === 'LIVE' ? '0-MS BINANCE WEBSOCKET LIVE' : 'CONNECTING LIVE STREAM...'}
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Auto-Cycle Trade Engine · Automatically Provides Next Dynamic Setup on TP / SL Hit
+            <p className="text-xs sm:text-sm text-slate-300 mt-0.5 leading-relaxed">
+              Auto-Cycle Trade Engine · Automatically Provides Next Dynamic Setup on TP / SL Hit · 11-Factor Institutional Confluence
             </p>
           </div>
         </div>
@@ -1894,10 +1897,10 @@ export const DeeeprAiChartView: React.FC = () => {
           <a
             href="#deeepr-decision-engine"
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-black bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white border border-cyan-400/50 hover:brightness-125 shadow-md shadow-cyan-950/40 transition-all cursor-pointer"
-            title="Open DEEEPR AI Institutional Market Decision Engine (Section 30 Report & Signal Lock)"
+            title="Open DEEEPR Decision Engine v4 (Location-First Master Arbiter & Strict Risk Gates)"
           >
             <span>🏛️</span>
-            <span>DEEEPR Decision Engine (30 Rules) ⭐</span>
+            <span>DEEEPR Decision Engine v4 (Location-First) ⭐</span>
           </a>
 
           {/* Direct Switcher to AI Sniper Chart (Long/Short 11-Factors) */}
@@ -1920,10 +1923,40 @@ export const DeeeprAiChartView: React.FC = () => {
             <span>AI Chart Analyse ⭐</span>
           </a>
 
+          {/* Direct Switcher to Gold Why Engine */}
+          <a
+            href="#deeepr-gold-entry-engine"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-600/30 via-yellow-600/30 to-amber-700/30 border border-amber-500/50 text-amber-200 hover:brightness-125 shadow-sm transition-all cursor-pointer"
+            title="Open DEEEPR Gold Entry & Reason Engine (Why Engine)"
+          >
+            <span>🥇</span>
+            <span>Gold Why Engine</span>
+          </a>
+
+          {/* Direct Switcher to Volume Profile Scanner */}
+          <a
+            href="#deeepr-volume-profile-scanner"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-teal-600/30 via-cyan-600/30 to-emerald-700/30 border border-teal-500/50 text-teal-200 hover:brightness-125 shadow-sm transition-all cursor-pointer"
+            title="Open DEEEPR Volume Profile Confluence Scanner v1"
+          >
+            <span>📊</span>
+            <span>VP Scanner</span>
+          </a>
+
+          {/* Direct Switcher to Auto-Fibonacci Golden Zone Engine */}
+          <a
+            href="#deeepr-auto-fibonacci"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-yellow-600/30 via-amber-600/30 to-orange-700/30 border border-yellow-500/50 text-yellow-200 hover:brightness-125 shadow-sm transition-all cursor-pointer"
+            title="Open DEEEPR Auto-Fibonacci + Golden Zone Engine v1"
+          >
+            <span>📐</span>
+            <span>Auto-Fib Golden Zone</span>
+          </a>
+
           {/* Locked Confirmed Single Trade Setup Badge (No Flip-Flops) */}
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 shadow-sm">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 shadow-sm">
             <span>🛡️</span>
-            <span>SINGLE DEFINITIVE SETUP · 100% STABLE</span>
+            <span>SINGLE MASTER VERDICT · UNPROVEN (n=0)</span>
           </span>
 
           {/* Sensitivity */}
@@ -2091,98 +2124,99 @@ export const DeeeprAiChartView: React.FC = () => {
         </div>
       )}
 
-      {/* ────────────────── 🚨 AI TRADE DECISION HERO CARD (AUTOMATIC SHORT / LONG / WAIT) ────────────────── */}
+      {/* ────────────────── AI TRADE DECISION HERO CARD (SHORT / LONG / WAIT) ────────────────── */}
       <div
-        className={`p-4 sm:p-5 rounded-2xl border-2 shadow-xl space-y-4 transition-all ${
+        className={`rounded-2xl p-4 sm:p-6 transition-all shadow-2xl ${
           plan.decision === 'WAIT'
-            ? 'bg-gradient-to-r from-[#171407] via-[#120f06] to-[#081024] border-amber-500/40 shadow-amber-950/30'
+            ? 'panel-gold-glow bg-gradient-to-br from-[#120e06] via-[#0d162c] to-[#090d18]'
             : plan.decision === 'SHORT'
-            ? 'bg-gradient-to-r from-[#170712] via-[#100618] to-[#081024] border-rose-500/40 shadow-rose-950/30'
-            : 'bg-gradient-to-r from-[#051812] via-[#081820] to-[#081024] border-emerald-500/40 shadow-emerald-950/30'
+            ? 'panel-rose-glow bg-gradient-to-br from-[#180812] via-[#0d162c] to-[#090d18]'
+            : 'panel-emerald-glow bg-gradient-to-br from-[#061814] via-[#0d162c] to-[#090d18]'
         }`}
       >
         {/* Market Decision Top Meta Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono uppercase tracking-wider text-[#7c8699] border-b border-white/10 pb-2.5">
           <div className="flex items-center gap-2">
-            <span className="text-cyan-400 font-black">⚡ DEEEPR AI — MARKET DECISION</span>
-            <span className="text-slate-600">|</span>
-            <span>REGIME: <strong className="text-white">{plan.regime || 'Consolidation'}</strong></span>
+            <span className="text-amber-400 font-bold flex items-center gap-1.5">
+              <span>🏛️</span>
+              <span>DEEEPR AI DECISION ENGINE</span>
+            </span>
+            <span className="text-white/20">|</span>
+            <span>Regime: <strong className="text-[#e8ecf4] font-medium">{plan.regime || 'Consolidation'}</strong></span>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <span>LONG SCORE: <strong className="text-emerald-400">{plan.longScore || 0}/100</strong></span>
-            <span>SHORT SCORE: <strong className="text-rose-400">{plan.shortScore || 0}/100</strong></span>
-            <span className="hidden sm:inline-block px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-bold">CONFIRMATION-FIRST</span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
-              <span>🌊</span>
-              <span>15M INTERMARKET: USDT.D {intermarketRadar.usdtD.currentValue}% ({intermarketRadar.usdtD.timeframe15m.currentPosition === 'AT_SUPPORT' ? 'Support' : intermarketRadar.usdtD.timeframe15m.currentPosition === 'AT_RESISTANCE' ? 'Resistance' : 'Chop'}) · DXY {intermarketRadar.dxy.currentValue} ({intermarketRadar.dxy.timeframe15m.currentPosition === 'AT_RESISTANCE' ? 'Resistance' : intermarketRadar.dxy.timeframe15m.currentPosition === 'AT_SUPPORT' ? 'Support' : 'Chop'})</span>
+            <span>Long Score: <strong className="text-emerald-400 font-bold">{plan.longScore || 0}/100</strong></span>
+            <span>Short Score: <strong className="text-rose-400 font-bold">{plan.shortScore || 0}/100</strong></span>
+            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">Confirmation-First</span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
+              <span>USDT.D {intermarketRadar.usdtD.currentValue}% · DXY {intermarketRadar.dxy.currentValue}</span>
             </span>
           </div>
         </div>
 
         {/* Signal & Live Price Row */}
         <div
-          className={`flex flex-wrap items-center justify-between gap-3 border-b pb-3 ${
-            plan.decision === 'WAIT'
-              ? 'border-amber-500/20'
-              : plan.decision === 'SHORT'
-              ? 'border-rose-500/20'
-              : 'border-emerald-500/20'
-          }`}
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 py-3"
         >
           <div className="flex items-center gap-3">
-            <span className="relative flex size-4">
+            <span className="relative flex size-2.5">
               <span
-                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                className={`relative inline-flex rounded-full size-2.5 ${
                   plan.decision === 'WAIT'
-                    ? 'bg-amber-400'
+                    ? 'bg-[#e8b04a]'
                     : plan.decision === 'SHORT'
-                    ? 'bg-rose-400'
-                    : 'bg-emerald-400'
-                }`}
-              ></span>
-              <span
-                className={`relative inline-flex rounded-full size-4 ${
-                  plan.decision === 'WAIT'
-                    ? 'bg-amber-500'
-                    : plan.decision === 'SHORT'
-                    ? 'bg-rose-500'
-                    : 'bg-emerald-500'
+                    ? 'bg-[#f0616d]'
+                    : 'bg-[#2ebd85]'
                 }`}
               ></span>
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`text-xl sm:text-2xl font-black tracking-tight ${
-                    plan.decision === 'WAIT'
-                      ? 'text-amber-400'
-                      : plan.decision === 'SHORT'
-                      ? 'text-rose-400'
-                      : 'text-emerald-400'
+                  className={`text-lg sm:text-xl font-black tracking-tight ${
+                    plan.masterVerdict
+                      ? (plan.masterVerdict.state === 'LONG'
+                          ? 'text-[#2ebd85]'
+                          : plan.masterVerdict.state === 'SHORT'
+                          ? 'text-[#f0616d]'
+                          : plan.masterVerdict.state === 'ARMED-LONG'
+                          ? 'text-[#5b8cff]'
+                          : plan.masterVerdict.state === 'ARMED-SHORT'
+                          ? 'text-[#a78bfa]'
+                          : 'text-[#e8b04a]')
+                      : (plan.decision === 'WAIT'
+                          ? 'text-[#e8b04a]'
+                          : plan.decision === 'SHORT'
+                          ? 'text-[#f0616d]'
+                          : 'text-[#2ebd85]')
                   }`}
                 >
-                  {plan.decision === 'WAIT'
-                    ? '🟡 FINAL: WAIT SETUP (NO TRADE ZONE)'
+                  {plan.status === 'SL_HIT' || plan.decision === 'WAIT' || plan.masterVerdict?.state === 'WAIT'
+                    ? 'Wait setup (Capital preserved)'
+                    : plan.masterVerdict?.state === 'ARMED-LONG'
+                    ? 'Armed Long (Location valid · Trigger pending)'
+                    : plan.masterVerdict?.state === 'ARMED-SHORT'
+                    ? 'Armed Short (Location valid · Trigger pending)'
                     : plan.decision === 'SHORT'
-                    ? '🔴 FINAL: SHORT SETUP (MARKET IS GOING DOWN)'
-                    : '🟢 FINAL: LONG SETUP (MARKET IS GOING UP)'}
+                    ? 'Short setup (Market down)'
+                    : 'Long setup (Market up)'}
                 </span>
 
                 <span
-                  className={`px-2 py-0.5 rounded font-black text-xs border ${
-                    plan.decision === 'WAIT'
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  className={`px-2 py-0.5 rounded font-semibold text-[11px] tabular-nums ${
+                    plan.status === 'SL_HIT' || plan.decision === 'WAIT'
+                      ? 'bg-[#e8b04a]/12 text-[#e8b04a] border border-[#e8b04a]/25'
                       : plan.decision === 'SHORT'
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                      ? 'bg-[#f0616d]/12 text-[#f0616d] border border-[#f0616d]/25'
+                      : 'bg-[#2ebd85]/12 text-[#2ebd85] border border-[#2ebd85]/25'
                   }`}
                 >
-                  {plan.convictionPct}% CONFIDENCE
+                  {plan.status === 'SL_HIT' || plan.decision === 'WAIT' ? (plan.masterVerdict?.scores?.readiness || 48) : plan.convictionPct}% {plan.status === 'SL_HIT' || plan.decision === 'WAIT' ? 'Readiness' : 'Confidence'}
                 </span>
 
                 {plan.status === 'SL_HIT' ? (
-                  <span className="px-2.5 py-0.5 rounded font-black text-xs bg-rose-500/25 text-rose-300 border border-rose-500/50 animate-pulse">
-                    🛑 STOP LOSS HIT — CAPITAL STRICTLY PROTECTED
+                  <span className="px-2 py-0.5 rounded font-medium text-[11px] bg-white/5 text-[#a7b0c3] border border-white/10">
+                    Stopped out · Trade #{plan.tradeNumber} closed at SL · Cooldown active (4 candles)
                   </span>
                 ) : plan.status === 'MISSED_ENTRY' ? (
                   <span className="px-2.5 py-0.5 rounded font-black text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40">
@@ -2198,17 +2232,30 @@ export const DeeeprAiChartView: React.FC = () => {
                   </span>
                 )}
               </div>
+              {plan.masterVerdict && (
+                <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] font-mono">
+                  <span className="px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/40 text-cyan-300">
+                    Location Range p: {plan.masterVerdict.location.range_position_p.toFixed(2)} ({plan.masterVerdict.location.range_position_p <= 0.40 ? 'Discount' : plan.masterVerdict.location.range_position_p >= 0.60 ? 'Premium' : 'Mid-Range No-Trade'})
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300">
+                    Opposing Room: {plan.masterVerdict.location.room_to_opposing_R}R
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-purple-950/50 border border-purple-500/40 text-purple-300">
+                    Ledger: {plan.masterVerdict.scores.confidence_basis}
+                  </span>
+                </div>
+              )}
               <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
                 {plan.status === 'SL_HIT'
-                  ? `Trade #${plan.tradeNumber} ka Stop Loss $${plan.stopLossPrice.toLocaleString()} USD touch ho gaya hai. Rules ke mutabiq Stop Loss ko kabhi niche nahi khiskaya jayega. Capital strictly safe hai!`
+                  ? `Trade #${plan.tradeNumber} ka Stop Loss touch hone ke baad position safely close ho chuki hai. Engine naye closed-candle trigger ke liye WAIT mode me hai (Capital Strictly Safe).`
                   : plan.hindiExplanation}
               </p>
             </div>
           </div>
 
           {/* Real-Time Live Price Pill */}
-          <div className="flex items-center gap-2.5 bg-[#040814] px-4 py-2 rounded-xl border border-[#1e293b]">
-            <span className="text-xs text-slate-400 font-medium">
+          <div className="flex items-center gap-2.5 bg-[#040814] px-4 py-2 rounded-xl border border-amber-400/40 shadow-md">
+            <span className="text-xs text-slate-300 font-medium">
               {selectedSymbol === 'USDTD'
                 ? 'USDT.D Dominance:'
                 : selectedSymbol === 'DXY'
@@ -2221,7 +2268,7 @@ export const DeeeprAiChartView: React.FC = () => {
                   ? 'text-emerald-400'
                   : priceFlash === 'down'
                   ? 'text-rose-400'
-                  : 'text-white'
+                  : 'text-amber-300'
               }`}
             >
               {selectedSymbol === 'USDTD'
@@ -2243,11 +2290,11 @@ export const DeeeprAiChartView: React.FC = () => {
         </div>
 
         {/* 6 Big Bold Clean Level Cards with Live Progress Status */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
           {/* Entry */}
-          <div className="bg-[#0c1426] p-3 rounded-xl border border-amber-400/40">
+          <div className="panel-gold-glow bg-gradient-to-br from-[#120e06] to-[#090d18] p-3.5 rounded-xl">
             <span className="text-[10px] uppercase font-bold text-amber-300 block">🎯 SNIPER ENTRY</span>
-            <span className="text-sm sm:text-base font-extrabold text-white block mt-0.5 tabular-nums">
+            <span className="text-sm sm:text-base font-extrabold text-amber-200 block mt-0.5 tabular-nums">
               {plan.decision === 'WAIT' ? 'Awaiting Key Level' : plan.entryZone}
             </span>
             <span className="text-[10px] text-slate-400">
@@ -2258,7 +2305,7 @@ export const DeeeprAiChartView: React.FC = () => {
           </div>
 
           {/* Stop Loss */}
-          <div className="bg-[#1a0812] p-3 rounded-xl border border-rose-500/50">
+          <div className="panel-rose-glow bg-gradient-to-br from-[#180812] to-[#090d18] p-3.5 rounded-xl">
             <span className="text-[10px] uppercase font-bold text-rose-400 block">🛑 STOP LOSS (SL)</span>
             <span className="text-sm sm:text-base font-extrabold text-rose-300 block mt-0.5 tabular-nums">
               {plan.decision === 'WAIT' || plan.stopLossPrice === 0
@@ -2272,10 +2319,10 @@ export const DeeeprAiChartView: React.FC = () => {
 
           {/* TP1 */}
           <div
-            className={`p-3 rounded-xl border transition-all ${
+            className={`p-3.5 rounded-xl transition-all ${
               isTp1Achieved
-                ? 'bg-[#04281e] border-emerald-400 shadow-md shadow-emerald-500/20'
-                : 'bg-[#061814] border-emerald-500/40'
+                ? 'panel-emerald-glow bg-gradient-to-br from-[#06241a] to-[#041d16]'
+                : 'panel-emerald-glow bg-gradient-to-br from-[#061814] to-[#090d18]'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -2293,17 +2340,17 @@ export const DeeeprAiChartView: React.FC = () => {
             </span>
             <span className="text-[10px] text-emerald-400 font-semibold">
               {plan.decision === 'WAIT'
-                ? 'Target: ~2,000 pts (4H Structural Liquidity Pool Sweep)'
-                : `+${Math.round(Math.abs(plan.targetTp1 - plan.entryPrice)).toLocaleString()} pts · 4H Liquidity Pool Sweep (High Probability)`}
+                ? 'Target: ~2,000 pts (4H Structural Liquidity Sweep)'
+                : `+${Math.round(Math.abs(plan.targetTp1 - plan.entryPrice)).toLocaleString()} pts · 4H Liquidity Pool Sweep`}
             </span>
           </div>
 
           {/* TP2 */}
           <div
-            className={`p-3 rounded-xl border transition-all ${
+            className={`p-3.5 rounded-xl transition-all ${
               isTp2Achieved
-                ? 'bg-[#04281e] border-emerald-400 shadow-md shadow-emerald-500/20'
-                : 'bg-[#061814] border-emerald-500/40'
+                ? 'panel-emerald-glow bg-gradient-to-br from-[#06241a] to-[#041d16]'
+                : 'panel-emerald-glow bg-gradient-to-br from-[#061814] to-[#090d18]'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -2321,17 +2368,17 @@ export const DeeeprAiChartView: React.FC = () => {
             </span>
             <span className="text-[10px] text-emerald-400 font-semibold">
               {plan.decision === 'WAIT'
-                ? 'Target: ~2,500 pts (Order Block Rebalance & FVG Tap)'
-                : `+${Math.round(Math.abs(plan.targetTp2 - plan.entryPrice)).toLocaleString()} pts · Structural Order Block Rebalance`}
+                ? 'Target: ~2,500 pts (Order Block Rebalance)'
+                : `+${Math.round(Math.abs(plan.targetTp2 - plan.entryPrice)).toLocaleString()} pts · Order Block Rebalance`}
             </span>
           </div>
 
           {/* TP3 */}
           <div
-            className={`p-3 rounded-xl border transition-all ${
+            className={`p-3.5 rounded-xl transition-all ${
               isTp3Achieved
-                ? 'bg-[#04281e] border-emerald-400 shadow-md shadow-emerald-500/20'
-                : 'bg-[#061814] border-emerald-500/40'
+                ? 'panel-emerald-glow bg-gradient-to-br from-[#06241a] to-[#041d16]'
+                : 'panel-emerald-glow bg-gradient-to-br from-[#061814] to-[#090d18]'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -2349,56 +2396,59 @@ export const DeeeprAiChartView: React.FC = () => {
             </span>
             <span className="text-[10px] text-emerald-400 font-semibold">
               {plan.decision === 'WAIT'
-                ? 'Target: ~3,000 pts (Multi-Day Macro Range Expansion)'
-                : `+${Math.round(Math.abs(plan.targetTp3 - plan.entryPrice)).toLocaleString()} pts · Multi-Day Macro Range Expansion Runner`}
+                ? 'Target: ~3,000 pts (Macro Range Expansion)'
+                : `+${Math.round(Math.abs(plan.targetTp3 - plan.entryPrice)).toLocaleString()} pts · Macro Runner`}
             </span>
           </div>
 
           {/* R:R Ratio */}
-          <div className="bg-[#0a162e] p-3 rounded-xl border border-cyan-500/40">
+          <div className="panel-cyan-glow bg-gradient-to-br from-[#0a162e] to-[#090d18] p-3.5 rounded-xl">
             <span className="text-[10px] uppercase font-bold text-cyan-300 block">⚖️ REWARD : RISK</span>
             <span className="text-sm sm:text-base font-black text-cyan-200 block mt-0.5">
               {plan.decision === 'WAIT' ? '—' : plan.rewardToRisk}
             </span>
-            <span className="text-[10px] text-slate-400">High-Probability Asymmetry</span>
+            <span className="text-[10px] text-slate-400">Institutional Asymmetric Structure</span>
           </div>
         </div>
 
         {/* ─── 🧭 MOMENTUM CAPTURE MATRIX (KAHAN LONG KAREIN | KAHAN SHORT KAREIN | KAHAN WAIT KAREIN) ─── */}
-        <div className="bg-[#040814] p-3.5 sm:p-4 rounded-xl border border-cyan-500/30 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-cyan-400 text-sm">🎯</span>
-              <h3 className="text-xs sm:text-sm font-black text-white tracking-wide">
-                MARKET MOMENTUM ROADMAP: KAHAN LONG KAREIN · KAHAN SHORT KAREIN · KAHAN WAIT KAREIN
-              </h3>
+        <div className="panel-cyan-glow bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] p-4 sm:p-5 rounded-2xl space-y-4 shadow-xl">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-500/30 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">🧭</span>
+              <div>
+                <h3 className="text-xs sm:text-base font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-400">
+                  MARKET MOMENTUM ROADMAP: KAHAN LONG KAREIN · KAHAN SHORT KAREIN · KAHAN WAIT KAREIN
+                </h3>
+                <p className="text-[11px] text-slate-300">Deterministic Institutional Boundary Planning · Zero Ambiguity</p>
+              </div>
             </div>
-            <span className="text-[10px] font-mono text-slate-400">
-              Live Reference: <strong className="text-cyan-300">${Math.round(livePrice).toLocaleString()} USD</strong>
+            <span className="text-xs font-mono text-slate-300 bg-slate-900/80 px-3 py-1 rounded-full border border-cyan-500/40">
+              Live Reference: <strong className="text-cyan-300 font-bold">${Math.round(livePrice).toLocaleString()} USD</strong>
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
             {/* 1. LONG STRATEGY */}
             <div
-              className={`p-3 rounded-xl border transition-all ${
+              className={`p-4 rounded-xl transition-all ${
                 plan.decision === 'LONG'
-                  ? 'bg-[#06241a] border-emerald-400 shadow-md shadow-emerald-500/20'
-                  : 'bg-[#081420] border-emerald-500/30 hover:border-emerald-400/70'
+                  ? 'panel-emerald-glow bg-gradient-to-br from-[#06241a] to-[#041d16]'
+                  : 'panel-emerald-glow bg-gradient-to-br from-[#081420] to-[#090d18] hover:border-emerald-400/90'
               }`}
             >
-              <div className="flex items-center justify-between pb-1.5 border-b border-emerald-500/20">
+              <div className="flex items-center justify-between pb-2 border-b border-emerald-500/30">
                 <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
                   <span>🟢</span>
                   <span>KAHAN LONG KAREIN</span>
                 </span>
-                <span className="text-[10px] font-mono text-emerald-300 font-bold">
+                <span className="text-xs font-mono text-emerald-300 font-bold">
                   Target: ${plan.momentumLevels?.longTp3.toLocaleString() || '—'}
                 </span>
               </div>
-              <div className="text-[11px] text-slate-300 mt-2 space-y-1">
+              <div className="text-[11px] text-slate-200 mt-2.5 space-y-1.5">
                 <p>
-                  <strong className="text-white">Trigger:</strong> ${plan.momentumLevels?.longTriggerPrice.toLocaleString() || '—'} ke upar confirmed breakout ya demand bounce.
+                  <strong className="text-emerald-300">Trigger:</strong> ${plan.momentumLevels?.longTriggerPrice.toLocaleString() || '—'} ke upar confirmed breakout ya demand bounce.
                 </p>
                 <p>
                   <strong className="text-white">Strict SL:</strong> ${plan.momentumLevels?.longSl.toLocaleString() || '—'} (Below Support Floor)
@@ -2407,31 +2457,31 @@ export const DeeeprAiChartView: React.FC = () => {
                   TP1: ${plan.momentumLevels?.longTp1.toLocaleString()} (+{Math.round(Math.abs((plan.momentumLevels?.longTp1 || livePrice) - (plan.momentumLevels?.longTriggerPrice || livePrice))).toLocaleString()} pts) | TP2: ${plan.momentumLevels?.longTp2.toLocaleString()} | TP3: ${plan.momentumLevels?.longTp3.toLocaleString()} (Min 1.4+ RRR)
                 </p>
               </div>
-              <div className="mt-2.5 w-full py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+              <div className="mt-3 w-full py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-emerald-500/50 bg-emerald-500/20 text-emerald-300 shadow-sm">
                 <span>{plan.decision === 'LONG' ? '🟢 THIS TRADE IS ACTIVE NOW (LONG)' : '🤖 AI Auto-Breakout Armed'}</span>
               </div>
             </div>
 
             {/* 2. SHORT STRATEGY */}
             <div
-              className={`p-3 rounded-xl border transition-all ${
+              className={`p-4 rounded-xl transition-all ${
                 plan.decision === 'SHORT'
-                  ? 'bg-[#260814] border-rose-400 shadow-md shadow-rose-500/20'
-                  : 'bg-[#180816] border-rose-500/30'
+                  ? 'panel-rose-glow bg-gradient-to-br from-[#260814] to-[#180812]'
+                  : 'panel-rose-glow bg-gradient-to-br from-[#180816] to-[#090d18]'
               }`}
             >
-              <div className="flex items-center justify-between pb-1.5 border-b border-rose-500/20">
+              <div className="flex items-center justify-between pb-2 border-b border-rose-500/30">
                 <span className="text-xs font-black text-rose-400 flex items-center gap-1.5">
                   <span>🔴</span>
                   <span>KAHAN SHORT KAREIN</span>
                 </span>
-                <span className="text-[10px] font-mono text-rose-300 font-bold">
+                <span className="text-xs font-mono text-rose-300 font-bold">
                   Target: ${plan.momentumLevels?.shortTp3.toLocaleString() || '—'}
                 </span>
               </div>
-              <div className="text-[11px] text-slate-300 mt-2 space-y-1">
+              <div className="text-[11px] text-slate-200 mt-2.5 space-y-1.5">
                 <p>
-                  <strong className="text-white">Trigger:</strong> ${plan.momentumLevels?.shortTriggerPrice.toLocaleString() || '—'} ke niche breakdown ya supply rejection.
+                  <strong className="text-rose-300">Trigger:</strong> ${plan.momentumLevels?.shortTriggerPrice.toLocaleString() || '—'} ke niche breakdown ya supply rejection.
                 </p>
                 <p>
                   <strong className="text-white">Strict SL:</strong> ${plan.momentumLevels?.shortSl.toLocaleString() || '—'} (Above Resistance Ceiling)
@@ -2440,40 +2490,40 @@ export const DeeeprAiChartView: React.FC = () => {
                   TP1: ${plan.momentumLevels?.shortTp1.toLocaleString()} (-{Math.round(Math.abs((plan.momentumLevels?.shortTriggerPrice || livePrice) - (plan.momentumLevels?.shortTp1 || livePrice))).toLocaleString()} pts) | TP2: ${plan.momentumLevels?.shortTp2.toLocaleString()} | TP3: ${plan.momentumLevels?.shortTp3.toLocaleString()} (Min 1.4+ RRR)
                 </p>
               </div>
-              <div className="mt-2.5 w-full py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-rose-500/40 bg-rose-500/10 text-rose-300">
+              <div className="mt-3 w-full py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-rose-500/50 bg-rose-500/20 text-rose-300 shadow-sm">
                 <span>{plan.decision === 'SHORT' ? '🔴 THIS TRADE IS ACTIVE NOW (SHORT)' : '🤖 AI Auto-Breakdown Armed'}</span>
               </div>
             </div>
 
             {/* 3. WAIT STRATEGY */}
             <div
-              className={`p-3 rounded-xl border transition-all ${
+              className={`p-4 rounded-xl transition-all ${
                 plan.decision === 'WAIT'
-                  ? 'bg-[#1c1808] border-amber-400 shadow-md shadow-amber-500/20'
-                  : 'bg-[#141208] border-amber-500/30'
+                  ? 'panel-gold-glow bg-gradient-to-br from-[#1c1808] to-[#120e06]'
+                  : 'panel-gold-glow bg-gradient-to-br from-[#141208] to-[#090d18]'
               }`}
             >
-              <div className="flex items-center justify-between pb-1.5 border-b border-amber-500/20">
+              <div className="flex items-center justify-between pb-2 border-b border-amber-500/30">
                 <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
                   <span>🟡</span>
                   <span>KAHAN WAIT KAREIN</span>
                 </span>
-                <span className="text-[10px] font-mono text-amber-300 font-bold">
+                <span className="text-xs font-mono text-amber-300 font-bold">
                   {plan.momentumLevels?.waitZoneRange || 'Range Chop'}
                 </span>
               </div>
-              <div className="text-[11px] text-slate-300 mt-2 space-y-1">
+              <div className="text-[11px] text-slate-200 mt-2.5 space-y-1.5">
                 <p>
-                  <strong className="text-white">Rule:</strong> Iss range ke beech bilkul trade na karein. Chop zone me capital waste hota hai.
+                  <strong className="text-amber-300">Rule:</strong> Iss range ke beech bilkul trade na karein. Chop zone me capital waste hota hai.
                 </p>
                 <p>
                   <strong className="text-white">Patience:</strong> Breakout upar ya breakdown niche aane tak capital protect karein.
                 </p>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[10px] text-slate-300">
                   Disciplined trader confirmation ke baad hi trade enter karta hai.
                 </p>
               </div>
-              <div className="mt-2.5 w-full py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-amber-500/40 bg-amber-500/10 text-amber-300">
+              <div className="mt-3 w-full py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 border border-amber-500/50 bg-amber-500/20 text-amber-300 shadow-sm">
                 <span>{plan.decision === 'WAIT' ? '⏳ THIS TRADE IS ACTIVE NOW (WAIT/CHOP)' : '🛡️ Capital Protected'}</span>
               </div>
             </div>
@@ -2866,7 +2916,7 @@ export const DeeeprAiChartView: React.FC = () => {
                 Yeh Trade Kyon Hai? (Simple Hindi / Hinglish Logic):
               </span>
               <span className="px-2 py-0.5 rounded text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                100% Fixed Non-Floating Levels
+                Strict Non-Floating Structural Levels
               </span>
             </div>
             <p className="text-slate-200 mt-1.5 leading-relaxed text-xs sm:text-[13px]">{plan.hindiExplanation}</p>
@@ -2962,28 +3012,28 @@ export const DeeeprAiChartView: React.FC = () => {
         )}
 
         {/* ────────────────── 🌊 15M INTERMARKET CONFLUENCE TERMINAL (USDT.D & DXY vs BTC, GOLD, ETH) ────────────────── */}
-        <div className="bg-[#050c1c] p-4 sm:p-5 rounded-2xl border-2 border-cyan-500/40 shadow-2xl space-y-4">
+        <div className="panel-cyan-glow bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] p-5 sm:p-6 rounded-2xl shadow-2xl space-y-5">
           {/* Header & Asset Filter Selector */}
-          <div className="flex flex-wrap items-center justify-between border-b border-cyan-500/20 pb-3 gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="size-8 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-lg shadow-md shadow-cyan-500/30">
-                ⚡
+          <div className="flex flex-wrap items-center justify-between border-b border-cyan-500/30 pb-3.5 gap-3">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-xl shadow-lg shadow-cyan-500/30 border border-cyan-400/40">
+                🌊
               </div>
               <div>
-                <h3 className="text-xs sm:text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
-                  <span>15M Intermarket Confluence Terminal</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
+                <h3 className="text-xs sm:text-base font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-400 flex items-center gap-2">
+                  <span>15M INTERMARKET CONFLUENCE TERMINAL</span>
+                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
                     USDT.D & DXY ➔ BTC, GOLD, ETH
                   </span>
                 </h3>
-                <p className="text-[11px] text-slate-400 font-mono">
+                <p className="text-xs text-slate-300 font-mono mt-0.5">
                   15-Min Scalp & 4H Macro Edge Verification · Rule 1-4 Mechanical Execution
                 </p>
               </div>
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex flex-wrap items-center gap-1.5 bg-[#030712] p-1 rounded-xl border border-slate-800 text-xs font-bold font-mono">
+            <div className="flex flex-wrap items-center gap-1.5 bg-[#040814] p-1 rounded-xl border border-cyan-500/30 text-xs font-bold font-mono">
               <button
                 onClick={() => setIntermarketFilter('ALL')}
                 className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
@@ -3028,13 +3078,13 @@ export const DeeeprAiChartView: React.FC = () => {
           </div>
 
           {/* Dual Real-Time 15M Gauges (USDT.D and DXY) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* USDT Dominance 15M Gauge */}
-            <div className="bg-[#030814] p-3.5 rounded-xl border border-sky-500/30 space-y-2 relative overflow-hidden">
+            <div className="panel-cyan-glow bg-gradient-to-br from-[#061426] to-[#090d18] p-4 rounded-xl space-y-2.5 relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">🌊</span>
-                  <span className="text-xs font-black uppercase text-sky-300">USDT Dominance (USDT.D) 15M Meter</span>
+                  <span className="text-lg">🌊</span>
+                  <span className="text-xs font-black uppercase text-cyan-300">USDT Dominance (USDT.D) 15M Meter</span>
                 </div>
                 <span className={`text-[11px] font-mono font-black px-2 py-0.5 rounded ${
                   intermarketRadar.usdtD.change24h.startsWith('+')
@@ -3064,16 +3114,16 @@ export const DeeeprAiChartView: React.FC = () => {
                     : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                 }`}>
                   {intermarketRadar.usdtD.timeframe15m.currentPosition === 'AT_SUPPORT'
-                    ? '🚨 AT 15M SUPPORT (5.30%-5.34%) ➔ SELL BTC'
+                    ? '🚨 AT 15M SUPPORT ➔ SHORT IDEA (Evidence Only)'
                     : intermarketRadar.usdtD.timeframe15m.currentPosition === 'AT_RESISTANCE'
-                    ? '🚨 AT 15M RESISTANCE (5.58%) ➔ BUY BTC'
-                    : '⏳ 15M MID-RANGE CHOP'}
+                    ? '🚨 AT 15M RESISTANCE ➔ LONG IDEA (Evidence Only)'
+                    : '⏳ 15M MID-RANGE CHOP (NEUTRAL)'}
                 </span>
               </div>
 
               {/* Hindi Rule Box */}
-              <div className="bg-[#061024] p-2.5 rounded-lg border border-sky-500/20 text-[11px] text-slate-300 leading-relaxed font-sans">
-                <span className="text-sky-300 font-bold block mb-0.5">📌 AAPKA RULE (USDT.D vs BTC / ETH):</span>
+              <div className="bg-[#061024] p-3 rounded-lg border border-cyan-500/30 text-[11px] text-slate-200 leading-relaxed font-sans">
+                <span className="text-cyan-300 font-bold block mb-0.5">📌 AAPKA RULE (USDT.D vs BTC / ETH):</span>
                 {intermarketRadar.usdtD.statusNoteHindi}
               </div>
 
@@ -3083,7 +3133,7 @@ export const DeeeprAiChartView: React.FC = () => {
                   setSelectedSymbol('USDTD');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="w-full py-1.5 px-3 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 font-mono text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full py-2 px-3 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
               >
                 <span>📈</span>
                 <span>USDT.D 15M Live Candlestick Chart Dekho ➔</span>
@@ -3091,10 +3141,10 @@ export const DeeeprAiChartView: React.FC = () => {
             </div>
 
             {/* DXY US Dollar Index 15M Gauge */}
-            <div className="bg-[#030814] p-3.5 rounded-xl border border-amber-500/30 space-y-2 relative overflow-hidden">
+            <div className="panel-gold-glow bg-gradient-to-br from-[#141006] to-[#090d18] p-4 rounded-xl space-y-2.5 relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">💵</span>
+                  <span className="text-lg">💵</span>
                   <span className="text-xs font-black uppercase text-amber-300">US Dollar Index (DXY) 15M Meter</span>
                 </div>
                 <span className={`text-[11px] font-mono font-black px-2 py-0.5 rounded ${
@@ -3125,15 +3175,15 @@ export const DeeeprAiChartView: React.FC = () => {
                     : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                 }`}>
                   {intermarketRadar.dxy.timeframe15m.currentPosition === 'AT_RESISTANCE'
-                    ? '🚨 AT 15M RESISTANCE (102.80+) ➔ BUY GOLD'
+                    ? '🚨 AT 15M RESISTANCE ➔ BUY GOLD IDEA (Evidence Only)'
                     : intermarketRadar.dxy.timeframe15m.currentPosition === 'AT_SUPPORT'
-                    ? '🚨 AT 15M SUPPORT (101.90) ➔ SELL GOLD'
-                    : '⏳ 15M EQUILIBRIUM CHOP'}
+                    ? '🚨 AT 15M SUPPORT ➔ SELL GOLD IDEA (Evidence Only)'
+                    : '⏳ 15M MID-RANGE CHOP (NEUTRAL)'}
                 </span>
               </div>
 
               {/* Hindi Rule Box */}
-              <div className="bg-[#120f04] p-2.5 rounded-lg border border-amber-500/20 text-[11px] text-slate-300 leading-relaxed font-sans">
+              <div className="bg-[#120f04] p-3 rounded-lg border border-amber-500/30 text-[11px] text-slate-200 leading-relaxed font-sans">
                 <span className="text-amber-300 font-bold block mb-0.5">📌 AAPKA RULE (DXY vs GOLD):</span>
                 {intermarketRadar.dxy.statusNoteHindi}
               </div>
@@ -3144,7 +3194,7 @@ export const DeeeprAiChartView: React.FC = () => {
                   setSelectedSymbol('DXY');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="w-full py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-mono text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full py-2 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/50 font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
               >
                 <span>📈</span>
                 <span>DXY Dollar 15M Live Candlestick Chart Dekho ➔</span>
@@ -3153,22 +3203,22 @@ export const DeeeprAiChartView: React.FC = () => {
           </div>
 
           {/* Actionable 15M Trade Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
             {/* 1. BITCOIN 15M TRADE CARD */}
             {(intermarketFilter === 'ALL' || intermarketFilter === 'BTC') && (
-              <div className={`p-4 rounded-xl border-2 space-y-3 transition-all ${
+              <div className={`p-4 rounded-xl space-y-3 transition-all ${
                 intermarketRadar.btcTrade.decision === 'SHORT'
-                  ? 'bg-gradient-to-b from-[#180812] to-[#040814] border-rose-500/60 shadow-lg shadow-rose-950/30'
+                  ? 'panel-rose-glow bg-gradient-to-br from-[#180812] to-[#090d18]'
                   : intermarketRadar.btcTrade.decision === 'LONG'
-                  ? 'bg-gradient-to-b from-[#081812] to-[#040814] border-emerald-500/60 shadow-lg shadow-emerald-950/30'
-                  : 'bg-[#060c18] border-slate-800'
+                  ? 'panel-emerald-glow bg-gradient-to-br from-[#081812] to-[#090d18]'
+                  : 'panel-gold-glow bg-gradient-to-br from-[#120e06] to-[#090d18]'
               }`}>
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">₿</span>
+                <div className="flex items-center justify-between border-b border-amber-500/30 pb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">₿</span>
                     <div>
-                      <span className="text-xs font-black text-white block">BITCOIN (BTC / USD)</span>
-                      <span className="text-[10px] text-slate-400 font-mono">15M USDT.D Confluence</span>
+                      <span className="text-xs font-black text-amber-300 block">BITCOIN (BTC / USD)</span>
+                      <span className="text-[10px] text-slate-300 font-mono">15M USDT.D Confluence</span>
                     </div>
                   </div>
                   <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black font-mono border ${
@@ -3237,19 +3287,19 @@ export const DeeeprAiChartView: React.FC = () => {
 
             {/* 2. GOLD (XAU/USD / PAXG) 15M TRADE CARD */}
             {(intermarketFilter === 'ALL' || intermarketFilter === 'GOLD') && (
-              <div className={`p-4 rounded-xl border-2 space-y-3 transition-all ${
+              <div className={`p-4 rounded-xl space-y-3 transition-all ${
                 intermarketRadar.goldTrade.decision === 'LONG'
-                  ? 'bg-gradient-to-b from-[#081812] to-[#040814] border-emerald-500/60 shadow-lg shadow-emerald-950/30'
+                  ? 'panel-emerald-glow bg-gradient-to-br from-[#081812] to-[#090d18]'
                   : intermarketRadar.goldTrade.decision === 'SHORT'
-                  ? 'bg-gradient-to-b from-[#180812] to-[#040814] border-rose-500/60 shadow-lg shadow-rose-950/30'
-                  : 'bg-[#060c18] border-slate-800'
+                  ? 'panel-rose-glow bg-gradient-to-br from-[#180812] to-[#090d18]'
+                  : 'panel-gold-glow bg-gradient-to-br from-[#141006] to-[#090d18]'
               }`}>
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🥇</span>
+                <div className="flex items-center justify-between border-b border-yellow-500/30 pb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">🥇</span>
                     <div>
-                      <span className="text-xs font-black text-white block">GOLD SPOT (XAU / USD)</span>
-                      <span className="text-[10px] text-slate-400 font-mono">15M DXY Dollar Confluence</span>
+                      <span className="text-xs font-black text-yellow-300 block">GOLD SPOT (XAU / USD)</span>
+                      <span className="text-[10px] text-slate-300 font-mono">15M DXY Dollar Confluence</span>
                     </div>
                   </div>
                   <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black font-mono border ${
@@ -3318,19 +3368,19 @@ export const DeeeprAiChartView: React.FC = () => {
 
             {/* 3. ETHEREUM 15M TRADE CARD */}
             {(intermarketFilter === 'ALL' || intermarketFilter === 'ETH') && (
-              <div className={`p-4 rounded-xl border-2 space-y-3 transition-all ${
+              <div className={`p-4 rounded-xl space-y-3 transition-all ${
                 intermarketRadar.ethTrade.decision === 'SHORT'
-                  ? 'bg-gradient-to-b from-[#180812] to-[#040814] border-rose-500/60 shadow-lg shadow-rose-950/30'
+                  ? 'panel-rose-glow bg-gradient-to-br from-[#180812] to-[#090d18]'
                   : intermarketRadar.ethTrade.decision === 'LONG'
-                  ? 'bg-gradient-to-b from-[#081812] to-[#040814] border-emerald-500/60 shadow-lg shadow-emerald-950/30'
-                  : 'bg-[#060c18] border-slate-800'
+                  ? 'panel-emerald-glow bg-gradient-to-br from-[#081812] to-[#090d18]'
+                  : 'panel-purple-glow bg-gradient-to-br from-[#160a28] to-[#090d18]'
               }`}>
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">Ξ</span>
+                <div className="flex items-center justify-between border-b border-purple-500/30 pb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">Ξ</span>
                     <div>
-                      <span className="text-xs font-black text-white block">ETHEREUM (ETH / USD)</span>
-                      <span className="text-[10px] text-slate-400 font-mono">15M USDT.D Confluence</span>
+                      <span className="text-xs font-black text-purple-300 block">ETHEREUM (ETH / USD)</span>
+                      <span className="text-[10px] text-slate-300 font-mono">15M USDT.D Confluence</span>
                     </div>
                   </div>
                   <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black font-mono border ${
@@ -3402,22 +3452,24 @@ export const DeeeprAiChartView: React.FC = () => {
 
       {/* ────────────────── 30. FULL-WIDTH INSTITUTIONAL CANVAS CHART ────────────────── */}
       <div className="w-full space-y-3">
-        <div className="rounded-2xl border border-[#1e293b] bg-[#070d1a] overflow-hidden shadow-2xl">
+        <div className="rounded-2xl panel-cyan-glow bg-[#070d1a] overflow-hidden shadow-2xl">
           {/* Chart Header Toolbar */}
-          <div className="flex flex-wrap items-center justify-between px-4 py-3 bg-[#060b16] border-b border-[#1e293b] gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="size-2.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="text-sm font-extrabold text-white">{plan.name}</span>
-              <span className="text-xs text-cyan-400 font-bold">· {plan.displaySymbol}</span>
-              <span className="text-xs text-slate-400">({timeframe.toUpperCase()})</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+          <div className="flex flex-wrap items-center justify-between px-4 py-3.5 bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] border-b border-cyan-500/30 gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="text-xl">📊</span>
+              <span className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-400">
+                {plan.name} — INSTITUTIONAL SMC CANDLESTICK CHART
+              </span>
+              <span className="text-xs text-cyan-300 font-bold font-mono">· {plan.displaySymbol}</span>
+              <span className="text-xs text-amber-300 font-bold font-mono">({timeframe.toUpperCase()})</span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
                 Active Trade #{plan.tradeNumber || 1}
               </span>
-              <span className="text-[11px] font-black px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+              <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
                 📅 1,000 CANDLES LOADED ({candlesRef.current.length} Bars)
               </span>
               {isMtfMode && (
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
                   MTF Active
                 </span>
               )}
@@ -3631,17 +3683,17 @@ export const DeeeprAiChartView: React.FC = () => {
         </div>
 
         {/* ─── 🏛️ SMART MONEY CONCEPTS (SMC) & ICT MASTER REFERENCE PANEL (MATCHING USER REFERENCE IMAGE) ─── */}
-        <div className="p-4 sm:p-5 rounded-2xl border-2 border-cyan-500/30 bg-gradient-to-r from-[#071020] via-[#050b16] to-[#0a1428] shadow-2xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-black text-cyan-400 tracking-wider">SMC</span>
+        <div className="panel-purple-glow bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] p-5 sm:p-6 rounded-2xl shadow-2xl space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-500/30 pb-3.5">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl font-black text-purple-400 tracking-wider">🏛️ SMC</span>
                 <span className="text-slate-600 font-light">|</span>
-                <h3 className="text-base sm:text-lg font-black text-white tracking-wide">
+                <h3 className="text-base sm:text-lg font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-400 to-indigo-300">
                   SMART MONEY CONCEPTS & ICT — TRADE LIKE INSTITUTIONS
                 </h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-300">
                 Understand the Real Moves · Follow the Liquidity · Trade with the Trend
               </p>
             </div>
@@ -3649,7 +3701,7 @@ export const DeeeprAiChartView: React.FC = () => {
               <span className="text-xs font-mono font-bold text-cyan-300 block">
                 Plan | Execute | Grow
               </span>
-              <span className="text-[11px] text-slate-400 italic">
+              <span className="text-[11px] text-slate-300 italic">
                 &ldquo;It&apos;s not about predicting the market, it&apos;s about understanding how smart money moves.&rdquo;
               </span>
             </div>
@@ -3760,14 +3812,14 @@ export const DeeeprAiChartView: React.FC = () => {
           </div>
 
           {/* 3 Bottom Pillar Cards (Directly Matching the Bottom of the Infographic) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             {/* 1. Risk Management */}
-            <div className="bg-[#061426] p-3.5 rounded-xl border border-cyan-500/30 space-y-2">
+            <div className="panel-cyan-glow bg-gradient-to-br from-[#061426] to-[#090d18] p-4 rounded-xl space-y-2.5">
               <div className="flex items-center gap-2 text-cyan-300 text-xs font-black uppercase">
                 <span>🛡️</span>
                 <span>RISK MANAGEMENT</span>
               </div>
-              <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <ul className="text-xs text-slate-200 space-y-1.5 list-disc list-inside">
                 <li>Risk 1–2% per trade</li>
                 <li>Use proper position size calculator</li>
                 <li>SL strictly at logical structural level</li>
@@ -3777,12 +3829,12 @@ export const DeeeprAiChartView: React.FC = () => {
             </div>
 
             {/* 2. 5 Golden Rules */}
-            <div className="bg-[#062018] p-3.5 rounded-xl border border-emerald-500/30 space-y-2">
+            <div className="panel-emerald-glow bg-gradient-to-br from-[#062018] to-[#090d18] p-4 rounded-xl space-y-2.5">
               <div className="flex items-center gap-2 text-emerald-300 text-xs font-black uppercase">
                 <span>🎯</span>
                 <span>5 GOLDEN RULES</span>
               </div>
-              <ol className="text-xs text-slate-300 space-y-1 list-decimal list-inside font-medium">
+              <ol className="text-xs text-slate-200 space-y-1.5 list-decimal list-inside font-medium">
                 <li>Follow the trend</li>
                 <li>Trade with liquidity (Not against it)</li>
                 <li>Wait for confirmation before clicking</li>
@@ -3792,12 +3844,12 @@ export const DeeeprAiChartView: React.FC = () => {
             </div>
 
             {/* 3. Basic Reminders */}
-            <div className="bg-[#140a20] p-3.5 rounded-xl border border-purple-500/30 space-y-2">
+            <div className="panel-purple-glow bg-gradient-to-br from-[#140a20] to-[#090d18] p-4 rounded-xl space-y-2.5">
               <div className="flex items-center gap-2 text-purple-300 text-xs font-black uppercase">
                 <span>🧠</span>
                 <span>BASIC REMINDERS</span>
               </div>
-              <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <ul className="text-xs text-slate-200 space-y-1.5 list-disc list-inside">
                 <li>Not every setup will work (Protect capital)</li>
                 <li>Avoid trading during high-impact news spikes</li>
                 <li>Use higher timeframe first for directional bias</li>
@@ -3810,50 +3862,51 @@ export const DeeeprAiChartView: React.FC = () => {
       </div>
 
       {/* ────────────────── 4-PILLAR EVIDENCE CONFLUENCE (DIRECTLY UNDERNEATH CHART) ────────────────── */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 px-1">
-          ✓ Primary Evidence & Confluence ({plan.decision === 'SHORT' ? 'Why Short' : 'Why Long'} is High Conviction)
+      <div className="space-y-2.5">
+        <h3 className="text-xs font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500 px-1 flex items-center gap-2">
+          <span>✓</span>
+          <span>Primary Evidence & Confluence ({plan.decision === 'SHORT' ? 'Why Short' : 'Why Long'} is High Conviction)</span>
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {/* Pillar 1: Market Structure */}
-          <div className="bg-[#081022] p-3.5 rounded-xl border border-[#1e293b] space-y-1.5">
+          <div className="panel-cyan-glow bg-gradient-to-br from-[#061426] to-[#090d18] p-4 rounded-xl space-y-2">
             <div
               className={`flex items-center gap-2 font-bold text-xs ${
                 plan.decision === 'SHORT' ? 'text-rose-400' : 'text-emerald-400'
               }`}
             >
               <span>🏛️</span>
-              <span>1. Market Structure & Trend</span>
+              <span className="font-black">1. Market Structure & Trend</span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">{plan.structureNote}</p>
+            <p className="text-xs text-slate-200 leading-relaxed">{plan.structureNote}</p>
           </div>
 
           {/* Pillar 2: Liquidity Sweep */}
-          <div className="bg-[#081022] p-3.5 rounded-xl border border-[#1e293b] space-y-1.5">
-            <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+          <div className="panel-gold-glow bg-gradient-to-br from-[#141006] to-[#090d18] p-4 rounded-xl space-y-2">
+            <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
               <span>💧</span>
-              <span>2. Liquidity Sweep (SFP)</span>
+              <span className="font-black">2. Liquidity Sweep (SFP)</span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">{plan.liquidityNote}</p>
+            <p className="text-xs text-slate-200 leading-relaxed">{plan.liquidityNote}</p>
           </div>
 
           {/* Pillar 3: USDT & Macro Confluence */}
-          <div className="bg-[#081022] p-3.5 rounded-xl border border-[#1e293b] space-y-1.5">
-            <div className="flex items-center gap-2 text-purple-400 font-bold text-xs">
+          <div className="panel-purple-glow bg-gradient-to-br from-[#140a24] to-[#090d18] p-4 rounded-xl space-y-2">
+            <div className="flex items-center gap-2 text-purple-300 font-bold text-xs">
               <span>🌊</span>
-              <span>3. USDT Flow & CVD Delta</span>
+              <span className="font-black">3. USDT Flow & CVD Delta</span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">{plan.usdtMacroNote}</p>
+            <p className="text-xs text-slate-200 leading-relaxed">{plan.usdtMacroNote}</p>
           </div>
 
           {/* Pillar 4: Invalidation Rule */}
-          <div className="bg-[#081022] p-3.5 rounded-xl border border-[#1e293b] space-y-1.5">
-            <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+          <div className="panel-emerald-glow bg-gradient-to-br from-[#062018] to-[#090d18] p-4 rounded-xl space-y-2">
+            <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs">
               <span>📍</span>
-              <span>4. Invalidation Rule</span>
+              <span className="font-black">4. Invalidation Rule</span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">{plan.invalidationRule}</p>
+            <p className="text-xs text-slate-200 leading-relaxed">{plan.invalidationRule}</p>
           </div>
         </div>
       </div>
@@ -3861,15 +3914,15 @@ export const DeeeprAiChartView: React.FC = () => {
       {/* ────────────────── TWO-COLUMN BOTTOM SECTION: MTF MATRIX + KEY MARKET LEVELS ────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* LEFT COLUMN: MULTI-TIMEFRAME STRUCTURE MATRIX */}
-        <div className="bg-[#070e1c] p-4 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="panel-cyan-glow bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] p-5 rounded-2xl space-y-3.5 shadow-xl">
+          <div className="flex items-center justify-between border-b border-cyan-500/30 pb-2.5">
             <div className="flex items-center gap-2">
-              <span className="text-sm">📊</span>
-              <h3 className="text-xs font-black uppercase text-white tracking-wider">
+              <span className="text-lg">📊</span>
+              <h3 className="text-xs sm:text-sm font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-400 tracking-wider">
                 Multi-Timeframe Structure Matrix (15M · 1H · 4H · 1D)
               </h3>
             </div>
-            <span className="text-[10px] text-slate-400">Real-time sync</span>
+            <span className="text-[10px] text-cyan-300 font-mono bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">Real-time sync</span>
           </div>
 
           <div className="overflow-x-auto">
@@ -3889,11 +3942,11 @@ export const DeeeprAiChartView: React.FC = () => {
                     <td className="p-2 font-bold font-mono text-cyan-300">{row.timeframe}</td>
                     <td className="p-2">
                       <span
-                        className={`px-1.5 py-0.2 rounded font-black text-[10px] ${
+                        className={`px-2 py-0.5 rounded font-black text-[10px] ${
                           row.trend === 'BEARISH'
-                            ? 'bg-rose-500/20 text-rose-300'
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
                             : row.trend === 'BULLISH'
-                            ? 'bg-emerald-500/20 text-emerald-300'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                             : 'bg-slate-800 text-slate-300'
                         }`}
                       >
@@ -3911,15 +3964,15 @@ export const DeeeprAiChartView: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: KEY MARKET LEVELS SIDEBAR */}
-        <div className="bg-[#070e1c] p-4 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-amber-400">🏛️</span>
-              <h3 className="text-xs font-black uppercase text-white tracking-wider">
+        <div className="panel-gold-glow bg-gradient-to-r from-[#090d18] via-[#0d162c] to-[#090d18] p-5 rounded-2xl space-y-3.5 shadow-xl">
+          <div className="flex items-center justify-between border-b border-amber-500/30 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🏛️</span>
+              <h3 className="text-xs sm:text-sm font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 tracking-wider">
                 Key Market Levels (Sorted by Confluence)
               </h3>
             </div>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
               Institutional Confluence
             </span>
           </div>
@@ -3928,9 +3981,9 @@ export const DeeeprAiChartView: React.FC = () => {
             {analysis?.confluenceKeyLevels.slice(0, 5).map((lvl) => (
               <div
                 key={lvl.id}
-                className={`p-2 rounded-xl border transition-all text-xs space-y-1 ${
+                className={`p-2.5 rounded-xl border transition-all text-xs space-y-1 ${
                   lvl.isHighConfluence
-                    ? 'bg-[#09152b] border-cyan-500/50 shadow-sm'
+                    ? 'bg-[#09152b] border-amber-400/60 shadow-sm'
                     : 'bg-[#050a14] border-slate-800'
                 }`}
               >
@@ -3939,11 +3992,11 @@ export const DeeeprAiChartView: React.FC = () => {
                     {lvl.name}
                   </span>
                   <span
-                    className={`px-1.5 py-0.2 rounded text-[10px] font-black ${
+                    className={`px-2 py-0.5 rounded text-[10px] font-black ${
                       lvl.score >= 90
-                        ? 'bg-emerald-500/20 text-emerald-300'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                         : lvl.score >= 80
-                        ? 'bg-cyan-500/20 text-cyan-300'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                         : 'bg-slate-800 text-slate-400'
                     }`}
                   >
@@ -3952,7 +4005,7 @@ export const DeeeprAiChartView: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between font-mono text-[11px] text-slate-300">
-                  <span className="text-cyan-400 font-bold">${lvl.price.toLocaleString()}</span>
+                  <span className="text-amber-300 font-bold">${lvl.price.toLocaleString()}</span>
                   <span className="text-[10px] text-slate-400">
                     {lvl.distancePoints.toLocaleString()} pts ({lvl.distancePct}%)
                   </span>
@@ -3962,13 +4015,13 @@ export const DeeeprAiChartView: React.FC = () => {
 
             {/* Timeframe Anchors (PDH/PDL removed per user request) */}
             <div className="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-[10px] font-mono">
-              <div className="bg-[#050a14] p-1.5 rounded border border-slate-800 text-center">
+              <div className="bg-[#050a14] p-2 rounded-lg border border-slate-800 text-center">
                 <span className="text-slate-400 block">PWH (Weekly High)</span>
-                <b className="text-white">${analysis?.previousHighLows.pwh?.toLocaleString() || '—'}</b>
+                <b className="text-amber-300">${analysis?.previousHighLows.pwh?.toLocaleString() || '—'}</b>
               </div>
-              <div className="bg-[#050a14] p-1.5 rounded border border-slate-800 text-center">
+              <div className="bg-[#050a14] p-2 rounded-lg border border-slate-800 text-center">
                 <span className="text-slate-400 block">PWL (Weekly Low)</span>
-                <b className="text-white">${analysis?.previousHighLows.pwl?.toLocaleString() || '—'}</b>
+                <b className="text-amber-300">${analysis?.previousHighLows.pwl?.toLocaleString() || '—'}</b>
               </div>
             </div>
           </div>

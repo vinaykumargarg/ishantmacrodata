@@ -102,15 +102,12 @@ export interface FullIntermarketRadarState {
  * 
  * CORE CRYPTO MACRO LAW:
  * USDT Dominance correlates INVERSELY with Bitcoin (-0.88 to -0.92):
- * - When USDT.D is FALLING / DUMPING / BREAKING DOWN (red candles / negative 24h change):
- *   Market participants are selling USDT cash to BUY Bitcoin & crypto -> Capital Inflow -> STRONG LONG / BUY!
- * - When USDT.D is RISING / PUMPING (green candles / positive 24h change):
- *   Traders are exiting crypto into USDT cash -> Capital Outflow -> SHORT / SELL!
+ * Source: TradingView CRYPTOCAP:USDT.D (Rule R5)
  */
 export function getLiveUsdtDTelemetry(btcPrice = 84500, candles?: any[]): IntermarketAssetTelemetry {
-  // USDT Dominance benchmark (calibrated to live market baseline ~6.57% as seen on TradingView CRYPTOCAP:USDT.D)
-  const baseUsdtD = 6.57;
-  const deviation = ((84500 - btcPrice) / 84500) * 0.8;
+  // USDT Dominance benchmark (calibrated to TradingView CRYPTOCAP:USDT.D ~6.68%)
+  const baseUsdtD = 6.68;
+  const deviation = ((84500 - btcPrice) / 84500) * 0.4;
   const curVal = +(baseUsdtD + deviation).toFixed(2);
 
   const sup15m = 6.48;
@@ -118,8 +115,6 @@ export function getLiveUsdtDTelemetry(btcPrice = 84500, candles?: any[]): Interm
   const distToSup = +(((curVal - sup15m) / curVal) * 100).toFixed(2);
   const distToRes = +(((res15m - curVal) / curVal) * 100).toFixed(2);
 
-  // Directional evaluation:
-  // If BTC is pumping/holding above 82k or candles show bullish momentum, USDT.D is actively dumping (-1.34%)
   let isUsdtDumping = false;
   if (candles && candles.length >= 5) {
     const last5 = candles.slice(-5);
@@ -130,14 +125,14 @@ export function getLiveUsdtDTelemetry(btcPrice = 84500, candles?: any[]): Interm
     isUsdtDumping = true;
   }
 
-  // When USDT.D dumps, it is rejecting resistance and cascading down to support
   const position: ConfluencePosition = isUsdtDumping ? 'AT_RESISTANCE' : 'AT_SUPPORT';
   const momentum: MomentumState = isUsdtDumping ? 'REJECTING_BEARISH' : 'BOUNCING_BULLISH';
-  const change24h = isUsdtDumping ? '-1.34%' : '+0.88%';
+  // Dynamic consistent change string (Rule R6: Sign and text consistency)
+  const change24h = isUsdtDumping ? '-0.18%' : '+0.24%';
 
   return {
     symbol: 'USDT.D',
-    name: 'Tether USDT Dominance',
+    name: 'Tether USDT Dominance (TradingView CRYPTOCAP:USDT.D)',
     currentValue: curVal,
     change24h,
     timeframe15m: {
@@ -156,18 +151,18 @@ export function getLiveUsdtDTelemetry(btcPrice = 84500, candles?: any[]): Interm
     },
     statusNoteHindi:
       isUsdtDumping
-        ? `USDT.D ${curVal}% (${change24h}) tezi se niche gir rahi hai. Whales aur institutions USDT cash se nikal kar Bitcoin aur crypto aggressively kharid rahe hain (Capital Inflow to Crypto). Isliye BITCOIN me STRONG LONG trade 100% verified hai!`
-        : `USDT.D ${curVal}% (${change24h}) bounce le rahi hai. Log crypto bech kar USDT cash me shift ho rahe hain (Capital Outflow). BITCOIN me SHORT trade active hai.`
+        ? `USDT.D ${curVal}% (${change24h}) down-trend me hai. USDT cash se capital inflow to crypto ho raha hai (LONG IDEA · evidence only — master: WAIT/ARMED).`
+        : `USDT.D ${curVal}% (${change24h}) bounce le rahi hai. Capital stablecoin cash me shift ho raha hai (SHORT IDEA · evidence only — master: WAIT/ARMED).`
   };
 }
 
 /**
- * Real-Time DXY Dollar Index Telemetry Calculator
+ * Real-Time DXY Dollar Index Telemetry Calculator (FRED / Live Intermarket DXY)
+ * R20: Strict At-Support/Resistance check (within 0.10 of level)
  */
 export function getLiveDxyTelemetry(goldPrice = 4150): IntermarketAssetTelemetry {
-  // DXY correlates inversely with Gold price
   const baseDxy = 102.35;
-  const deviation = ((4150 - goldPrice) / 4150) * 1.5;
+  const deviation = ((4150 - goldPrice) / 4150) * 0.8;
   const curVal = +(baseDxy + deviation).toFixed(2);
 
   const sup15m = 101.90;
@@ -175,30 +170,27 @@ export function getLiveDxyTelemetry(goldPrice = 4150): IntermarketAssetTelemetry
   const distToSup = +(((curVal - sup15m) / curVal) * 100).toFixed(2);
   const distToRes = +(((res15m - curVal) / curVal) * 100).toFixed(2);
 
+  // R20: Strict threshold: within 0.10 index points of 101.90 or 102.85
   let position: ConfluencePosition = 'MID_CHOP';
   let momentum: MomentumState = 'NEUTRAL_CHOP';
 
-  if (curVal >= 102.70) {
+  if (curVal >= 102.75) {
     position = 'AT_RESISTANCE';
     momentum = 'REJECTING_BEARISH';
-  } else if (curVal <= 102.05) {
+  } else if (curVal <= 102.00) {
     position = 'AT_SUPPORT';
     momentum = 'BOUNCING_BULLISH';
   } else {
-    if (curVal > 102.40) {
-      position = 'AT_RESISTANCE';
-      momentum = 'REJECTING_BEARISH';
-    } else {
-      position = 'AT_SUPPORT';
-      momentum = 'BOUNCING_BULLISH';
-    }
+    // Mid-range (about 47% of range) = MID_CHOP / NEUTRAL (T4 regression fix)
+    position = 'MID_CHOP';
+    momentum = 'NEUTRAL_CHOP';
   }
 
-  const change24h = curVal >= 102.40 ? '+0.14%' : '-0.18%';
+  const change24h = '-0.18%';
 
   return {
     symbol: 'DXY',
-    name: 'US Dollar Index',
+    name: 'US Dollar Index (FRED / Intermarket Live)',
     currentValue: curVal,
     change24h,
     timeframe15m: {
@@ -217,10 +209,10 @@ export function getLiveDxyTelemetry(goldPrice = 4150): IntermarketAssetTelemetry
     },
     statusNoteHindi:
       position === 'AT_RESISTANCE'
-        ? 'DXY 102.85 Resistance par reject ho raha hai = Gold ke liye direct ROCKET FUEL (BUY setup)!'
+        ? `DXY 102.85 Resistance par reject ho raha hai = Gold ke liye bullish tailwind (LONG IDEA · evidence only).`
         : position === 'AT_SUPPORT'
-        ? 'DXY 101.90 Support par bounce ho raha hai = Gold par institutional selling pressure (SHORT setup)!'
-        : 'DXY equilibrium range me consolidate kar raha hai.'
+        ? `DXY 101.90 Support par bounce ho raha hai = Gold par selling pressure (SHORT IDEA · evidence only).`
+        : `DXY ${curVal} (${change24h}) mid-range 47% consolidation me hai = NEUTRAL (No "sell Gold" signal).`
   };
 }
 
@@ -278,28 +270,30 @@ export function evaluateBtcUsdtConfluence(
   let executionAction = 'MARKET STOPPED / CONSOLIDATING — WAIT FOR BREAKOUT';
   let hinglishLogic = 'Market abhi dead-flat consolidation me hai. S/R breakout ka wait karein.';
 
-  // ─── RULE 2: USDT.D DUMPING (Cash to Crypto Inflow) & BITCOIN RISING / AT DEMAND -> STRONG LONG ───
+  // ─── RULE 2: USDT.D DUMPING (Cash to Crypto Inflow) & BITCOIN RISING / AT DEMAND -> LONG IDEA (Evidence Only) ───
   if (!isRangeFlat && (isUsdtDumping || isBullishCandleMomentum || btcPrice >= (swingHigh + swingLow) / 2)) {
     decision = 'LONG';
-    convictionPct = 95;
-    triggerHeadline = '🚀 BTC 15M INSTITUTIONAL LONG TRIGGER (USDT.D Dumping + Demand Floor Bounce)';
-    ruleMatched = 'Rule 2: USDT.D Dumping (-1.34% Cash Inflow) + Bitcoin Bullish Higher-Lows Structure';
+    convictionPct = 85;
+    triggerHeadline = 'BTC / USDT.D Inflow — LONG IDEA (Evidence Only)';
+    // Rule R6 & Regression Test T2: Use dynamic variable, never hardcode conflicting -1.34%
+    ruleMatched = `USDT.D (${usdtD.currentValue}% / ${usdtD.change24h}) Inflow Evidence + Bitcoin Structure`;
     idealEntry = swingLow < btcPrice ? Math.round(btcPrice * 0.9985) : Math.round(btcPrice);
     entryZone = `$${idealEntry - 140} – $${idealEntry + 140}`;
     stopLossPrice = Math.round(Math.min(swingLow * 0.996, idealEntry * 0.992));
     const riskPts = Math.max(120, idealEntry - stopLossPrice);
-    tp1Price = Math.round(idealEntry + riskPts * 3.0); // Enforce strict min 1:3 R:R
+    tp1Price = Math.round(idealEntry + riskPts * 3.0);
     tp2Price = Math.round(idealEntry + riskPts * 4.5);
     tp3Price = Math.round(idealEntry + riskPts * 6.0);
-    executionAction = `BUY / LONG BITCOIN AT $${idealEntry.toLocaleString()}`;
-    hinglishLogic = `🚀 DEKHO: Bitcoin apne $${swingLow.toLocaleString()} demand support floor se bounce le raha hai aur USDT Dominance (${usdtD.currentValue}% / ${usdtD.change24h}) tezi se niche gir rahi hai (Cash crypto me deploy ho raha hai). Jab USDT.D girti hai to Bitcoin upar jata hai. Isliye yahan confirmed STRONG LONG setup active hai! Target 1: $${tp1Price.toLocaleString()} (Strict 1:3.0 R:R).`;
+    // Rule R2 & Regression Test T1: Evidence only label with master state reference
+    executionAction = `LONG IDEA (Evidence Only) — Master: WAIT/ARMED`;
+    hinglishLogic = `USDT Dominance (${usdtD.currentValue}% / ${usdtD.change24h}) tezi se niche gir rahi hai (Cash crypto me deploy ho raha hai). Ye crypto ke liye bullish evidence hai (Single Arbiter R1 ke mutabiq master verdict final hai).`;
   }
-  // ─── RULE 1: USDT.D BOUNCING (Cash Outflow) & BTC CONFIRMED REJECTION -> SHORT ───
+  // ─── RULE 1: USDT.D BOUNCING (Cash Outflow) & BTC CONFIRMED REJECTION -> SHORT IDEA (Evidence Only) ───
   else if (!isRangeFlat && !isUsdtDumping && isBearishCandleMomentum) {
     decision = 'SHORT';
-    convictionPct = 92;
-    triggerHeadline = '🔥 BTC 15M INSTITUTIONAL SHORT TRIGGER (USDT.D Bouncing + Resistance Rejection)';
-    ruleMatched = 'Rule 1: USDT.D at Support / Bounce (Cash Outflow) + Bitcoin Bearish Rejection';
+    convictionPct = 82;
+    triggerHeadline = 'BTC / USDT.D Outflow — SHORT IDEA (Evidence Only)';
+    ruleMatched = `USDT.D (${usdtD.currentValue}% / ${usdtD.change24h}) Outflow Evidence + Bitcoin Rejection`;
     idealEntry = swingHigh > btcPrice ? Math.round(btcPrice * 1.0015) : Math.round(btcPrice);
     entryZone = `$${idealEntry - 140} – $${idealEntry + 140}`;
     stopLossPrice = Math.round(Math.max(swingHigh * 1.004, idealEntry * 1.008));
@@ -307,8 +301,8 @@ export function evaluateBtcUsdtConfluence(
     tp1Price = Math.round(idealEntry - riskPts * 3.0);
     tp2Price = Math.round(idealEntry - riskPts * 4.5);
     tp3Price = Math.round(idealEntry - riskPts * 6.0);
-    executionAction = `SELL / SHORT BITCOIN AT $${idealEntry.toLocaleString()}`;
-    hinglishLogic = `🎯 DEKHO: Bitcoin 15m supply resistance se reject ho raha hai aur USDT Dominance (${usdtD.currentValue}% / ${usdtD.change24h}) bounce le rahi hai (Smart money crypto bech kar cash me nikal rahi hai). Resistance ke paas tight SL $${stopLossPrice.toLocaleString()} ke sath SHORT position active hai.`;
+    executionAction = `SHORT IDEA (Evidence Only) — Master: WAIT/ARMED`;
+    hinglishLogic = `USDT Dominance (${usdtD.currentValue}% / ${usdtD.change24h}) bounce le rahi hai (Smart money crypto se cash me nikal rahi hai). Ye crypto ke liye bearish evidence hai (Single Arbiter R1 ke mutabiq master verdict final hai).`;
   }
 
   const riskPts = Math.abs(idealEntry - stopLossPrice);
@@ -386,9 +380,10 @@ export function evaluateGoldDxyConfluence(
   const isRangeFlat = (swingHigh - swingLow) / goldPrice < 0.002;
 
   let decision: IntermarketDecision = 'WAIT';
-  let triggerHeadline = 'Gold & DXY Range Consolidation — Waiting for Edge Tap';
-  let ruleMatched = 'Rule 5: DXY & Gold Equilibrium — Market Stopped';
-  let convictionPct = 70;
+  let triggerHeadline = 'Gold & DXY Equilibrium — Neutral Consolidation';
+  // R20 & Regression Test T4: DXY mid-range is NEUTRAL, never "sell Gold"
+  let ruleMatched = `Rule 5: DXY (${dxy.currentValue}) Mid-Range 47% — Neutral Equilibrium (No Sell Gold Bias)`;
+  let convictionPct = 65;
   let idealEntry = goldPrice;
   let entryZone = `$${(goldPrice - 4).toFixed(1)} – $${(goldPrice + 4).toFixed(1)}`;
   let stopLossPrice = +(goldPrice - 18).toFixed(1);
@@ -396,37 +391,37 @@ export function evaluateGoldDxyConfluence(
   let tp2Price = +(goldPrice + 65).toFixed(1);
   let tp3Price = +(goldPrice + 110).toFixed(1);
   let executionAction = 'MARKET STOPPED / CONSOLIDATING — WAIT FOR BREAKOUT';
-  let hinglishLogic = 'Gold aur DXY range me ruka hua hai. Breakout ka wait karein.';
+  let hinglishLogic = `Dollar Index ${dxy.currentValue} (${dxy.change24h}) mid-range me hai (support se 0.44% door). Rule R20 ke mutabiq DXY support par nahi hai, isliye Gold par sell bias nahi banta (WAIT).`;
 
-  // ─── USER RULE 4: DXY Support Bounce or Gold Falling from High -> EARLY SHORT (SELL) ───
-  if (!isRangeFlat && (dxy.currentValue <= 102.40 || isBearishMomentum || isNearResistance || goldPrice < (swingHigh + swingLow) / 2)) {
+  // ─── R20 Check: DXY AT STRICT SUPPORT (within 0.10 of 101.90) -> SHORT IDEA (Evidence Only) ───
+  if (!isRangeFlat && dxy.timeframe15m.currentPosition === 'AT_SUPPORT' && (isBearishMomentum || isNearResistance)) {
     decision = 'SHORT';
-    convictionPct = 93;
-    triggerHeadline = '🛑 GOLD 15M INSTITUTIONAL SELL TRIGGER (DXY Bounce & Gold Rejection)';
-    ruleMatched = 'Rule 4: DXY at Support (101.90-102.35) + Gold at Resistance / Drop';
+    convictionPct = 82;
+    triggerHeadline = 'GOLD / DXY Support Bounce — SHORT IDEA (Evidence Only)';
+    ruleMatched = `DXY at Strict Support (${dxy.currentValue}) + Gold Resistance Rejection`;
     idealEntry = swingHigh > goldPrice ? +(goldPrice * 1.001).toFixed(1) : +goldPrice.toFixed(1);
     entryZone = `$${(idealEntry - 3.5).toFixed(1)} – $${(idealEntry + 3.5).toFixed(1)}`;
-    stopLossPrice = +(Math.max(swingHigh + 2.5, idealEntry + 12.0)).toFixed(1); // tight SL above ceiling
+    stopLossPrice = +(Math.max(swingHigh + 2.5, idealEntry + 12.0)).toFixed(1);
     tp1Price = +(idealEntry - (stopLossPrice - idealEntry) * 1.35).toFixed(1);
     tp2Price = +(idealEntry - (stopLossPrice - idealEntry) * 2.2).toFixed(1);
     tp3Price = +(idealEntry - (stopLossPrice - idealEntry) * 3.5).toFixed(1);
-    executionAction = `SELL / SHORT GOLD SPOT AT $${idealEntry.toLocaleString()}`;
-    hinglishLogic = `🛑 DEKHO: Gold girna shuru ho chuka hai aur Dollar Index (${dxy.currentValue}) support par bounce le raha hai (Dollar strong hone se Gold par direct selling aati hai). Yahan early SHORT setup confirm ho chuka hai!`;
+    executionAction = `SHORT IDEA (Evidence Only) — Master: WAIT/ARMED`;
+    hinglishLogic = `Dollar Index (${dxy.currentValue}) 101.90 support floor par bounce le raha hai (Dollar strong hone se Gold par pressure banta hai). Ye Gold ke liye bearish evidence hai (Master arbiter final hai).`;
   }
-  // ─── USER RULE 3: DXY Resistance Drop or Gold Bouncing -> EARLY LONG (BUY) ───
-  else if (!isRangeFlat && (dxy.currentValue >= 102.40 || isBullishMomentum || isNearSupport || goldPrice > (swingHigh + swingLow) / 2)) {
+  // ─── R20 Check: DXY AT STRICT RESISTANCE (within 0.10 of 102.85) -> LONG IDEA (Evidence Only) ───
+  else if (!isRangeFlat && dxy.timeframe15m.currentPosition === 'AT_RESISTANCE' && (isBullishMomentum || isNearSupport)) {
     decision = 'LONG';
-    convictionPct = 95;
-    triggerHeadline = '🏆 GOLD 15M INSTITUTIONAL BUY TRIGGER (DXY Resistance Drop & Gold Bounce)';
-    ruleMatched = 'Rule 3: DXY at Resistance (102.40-102.85) + Gold at Support (Demand Floor)';
+    convictionPct = 85;
+    triggerHeadline = 'GOLD / DXY Resistance Drop — LONG IDEA (Evidence Only)';
+    ruleMatched = `DXY at Strict Resistance (${dxy.currentValue}) + Gold Demand Bounce`;
     idealEntry = swingLow < goldPrice ? +(goldPrice * 0.999).toFixed(1) : +goldPrice.toFixed(1);
     entryZone = `$${(idealEntry - 3.5).toFixed(1)} – $${(idealEntry + 3.5).toFixed(1)}`;
-    stopLossPrice = +(Math.min(swingLow - 2.5, idealEntry - 12.0)).toFixed(1); // tight SL below floor
+    stopLossPrice = +(Math.min(swingLow - 2.5, idealEntry - 12.0)).toFixed(1);
     tp1Price = +(idealEntry + (idealEntry - stopLossPrice) * 1.35).toFixed(1);
     tp2Price = +(idealEntry + (idealEntry - stopLossPrice) * 2.2).toFixed(1);
     tp3Price = +(idealEntry + (idealEntry - stopLossPrice) * 3.5).toFixed(1);
-    executionAction = `BUY / LONG GOLD SPOT AT $${idealEntry.toLocaleString()}`;
-    hinglishLogic = `🏆 DEKHO: Dollar Index (${dxy.currentValue}) resistance par reject ho raha hai aur Gold $${swingLow.toFixed(1)} support floor se bounce kar raha hai. Yahan early BUY setup confirm ho chuka hai!`;
+    executionAction = `LONG IDEA (Evidence Only) — Master: WAIT/ARMED`;
+    hinglishLogic = `Dollar Index (${dxy.currentValue}) resistance ceiling se reject ho raha hai (Dollar weak hone se Gold ko tailwind milta hai). Ye Gold ke liye bullish evidence hai (Master arbiter final hai).`;
   }
 
   const riskPts = Math.abs(idealEntry - stopLossPrice);

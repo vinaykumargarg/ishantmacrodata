@@ -48,6 +48,10 @@ import {
   ConfluenceKeyLevel
 } from '../utils/marketStructureEngine';
 import {
+  evaluateDeeeprMarketChartAnalyse,
+  DeeeprMarketChartAnalyseOutput
+} from '../services/deeeprMarketChartAnalyseEngine';
+import {
   unifiedTradeSignalService,
   UnifiedTradingSignal,
   normalizeSymbolKey
@@ -97,8 +101,8 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
 
   // Inspector Sub-tab state
   const [activeInspectorTab, setActiveInspectorTab] = useState<
-    'OVERVIEW' | 'STRUCTURE' | 'LEVELS' | 'ACTION_PLAN' | 'BACKTEST' | 'ALERTS'
-  >('OVERVIEW');
+    'DEEEPR_ANALYSE' | 'OVERVIEW' | 'STRUCTURE' | 'LEVELS' | 'ACTION_PLAN' | 'BACKTEST' | 'ALERTS'
+  >('DEEEPR_ANALYSE');
 
   // Analysis State
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -169,6 +173,16 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
     () => TIMEFRAME_OPTIONS.find((t) => t.id === timeframe) || TIMEFRAME_OPTIONS[3],
     [timeframe]
   );
+
+  // DEEEPR Market Chart Analyse Engine v1 Output
+  const deeeprAnalysis: DeeeprMarketChartAnalyseOutput = useMemo(() => {
+    return evaluateDeeeprMarketChartAnalyse(
+      selectedSymbol,
+      timeframe,
+      candlesRef.current,
+      livePrice
+    );
+  }, [selectedSymbol, timeframe, livePrice, analysis]);
 
   // Audio Engine
   const playBeep = useCallback((freq = 880) => {
@@ -814,53 +828,53 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
   };
 
   return (
-    <div className="w-full space-y-4 font-sans text-slate-100 bg-[#030712] min-h-screen p-3 sm:p-5 rounded-2xl border border-[#1e293b] shadow-2xl">
+    <div className="w-full space-y-3 font-sans text-[var(--text)] bg-[var(--surface-1)] min-h-screen p-2.5 sm:p-4 rounded-2xl border border-[var(--border)] shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
       {/* ────────────────── TOP NAVIGATION & ASSET SELECTOR ────────────────── */}
-      <div className="bg-[#081224] p-3 sm:p-4 rounded-xl border border-[#1e293b] space-y-3">
+      <div className="bg-[var(--surface-2)] p-3 sm:p-4 rounded-xl border border-[var(--border)] space-y-3">
         {/* Header Title & Status Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-3">
-            <div className="size-11 rounded-xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center text-xl shadow-lg shadow-cyan-500/25">
+            <div className="size-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-brand to-cyan-500 flex items-center justify-center text-lg shadow-md shadow-indigo-500/25 shrink-0">
               🔬
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-xl font-black tracking-wide text-white">
+                <h1 className="text-sm sm:text-base font-bold tracking-tight text-[var(--text)] font-['Sora']">
                   ULTRA-ADVANCED AI INSTITUTIONAL CHART ENGINE V2
                 </h1>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
+                  <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   {wsStatus === 'LIVE' ? '0-MS BINANCE STREAM' : 'CONNECTING...'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11.5px] text-[var(--text-2)] mt-0.5">
                 Pure Mathematical Smart Money Concepts · Order Blocks · Fair Value Gaps · Liquidity Map · Volume Profile · All Timeframes
               </p>
             </div>
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {/* Deep Scanner Button */}
             <button
               onClick={handleRunFullScanner}
               disabled={isAnalyzing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-slate-950 hover:brightness-110 shadow-md shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 text-white hover:brightness-110 shadow-sm shadow-indigo-500/25 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
-              <Sparkles className="size-3.5 text-slate-950" />
+              <Sparkles className="size-3.5 text-white" />
               <span>{isAnalyzing ? 'Scanning Chart...' : 'Run Deep Chart AI Read 🔬'}</span>
             </button>
 
             {/* Single Definitive Setup Badge (Strictly 1 Setup, Zero Flip-Flops) */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10">
-              <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>AI DEFINITIVE {unifiedSignal.decision}: 1 TIME = 1 SETUP ({unifiedSignal.convictionPct}% CONVICTION)</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/12 border border-emerald-500/30 text-emerald-300 font-mono">
+              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>AI DEFINITIVE {unifiedSignal.decision}: 1 TIME = 1 SETUP ({unifiedSignal.convictionPct}%)</span>
             </div>
 
             {/* Sound Toggle */}
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="px-2 py-1.5 rounded-lg text-xs font-bold bg-[#0c1426] border border-[#1e293b] text-slate-300 hover:text-white"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[var(--surface-3)] border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-3)]/80 transition-colors"
             >
               {soundEnabled ? '🔔 Audio ON' : '🔕 Mute'}
             </button>
@@ -868,13 +882,13 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
             {/* Direct Switchers */}
             <a
               href="#deeepr-ai"
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500/25"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-500/12 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-colors"
             >
               🔮 DEEEPR.AI Copilot
             </a>
             <a
               href="#ai-chart"
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-500/15 border border-rose-500/40 text-rose-300 hover:bg-rose-500/25"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-rose-500/12 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 transition-colors"
             >
               📈 AI Sniper Chart
             </a>
@@ -883,14 +897,14 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
 
         {/* Scanning Progress Bar */}
         {isAnalyzing && (
-          <div className="bg-[#030712] p-3 rounded-lg border border-cyan-500/30 space-y-1.5 animate-fadeIn">
+          <div className="bg-[var(--surface-3)] p-2.5 rounded-lg border border-cyan-500/30 space-y-1.5 animate-fadeIn">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-cyan-300">{scanStepText}</span>
-              <span className="font-mono text-cyan-400 font-extrabold">{analysisProgress}%</span>
+              <span className="font-semibold text-cyan-300">{scanStepText}</span>
+              <span className="font-mono text-cyan-400 font-bold">{analysisProgress}%</span>
             </div>
-            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-[var(--surface-1)] rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 transition-all duration-200"
+                className="h-full bg-gradient-to-r from-cyan-500 via-indigo-500 to-indigo-600 transition-all duration-200"
                 style={{ width: `${analysisProgress}%` }}
               />
             </div>
@@ -898,51 +912,51 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
         )}
 
         {/* Row 2: Asset Tabs + Binance Live Price Pill */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-[#1e293b]">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border)]">
           {/* Asset Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-[#040814] p-1 rounded-xl border border-[#1e293b]">
+          <div className="flex flex-wrap items-center gap-1 bg-[var(--surface-3)] p-1 rounded-xl border border-[var(--border)]">
             {ASSET_OPTIONS.map((a) => (
               <button
                 key={a.id}
                 onClick={() => setSelectedSymbol(a.symbol)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer ${
                   selectedSymbol === a.symbol
-                    ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold scale-[1.02]'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-sm font-semibold'
+                    : 'text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'
                 }`}
               >
                 <span>{a.icon}</span>
-                <span>{a.label}</span>
+                <span className="font-mono text-[11.5px]">{a.label}</span>
               </button>
             ))}
 
             <button
               onClick={() => setShowAddCoin(!showAddCoin)}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500/25 cursor-pointer flex items-center gap-1"
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/12 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 cursor-pointer flex items-center gap-1 transition-colors"
             >
               <span>➕ Add Coin</span>
             </button>
           </div>
 
           {/* Binance Live Price Pill */}
-          <div className="flex items-center gap-2.5 bg-[#040814] px-4 py-2 rounded-xl border border-[#1e293b]">
-            <span className="text-xs text-slate-400 font-medium">Binance Live:</span>
+          <div className="flex items-center gap-2.5 bg-[var(--surface-3)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
+            <span className="text-xs text-[var(--text-3)] font-medium">Binance Live:</span>
             <span
-              className={`text-xl font-black tabular-nums transition-colors duration-300 ${
+              className={`text-base sm:text-lg font-bold tabular-nums font-mono transition-colors duration-300 ${
                 priceFlash === 'up'
                   ? 'text-emerald-400'
                   : priceFlash === 'down'
                   ? 'text-rose-400'
-                  : 'text-white'
+                  : 'text-[var(--text)]'
               }`}
             >
               ${livePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
             <span
-              className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+              className={`text-xs font-bold font-mono px-2 py-0.5 rounded-md ${
                 priceChange24h.startsWith('+')
-                  ? 'text-emerald-400 bg-emerald-500/10'
-                  : 'text-rose-400 bg-rose-500/10'
+                  ? 'text-emerald-400 bg-emerald-500/12 border border-emerald-500/25'
+                  : 'text-rose-400 bg-rose-500/12 border border-rose-500/25'
               }`}
             >
               {priceChange24h}
@@ -952,7 +966,7 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
 
         {/* Custom Coin Add Input Box */}
         {showAddCoin && (
-          <div className="flex items-center gap-2 p-2.5 bg-[#040814] rounded-lg border border-amber-400/40">
+          <div className="flex items-center gap-2 p-2.5 bg-[var(--surface-3)] rounded-xl border border-amber-400/40 animate-fadeIn">
             <span className="text-xs text-amber-300 font-bold">Ticker:</span>
             <input
               type="text"
@@ -960,17 +974,17 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
               value={customCoinInput}
               onChange={(e) => setCustomCoinInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddCustomCoin()}
-              className="px-3 py-1 bg-slate-900 border border-slate-700 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-mono"
+              className="px-3 py-1.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-xs text-[var(--text)] placeholder-[var(--text-3)] focus:outline-none focus:border-amber-400 font-mono"
             />
             <button
               onClick={handleAddCustomCoin}
-              className="px-3 py-1 rounded bg-amber-400 text-slate-950 font-bold text-xs hover:brightness-110 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-bold text-xs hover:brightness-110 cursor-pointer transition-transform active:scale-95"
             >
               Load Ticker
             </button>
             <button
               onClick={() => setShowAddCoin(false)}
-              className="text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800"
+              className="text-xs text-[var(--text-3)] hover:text-[var(--text)] px-2.5 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] transition-colors"
             >
               ✕ Close
             </button>
@@ -978,20 +992,20 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
         )}
 
         {/* Row 3: All 13 Timeframes + MTF Mode + Sensitivity */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#1e293b]">
-          <div className="flex flex-wrap items-center gap-1 bg-[#040814] p-1 rounded-xl border border-[#1e293b]">
-            <span className="text-[11px] font-bold text-slate-400 px-2 flex items-center gap-1">
-              <Clock className="size-3 text-cyan-400" />
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border)]">
+          <div className="flex flex-wrap items-center gap-1 bg-[var(--surface-3)] p-1 rounded-xl border border-[var(--border)]">
+            <span className="text-xs font-semibold text-[var(--text-3)] px-2 flex items-center gap-1.5">
+              <Clock className="size-3.5 text-cyan-400" />
               <span>TF:</span>
             </span>
             {TIMEFRAME_OPTIONS.map((tf) => (
               <button
                 key={tf.id}
                 onClick={() => setTimeframe(tf.id)}
-                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all uppercase cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all uppercase cursor-pointer ${
                   timeframe === tf.id
-                    ? 'bg-blue-600 text-white shadow-sm font-extrabold'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                    ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                    : 'text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'
                 }`}
               >
                 {tf.label}
@@ -1003,10 +1017,10 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
             {/* Multi-Timeframe Mode Toggle */}
             <button
               onClick={() => setIsMtfMode(!isMtfMode)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
                 isMtfMode
-                  ? 'bg-purple-600/30 text-purple-200 border-purple-500/50 shadow-sm'
-                  : 'bg-slate-800/60 border-slate-700 text-slate-400'
+                  ? 'bg-purple-600/25 text-purple-200 border-purple-500/40 shadow-xs'
+                  : 'bg-[var(--surface-3)] border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)]'
               }`}
               title="Show Higher-Timeframe levels (4H/1D/1W) on current chart"
             >
@@ -1024,7 +1038,7 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
                     : 'LOW';
                 setStructureSensitivity(next);
               }}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#0c1426] border border-[#1e293b] text-cyan-300 hover:text-white cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--surface-3)] border border-[var(--border)] text-cyan-300 hover:text-white cursor-pointer transition-colors"
               title="Sensitivity of swing detection"
             >
               Sensitivity: {structureSensitivity}
@@ -1033,29 +1047,29 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
         </div>
 
         {/* Row 4: Smart Layer Control Checklist (Order Blocks, FVGs, S/R, Liquidity, etc.) */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#1e293b] text-xs">
-          <span className="text-slate-400 font-bold flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[var(--border)] text-xs">
+          <span className="text-[var(--text-3)] font-semibold flex items-center gap-1.5 pr-1">
             <Layers className="size-3.5 text-cyan-400" />
-            <span>Chart Layers:</span>
+            <span>Layers:</span>
           </span>
 
           {[
-            { key: 'orderBlocks', label: 'Order Blocks (OB)', color: 'text-emerald-400' },
-            { key: 'fvgs', label: 'FVG Zones', color: 'text-cyan-400' },
-            { key: 'supportResistance', label: 'Support & Resistance', color: 'text-blue-400' },
-            { key: 'liquidity', label: 'Liquidity Map (BSL/SSL)', color: 'text-amber-400' },
-            { key: 'bosChoch', label: 'BOS & CHoCH', color: 'text-purple-400' },
-            { key: 'previousHighLow', label: 'PDH / PDL / PWH', color: 'text-sky-400' },
-            { key: 'volumeProfile', label: 'Volume Profile POC', color: 'text-pink-400' },
-            { key: 'premiumDiscount', label: '0.50 Equilibrium', color: 'text-yellow-400' },
-            { key: 'tradeLevels', label: 'AI Sniper Levels (SL/TP)', color: 'text-emerald-300' }
+            { key: 'orderBlocks', label: 'Order Blocks (OB)', color: 'text-emerald-400', dot: 'bg-emerald-400' },
+            { key: 'fvgs', label: 'FVG Zones', color: 'text-cyan-400', dot: 'bg-cyan-400' },
+            { key: 'supportResistance', label: 'Support & Resistance', color: 'text-blue-400', dot: 'bg-blue-400' },
+            { key: 'liquidity', label: 'Liquidity Map (BSL/SSL)', color: 'text-amber-400', dot: 'bg-amber-400' },
+            { key: 'bosChoch', label: 'BOS & CHoCH', color: 'text-purple-400', dot: 'bg-purple-400' },
+            { key: 'previousHighLow', label: 'PDH / PDL / PWH', color: 'text-sky-400', dot: 'bg-sky-400' },
+            { key: 'volumeProfile', label: 'Volume Profile POC', color: 'text-pink-400', dot: 'bg-pink-400' },
+            { key: 'premiumDiscount', label: '0.50 Equilibrium', color: 'text-yellow-400', dot: 'bg-yellow-400' },
+            { key: 'tradeLevels', label: 'AI Sniper Levels (SL/TP)', color: 'text-emerald-300', dot: 'bg-emerald-300' }
           ].map((layer) => (
             <label
               key={layer.key}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border cursor-pointer select-none transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border cursor-pointer select-none transition-all text-[11.5px] ${
                 (layers as any)[layer.key]
-                  ? 'bg-slate-800/80 border-slate-600 text-white font-bold'
-                  : 'bg-[#040814] border-slate-800 text-slate-500'
+                  ? 'bg-[var(--surface-3)] border-[var(--border-strong)] text-[var(--text)] font-semibold shadow-xs'
+                  : 'bg-[var(--surface-2)] border-[var(--border)] text-[var(--text-3)] hover:text-[var(--text-2)]'
               }`}
             >
               <input
@@ -1067,9 +1081,10 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
                     [layer.key]: e.target.checked
                   }))
                 }
-                className="size-3.5 accent-cyan-500 rounded cursor-pointer"
+                className="size-3 accent-indigo-500 rounded cursor-pointer"
               />
-              <span className={layer.color}>{layer.label}</span>
+              <span className={`size-1.5 rounded-full ${layer.dot}`} />
+              <span>{layer.label}</span>
             </label>
           ))}
         </div>
@@ -1077,15 +1092,23 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
 
       {/* ────────────────── ⚡ UNIFIED AI VERDICT HERO BANNER ────────────────── */}
       <div
-        className={`p-4 rounded-2xl border-2 shadow-xl space-y-3 transition-all ${
-          unifiedSignal.decision === 'WAIT'
-            ? 'bg-gradient-to-r from-[#171407] via-[#120f06] to-[#081024] border-amber-500/40'
-            : unifiedSignal.decision === 'SHORT'
-            ? 'bg-gradient-to-r from-[#170712] via-[#100618] to-[#081024] border-rose-500/40'
-            : 'bg-gradient-to-r from-[#051812] via-[#081820] to-[#081024] border-emerald-500/40'
-        }`}
+        style={{
+          background:
+            unifiedSignal.decision === 'WAIT'
+              ? 'radial-gradient(circle at 12% 20%, rgba(251, 191, 36, 0.12), transparent 50%), var(--surface-2)'
+              : unifiedSignal.decision === 'SHORT'
+              ? 'radial-gradient(circle at 12% 20%, rgba(251, 113, 133, 0.14), transparent 50%), var(--surface-2)'
+              : 'radial-gradient(circle at 12% 20%, rgba(52, 211, 153, 0.14), transparent 50%), var(--surface-2)',
+          borderColor:
+            unifiedSignal.decision === 'WAIT'
+              ? 'rgba(251, 191, 36, 0.35)'
+              : unifiedSignal.decision === 'SHORT'
+              ? 'rgba(251, 113, 133, 0.35)'
+              : 'rgba(52, 211, 153, 0.35)'
+        }}
+        className="p-4 sm:p-5 rounded-2xl border shadow-xl space-y-3.5 transition-all duration-300 relative overflow-hidden"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
           <div className="flex items-center gap-3">
             <span
               className={`size-3.5 rounded-full animate-ping ${
@@ -1097,9 +1120,9 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
               }`}
             />
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`text-xl sm:text-2xl font-black ${
+                  className={`text-base sm:text-lg font-bold font-['Sora'] tracking-tight ${
                     unifiedSignal.decision === 'WAIT'
                       ? 'text-amber-400'
                       : unifiedSignal.decision === 'SHORT'
@@ -1113,102 +1136,123 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
                     ? '🔴 AI VERDICT: SHORT (SELL THE RETEST INTO RESISTANCE)'
                     : '🟢 AI VERDICT: LONG (BUY THE DISCOUNT DEMAND SWEEP)'}
                 </span>
-                <span className="px-2 py-0.5 rounded text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
                   {unifiedSignal.convictionPct}% CONVICTION
                 </span>
-                <span className="px-2 py-0.5 rounded text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
                   TRADE #{unifiedSignal.tradeNumber} ACTIVE ⚡
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
+              <p className="text-[12.5px] text-[var(--text-2)] mt-1 leading-relaxed">
                 {unifiedSignal.hindiExplanation}
               </p>
             </div>
           </div>
 
           <div className="text-right">
-            <span className="text-[11px] text-slate-400 uppercase font-bold block">Current Location</span>
-            <span className="text-sm font-black text-amber-300 font-mono">
+            <span className="text-[10px] text-[var(--text-3)] uppercase font-semibold tracking-wider block">
+              Current Location
+            </span>
+            <span className="text-xs sm:text-sm font-bold text-amber-300 font-mono px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 inline-block mt-0.5">
               {analysis?.premiumDiscount?.zone || 'EQUILIBRIUM'} ({analysis?.premiumDiscount?.locationPct || 50}%)
             </span>
           </div>
         </div>
 
-        {/* 6 Key Execution Level Cards */}
+        {/* 6 Key Execution Level Cards (Linear / Bloomberg Fintech Grade) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
-          <div className="bg-[#0c1426] p-2.5 rounded-xl border border-amber-400/40">
-            <span className="text-[10px] uppercase font-bold text-amber-300 block">🎯 SNIPER ENTRY</span>
-            <span className="text-sm font-black text-white block mt-0.5 font-mono">{unifiedSignal.entryZone}</span>
-            <span className="text-[10px] text-slate-400">Execution Zone</span>
+          <div className="bg-[var(--surface-3)]/60 hover:bg-[var(--surface-3)] p-3 rounded-xl border border-amber-400/35 transition-all flex flex-col justify-between shadow-xs">
+            <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider flex items-center gap-1">
+              <span>🎯</span> SNIPER ENTRY
+            </span>
+            <span className="text-sm sm:text-base font-bold text-amber-200 block my-1 font-mono">{unifiedSignal.entryZone}</span>
+            <span className="text-[10px] text-[var(--text-3)] font-medium">Execution Zone</span>
           </div>
 
-          <div className="bg-[#1a0812] p-2.5 rounded-xl border border-rose-500/50">
-            <span className="text-[10px] uppercase font-bold text-rose-400 block">🛑 STOP LOSS (SL)</span>
-            <span className="text-sm font-black text-rose-300 block mt-0.5 font-mono">
+          <div className="bg-[var(--surface-3)]/60 hover:bg-[var(--surface-3)] p-3 rounded-xl border border-rose-500/40 transition-all flex flex-col justify-between shadow-xs">
+            <span className="text-[10px] uppercase font-bold text-rose-400 tracking-wider flex items-center gap-1">
+              <span>🛑</span> STOP LOSS (SL)
+            </span>
+            <span className="text-sm sm:text-base font-bold text-rose-300 block my-1 font-mono">
               ${unifiedSignal.stopLossPrice.toLocaleString()}
             </span>
-            <span className="text-[10px] text-rose-400/80">Strict Risk Protection</span>
+            <span className="text-[10px] text-rose-400/80 font-medium">Strict Protection</span>
           </div>
 
-          <div className="bg-[#061814] p-2.5 rounded-xl border border-emerald-500/40">
-            <span className="text-[10px] uppercase font-bold text-emerald-400 block">🏁 TARGET 1 (TP1)</span>
-            <span className="text-sm font-black text-emerald-300 block mt-0.5 font-mono">
+          <div className="bg-[var(--surface-3)]/60 hover:bg-[var(--surface-3)] p-3 rounded-xl border border-emerald-500/35 transition-all flex flex-col justify-between shadow-xs">
+            <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider flex items-center gap-1">
+              <span>🏁</span> TARGET 1 (TP1)
+            </span>
+            <span className="text-sm sm:text-base font-bold text-emerald-300 block my-1 font-mono">
               ${unifiedSignal.targetTp1.toLocaleString()}
             </span>
-            <span className="text-[10px] text-emerald-400/80">Take 40% Profit</span>
+            <span className="text-[10px] text-emerald-400/80 font-medium">Take 40% Profit</span>
           </div>
 
-          <div className="bg-[#061814] p-2.5 rounded-xl border border-emerald-500/40">
-            <span className="text-[10px] uppercase font-bold text-emerald-400 block">🏁 TARGET 2 (TP2)</span>
-            <span className="text-sm font-black text-emerald-300 block mt-0.5 font-mono">
+          <div className="bg-[var(--surface-3)]/60 hover:bg-[var(--surface-3)] p-3 rounded-xl border border-emerald-500/35 transition-all flex flex-col justify-between shadow-xs">
+            <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider flex items-center gap-1">
+              <span>🏁</span> TARGET 2 (TP2)
+            </span>
+            <span className="text-sm sm:text-base font-bold text-emerald-300 block my-1 font-mono">
               ${unifiedSignal.targetTp2.toLocaleString()}
             </span>
-            <span className="text-[10px] text-emerald-400/80">Take 35% Profit</span>
+            <span className="text-[10px] text-emerald-400/80 font-medium">Take 35% Profit</span>
           </div>
 
-          <div className="bg-[#061814] p-2.5 rounded-xl border border-emerald-500/40">
-            <span className="text-[10px] uppercase font-bold text-emerald-400 block">🏆 TARGET 3 (TP3)</span>
-            <span className="text-sm font-black text-emerald-300 block mt-0.5 font-mono">
+          <div className="bg-[var(--surface-3)]/60 hover:bg-[var(--surface-3)] p-3 rounded-xl border border-emerald-500/35 transition-all flex flex-col justify-between shadow-xs">
+            <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider flex items-center gap-1">
+              <span>🏆</span> TARGET 3 (TP3)
+            </span>
+            <span className="text-sm sm:text-base font-bold text-emerald-300 block my-1 font-mono">
               ${unifiedSignal.targetTp3.toLocaleString()}
             </span>
-            <span className="text-[10px] text-emerald-400/80">Full Runner Target</span>
+            <span className="text-[10px] text-emerald-400/80 font-medium">Full Runner</span>
           </div>
 
-          <div className="bg-[#0a162e] p-2.5 rounded-xl border border-cyan-500/40">
-            <span className="text-[10px] uppercase font-bold text-cyan-300 block">⚖️ REWARD : RISK</span>
-            <span className="text-sm font-black text-cyan-200 block mt-0.5 font-mono">{unifiedSignal.rewardToRisk}</span>
-            <span className="text-[10px] text-slate-400">Institutional Asymmetry</span>
+          <div className="bg-[var(--surface-3)]/60 hover:bg-[var(--surface-3)] p-3 rounded-xl border border-cyan-500/35 transition-all flex flex-col justify-between shadow-xs">
+            <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider flex items-center gap-1">
+              <span>⚖️</span> REWARD : RISK
+            </span>
+            <span className="text-sm sm:text-base font-bold text-cyan-200 block my-1 font-mono">{unifiedSignal.rewardToRisk}</span>
+            <span className="text-[10px] text-[var(--text-3)] font-medium">Asymmetric RR</span>
           </div>
         </div>
 
         {/* 🎯 AAPKO TRADE KAISE LENA HAI (EASY 3 STEPS) */}
         {unifiedSignal.stepByStepGuide && (
-          <div className="bg-[#040d1e] p-3 rounded-xl border border-emerald-500/30 space-y-2">
-            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-1.5">
-              <span className="text-xs font-black uppercase text-emerald-300 tracking-wider flex items-center gap-1.5">
+          <div className="bg-[var(--surface-3)]/40 p-3.5 sm:p-4 rounded-xl border border-[var(--border)] space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-2">
+              <span className="text-xs font-bold uppercase text-emerald-300 tracking-wider flex items-center gap-2">
                 <span>🎯</span>
                 <span>Aapko Trade Kaise Lena Hai (Easy 3-Step Execution Guide):</span>
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                100% Synced With DEEEPR AI & AI Sniper Chart ✅
+              <span className="text-[10.5px] font-mono font-semibold px-2 py-0.5 rounded-md bg-emerald-500/12 text-emerald-300 border border-emerald-500/25">
+                Synced With DEEEPR AI & AI Sniper Chart ✅
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-              <div className="bg-[#061226] p-2.5 rounded-lg border border-amber-400/30">
-                <span className="text-[10px] font-black text-amber-300 block uppercase">1. Entry Rule (Limit Order)</span>
-                <p className="text-slate-200 mt-1 text-xs">{unifiedSignal.stepByStepGuide.step1Entry}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+              <div className="bg-[var(--surface-2)] p-3 rounded-lg border border-amber-500/25">
+                <span className="text-[10.5px] font-bold text-amber-300 block uppercase tracking-wider">
+                  1. Entry Rule (Limit Order)
+                </span>
+                <p className="text-[var(--text-2)] mt-1.5 text-xs leading-relaxed">{unifiedSignal.stepByStepGuide.step1Entry}</p>
               </div>
-              <div className="bg-[#140610] p-2.5 rounded-lg border border-rose-500/30">
-                <span className="text-[10px] font-black text-rose-300 block uppercase">2. Strict Stop Loss</span>
-                <p className="text-slate-200 mt-1 text-xs">{unifiedSignal.stepByStepGuide.step2StopLoss}</p>
+              <div className="bg-[var(--surface-2)] p-3 rounded-lg border border-rose-500/25">
+                <span className="text-[10.5px] font-bold text-rose-300 block uppercase tracking-wider">
+                  2. Strict Stop Loss
+                </span>
+                <p className="text-[var(--text-2)] mt-1.5 text-xs leading-relaxed">{unifiedSignal.stepByStepGuide.step2StopLoss}</p>
               </div>
-              <div className="bg-[#051c14] p-2.5 rounded-lg border border-emerald-500/30">
-                <span className="text-[10px] font-black text-emerald-300 block uppercase">3. Profit Booking & Risk-Free Rule</span>
-                <p className="text-slate-200 mt-1 text-xs">{unifiedSignal.stepByStepGuide.step3ProfitTaking}</p>
+              <div className="bg-[var(--surface-2)] p-3 rounded-lg border border-emerald-500/25">
+                <span className="text-[10.5px] font-bold text-emerald-300 block uppercase tracking-wider">
+                  3. Profit Booking & Risk-Free Rule
+                </span>
+                <p className="text-[var(--text-2)] mt-1.5 text-xs leading-relaxed">{unifiedSignal.stepByStepGuide.step3ProfitTaking}</p>
               </div>
             </div>
-            <p className="text-[11px] text-amber-300/90 font-medium pt-0.5">
-              {unifiedSignal.stepByStepGuide.riskTip}
+            <p className="text-xs text-amber-300/90 font-medium pt-1 flex items-center gap-1.5">
+              <span>⚠️</span>
+              <span>{unifiedSignal.stepByStepGuide.riskTip}</span>
             </p>
           </div>
         )}
@@ -1218,14 +1262,14 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
       <div className={isWideChart ? 'space-y-4' : 'grid grid-cols-1 xl:grid-cols-4 gap-4'}>
         {/* Main Interactive Candlestick Chart */}
         <div className={isWideChart ? 'w-full space-y-3' : 'xl:col-span-3 space-y-3'}>
-          <div className="bg-[#050a14] p-2 sm:p-3 rounded-xl border border-[#1e293b] space-y-2 relative">
+          <div className="bg-[var(--surface-2)] p-2.5 sm:p-3.5 rounded-xl border border-[var(--border)] space-y-2.5 relative shadow-md">
             {/* Chart Toolbar Header */}
-            <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
               <div className="flex items-center gap-2 font-mono">
-                <span className="font-bold text-white text-sm">{activeAsset.label}</span>
-                <span className="text-slate-400">· {timeframe.toUpperCase()}</span>
+                <span className="font-bold text-[var(--text)] text-sm">{activeAsset.label}</span>
+                <span className="text-[var(--text-3)] font-semibold">· {timeframe.toUpperCase()}</span>
                 {isMtfMode && (
-                  <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[10px] font-bold">
                     MTF ACTIVE
                   </span>
                 )}
@@ -1234,13 +1278,13 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
               {/* Chart Mode, Layout & Zoom Controls */}
               <div className="flex flex-wrap items-center gap-2">
                 {/* Mode Selector Presets */}
-                <div className="flex items-center gap-1 bg-[#040814] p-0.5 rounded-lg border border-[#1e293b]">
+                <div className="flex items-center gap-1 bg-[var(--surface-3)] p-1 rounded-lg border border-[var(--border)]">
                   <button
                     onClick={() => setChartMode('CLEAN')}
-                    className={`px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                       chartMode === 'CLEAN'
-                        ? 'bg-cyan-500 text-slate-950 font-black shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-bold shadow-xs'
+                        : 'text-[var(--text-2)] hover:text-[var(--text)]'
                     }`}
                     title="Clean institutional chart: zero overlapping labels, crystal-clear candles"
                   >
@@ -1248,10 +1292,10 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setChartMode('SNIPER')}
-                    className={`px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                       chartMode === 'SNIPER'
-                        ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-emerald-500 text-slate-950 font-bold shadow-xs'
+                        : 'text-[var(--text-2)] hover:text-[var(--text)]'
                     }`}
                     title="Sniper only: Active Entry, SL, TP & POC"
                   >
@@ -1259,10 +1303,10 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setChartMode('FULL')}
-                    className={`px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                       chartMode === 'FULL'
-                        ? 'bg-purple-600 text-white font-black shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-purple-600 text-white font-bold shadow-xs'
+                        : 'text-[var(--text-2)] hover:text-[var(--text)]'
                     }`}
                     title="Full detail: All SMC lines & auxiliary zones"
                   >
@@ -1273,10 +1317,10 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
                 {/* Wide / Split View Toggle */}
                 <button
                   onClick={() => setIsWideChart(!isWideChart)}
-                  className="px-2.5 py-1 rounded-lg bg-[#0d1c3a] border border-cyan-500/40 text-cyan-200 hover:text-white hover:bg-cyan-900/40 text-xs font-bold cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-[var(--surface-3)] border border-[var(--border)] text-cyan-300 hover:text-white hover:bg-[var(--surface-3)]/80 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-colors"
                   title="Toggle wide fullwidth chart or side-by-side split view"
                 >
-                  <span>{isWideChart ? '◨ Side-by-Side View' : '⛶ Full Width Chart'}</span>
+                  <span>{isWideChart ? '◨ Split View' : '⛶ Full Width'}</span>
                 </button>
 
                 {/* Reset Zoom */}
@@ -1292,7 +1336,7 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
                       chartInstanceRef.current?.timeScale().fitContent();
                     }
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white text-xs font-bold cursor-pointer flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-lg bg-[var(--surface-3)] border border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-colors"
                   title="Reset zoom to comfortable 45-candle view"
                 >
                   <RotateCcw className="size-3" />
@@ -1302,34 +1346,34 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
             </div>
 
             {/* Interactive Lightweight Chart Canvas Container */}
-            <div className="relative w-full rounded-lg overflow-hidden border border-[#1e293b] bg-[#050a14]">
+            <div className="relative w-full rounded-xl overflow-hidden border border-[var(--border)] bg-[#090e1a]">
               <div ref={chartContainerRef} className="w-full" style={{ height: '600px', minHeight: '600px' }} />
 
               {/* Watermark Branding */}
               <div className="absolute top-4 left-4 pointer-events-none opacity-20 select-none">
-                <p className="text-2xl font-black tracking-widest text-white">ISHANTMACRO.AI</p>
-                <p className="text-xs font-mono text-cyan-400">SMART MONEY CONCEPTS ENGINE V2</p>
+                <p className="text-xl font-bold tracking-widest text-[var(--text)] font-['Sora']">ISHANTMACRO.AI</p>
+                <p className="text-[10.5px] font-mono text-cyan-400">SMART MONEY CONCEPTS ENGINE V2</p>
               </div>
             </div>
 
             {/* Chart Legend / Active Status Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-[11px] text-slate-400 font-mono pt-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-[var(--text-3)] font-mono pt-1">
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-emerald-400" /> Bullish Candle
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-rose-400" /> Bearish Candle
                 </span>
-                <span className="flex items-center gap-1">
-                  <span className="size-2 rounded-full bg-pink-500" /> POC (Point of Control)
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-pink-500" /> POC (Volume POC)
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-amber-400" /> 0.50 Equilibrium
                 </span>
               </div>
-              <div>
-                <span>Hover crosshair over any candle to inspect timestamp and exact OHLCV. Drag/scroll to pan & zoom.</span>
+              <div className="text-[10.5px] text-[var(--text-3)]">
+                <span>Pan & zoom via mouse scroll or drag. Click any level to inspect.</span>
               </div>
             </div>
           </div>
@@ -1337,42 +1381,42 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
 
         {/* KEY MARKET LEVELS: 4-Column Row (when Wide) OR Sidebar (when Split) */}
         <div className={isWideChart ? 'w-full space-y-3' : 'xl:col-span-1 space-y-3'}>
-          <div className="bg-[#081224] p-3 sm:p-4 rounded-xl border border-[#1e293b] space-y-3">
-            <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
+          <div className="bg-[var(--surface-2)] p-3.5 sm:p-4 rounded-xl border border-[var(--border)] space-y-3 shadow-md">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="text-base">🏛️</span>
-                <h3 className="text-sm font-black uppercase text-white tracking-wide">
+                <h3 className="text-xs sm:text-sm font-bold uppercase text-[var(--text)] tracking-wider font-['Sora']">
                   KEY MARKET LEVELS
                 </h3>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                Sorted by Confluence
+              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-cyan-500/12 text-cyan-300 border border-cyan-500/25">
+                Confluence Sorted
               </span>
             </div>
 
             <div className={isWideChart ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3' : 'space-y-3'}>
               {/* Card 1: Nearest S/R Levels */}
-              <div className="space-y-2 bg-[#050a14] p-2.5 rounded-lg border border-slate-800">
-                <span className="text-[11px] font-bold uppercase text-slate-400 block">
+              <div className="space-y-2 bg-[var(--surface-3)]/50 p-3 rounded-xl border border-[var(--border)]">
+                <span className="text-[11px] font-bold uppercase text-[var(--text-2)] block tracking-wider">
                   ⚡ Major Support & Resistance
                 </span>
                 <div className="space-y-1.5 text-xs">
                   {analysis?.supportResistance?.slice(0, 3).map((sr) => (
                     <div
                       key={sr.id}
-                      className={`p-2 rounded-lg border flex items-center justify-between ${
+                      className={`p-2.5 rounded-lg border flex items-center justify-between ${
                         sr.type === 'SUPPORT'
-                          ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200'
-                          : 'bg-rose-950/30 border-rose-500/30 text-rose-200'
+                          ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
+                          : 'bg-rose-950/20 border-rose-500/30 text-rose-200'
                       }`}
                     >
                       <div>
-                        <span className="font-bold block">
+                        <span className="font-semibold block text-[11.5px]">
                           {sr.rank} {sr.type}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">${sr.price.toLocaleString()}</span>
+                        <span className="text-[11px] text-[var(--text-2)] font-mono">${sr.price.toLocaleString()}</span>
                       </div>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-slate-900 border border-slate-700">
+                      <span className="px-2 py-0.5 rounded text-[10.5px] font-bold font-mono bg-[var(--surface-2)] border border-[var(--border)]">
                         {sr.strengthScore}/100
                       </span>
                     </div>
@@ -1381,29 +1425,29 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
               </div>
 
               {/* Card 2: Order Blocks (Bullish & Bearish) */}
-              <div className="space-y-2 bg-[#050a14] p-2.5 rounded-lg border border-slate-800">
-                <span className="text-[11px] font-bold uppercase text-slate-400 block">
+              <div className="space-y-2 bg-[var(--surface-3)]/50 p-3 rounded-xl border border-[var(--border)]">
+                <span className="text-[11px] font-bold uppercase text-[var(--text-2)] block tracking-wider">
                   📦 Active Order Blocks (OB)
                 </span>
                 <div className="space-y-1.5 text-xs">
                   {analysis?.orderBlocks?.slice(0, 3).map((ob) => (
                     <div
                       key={ob.id}
-                      className={`p-2 rounded-lg border flex items-center justify-between ${
+                      className={`p-2.5 rounded-lg border flex items-center justify-between ${
                         ob.type === 'BULLISH_OB'
-                          ? 'bg-[#041a14] border-emerald-500/30 text-emerald-200'
-                          : 'bg-[#1a0812] border-rose-500/30 text-rose-200'
+                          ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
+                          : 'bg-rose-950/20 border-rose-500/30 text-rose-200'
                       }`}
                     >
                       <div>
-                        <span className="font-bold block">
+                        <span className="font-semibold block text-[11.5px]">
                           {ob.creationTimeframe} {ob.type === 'BULLISH_OB' ? 'Demand OB' : 'Supply OB'}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-[11px] text-[var(--text-2)] font-mono">
                           ${Math.round(ob.bottomPrice).toLocaleString()} – ${Math.round(ob.topPrice).toLocaleString()}
                         </span>
                       </div>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-slate-900 border border-slate-700">
+                      <span className="px-2 py-0.5 rounded text-[10.5px] font-bold font-mono bg-[var(--surface-2)] border border-[var(--border)]">
                         {ob.confidenceScore}%
                       </span>
                     </div>
@@ -1412,25 +1456,25 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
               </div>
 
               {/* Card 3: Fair Value Gaps (FVG) */}
-              <div className="space-y-2 bg-[#050a14] p-2.5 rounded-lg border border-slate-800">
-                <span className="text-[11px] font-bold uppercase text-slate-400 block">
+              <div className="space-y-2 bg-[var(--surface-3)]/50 p-3 rounded-xl border border-[var(--border)]">
+                <span className="text-[11px] font-bold uppercase text-[var(--text-2)] block tracking-wider">
                   ⚡ Unfilled Fair Value Gaps (FVG)
                 </span>
                 <div className="space-y-1.5 text-xs">
                   {analysis?.fvgs?.filter((f) => f.status === 'UNFILLED').slice(0, 3).map((fvg) => (
                     <div
                       key={fvg.id}
-                      className="p-2 rounded-lg border bg-[#061224] border-cyan-500/30 text-cyan-200 flex items-center justify-between"
+                      className="p-2.5 rounded-lg border bg-cyan-950/20 border-cyan-500/30 text-cyan-200 flex items-center justify-between"
                     >
                       <div>
-                        <span className="font-bold block">
+                        <span className="font-semibold block text-[11.5px]">
                           {fvg.timeframe} {fvg.type === 'BULLISH_FVG' ? 'Bullish FVG' : 'Bearish FVG'}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-[11px] text-[var(--text-2)] font-mono">
                           ${Math.round(fvg.bottomPrice).toLocaleString()} – ${Math.round(fvg.topPrice).toLocaleString()}
                         </span>
                       </div>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-900/40 text-cyan-300 border border-cyan-500/30">
                         {fvg.status}
                       </span>
                     </div>
@@ -1439,32 +1483,32 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
               </div>
 
               {/* Card 4: Previous Day/Week Highs & Lows & POC */}
-              <div className="space-y-2 bg-[#050a14] p-2.5 rounded-lg border border-slate-800">
-                <span className="text-[11px] font-bold uppercase text-slate-400 block">
+              <div className="space-y-2 bg-[var(--surface-3)]/50 p-3 rounded-xl border border-[var(--border)]">
+                <span className="text-[11px] font-bold uppercase text-[var(--text-2)] block tracking-wider">
                   📅 Previous High / Lows & POC
                 </span>
-                <div className="grid grid-cols-2 gap-1 text-xs font-mono">
-                  <div className="bg-[#030712] p-1.5 rounded border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">PDH</span>
+                <div className="grid grid-cols-2 gap-1.5 text-xs font-mono">
+                  <div className="bg-[var(--surface-2)] p-2 rounded-lg border border-[var(--border)]">
+                    <span className="text-[10px] text-[var(--text-3)] block font-sans uppercase">PDH</span>
                     <span className="font-bold text-sky-300">${analysis?.previousHighLows?.pdh?.toLocaleString() || '—'}</span>
                   </div>
-                  <div className="bg-[#030712] p-1.5 rounded border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">PDL</span>
+                  <div className="bg-[var(--surface-2)] p-2 rounded-lg border border-[var(--border)]">
+                    <span className="text-[10px] text-[var(--text-3)] block font-sans uppercase">PDL</span>
                     <span className="font-bold text-sky-300">${analysis?.previousHighLows?.pdl?.toLocaleString() || '—'}</span>
                   </div>
-                  <div className="bg-[#030712] p-1.5 rounded border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">PWH</span>
+                  <div className="bg-[var(--surface-2)] p-2 rounded-lg border border-[var(--border)]">
+                    <span className="text-[10px] text-[var(--text-3)] block font-sans uppercase">PWH</span>
                     <span className="font-bold text-blue-300">${analysis?.previousHighLows?.pwh?.toLocaleString() || '—'}</span>
                   </div>
-                  <div className="bg-[#030712] p-1.5 rounded border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">PWL</span>
+                  <div className="bg-[var(--surface-2)] p-2 rounded-lg border border-[var(--border)]">
+                    <span className="text-[10px] text-[var(--text-3)] block font-sans uppercase">PWL</span>
                     <span className="font-bold text-blue-300">${analysis?.previousHighLows?.pwl?.toLocaleString() || '—'}</span>
                   </div>
                 </div>
                 {analysis?.volumeProfile?.poc && (
-                  <div className="p-1.5 rounded bg-[#0e0818] border border-pink-500/30 text-[11px] flex justify-between items-center">
-                    <span className="text-pink-300 font-bold">POC:</span>
-                    <span className="font-bold font-mono text-white">${analysis.volumeProfile.poc.toLocaleString()}</span>
+                  <div className="p-2 rounded-lg bg-[var(--surface-2)] border border-pink-500/30 text-xs flex justify-between items-center font-mono">
+                    <span className="text-pink-300 font-bold font-sans">POC:</span>
+                    <span className="font-bold text-[var(--text)]">${analysis.volumeProfile.poc.toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -1476,8 +1520,9 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
       {/* ────────────────── BOTTOM MODULES: MTF MATRIX + AI DECISION + BACKTEST ────────────────── */}
       <div className="space-y-3">
         {/* Sub-Tabs Header */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#1e293b] pb-2">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--border)] pb-2.5">
           {[
+            { id: 'DEEEPR_ANALYSE', label: '🏛️ DEEEPR 8-Step Analysis & Awareness v1', icon: '🏛️' },
             { id: 'OVERVIEW', label: '📊 Multi-Timeframe Structure Matrix', icon: '🌐' },
             { id: 'STRUCTURE', label: '🧠 AI Smart Money Explanation (Hinglish/Eng)', icon: '💡' },
             { id: 'ACTION_PLAN', label: '🎯 Complete Sniper Action Plan', icon: '⚡' },
@@ -1487,10 +1532,10 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveInspectorTab(tab.id as any)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeInspectorTab === tab.id
-                  ? 'bg-blue-600 text-white shadow-md font-extrabold'
-                  : 'text-slate-400 hover:text-white bg-[#060c18] border border-[#1e293b]'
+                  ? 'bg-indigo-600 text-white shadow-sm font-bold'
+                  : 'text-[var(--text-2)] hover:text-[var(--text)] bg-[var(--surface-2)] border border-[var(--border)]'
               }`}
             >
               <span>{tab.icon}</span>
@@ -1498,6 +1543,174 @@ export const MarketChartAnalyserTerminalView: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* Tab 0: DEEEPR 8-Step Analysis + Market Awareness Engine */}
+        {activeInspectorTab === 'DEEEPR_ANALYSE' && (
+          <div className="bg-[#050a1a] p-4 rounded-xl border border-cyan-500/30 space-y-4 shadow-xl text-slate-200">
+            {/* 1. Header Banner */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-cyan-400 font-black text-sm uppercase">
+                    🏛️ DEEEPR MARKET CHART ANALYSE & AWARENESS ENGINE v1
+                  </span>
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                    EVIDENCE & BIAS ONLY
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5 font-mono">
+                  Asset: {deeeprAnalysis.asset} · TF: {deeeprAnalysis.timeframe.toUpperCase()} · Price: ${deeeprAnalysis.price?.toLocaleString()} · Feed: {deeeprAnalysis.price_source}
+                </p>
+              </div>
+
+              {/* Bias & Calibrated Confidence */}
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Market Bias</span>
+                  <span className={`text-base font-black font-mono ${
+                    deeeprAnalysis.bias === 'Bullish' ? 'text-emerald-400' : deeeprAnalysis.bias === 'Bearish' ? 'text-rose-400' : 'text-slate-300'
+                  }`}>
+                    {deeeprAnalysis.bias.toUpperCase()}
+                  </span>
+                </div>
+                <div className="text-right pl-3 border-l border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Confidence</span>
+                  <span className="text-base font-black font-mono text-cyan-300">
+                    {deeeprAnalysis.confidence}%
+                  </span>
+                  <span className="text-[9px] text-slate-500 block font-mono">({deeeprAnalysis.confidence_basis})</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Pipeline Summary Grid (Step 1 to Step 6) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              {/* Step 1: Regime & Range */}
+              <div className="bg-[#071126] p-3 rounded-lg border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">1. Regime & Range (p)</span>
+                <span className="text-sm font-bold text-cyan-300 block">{deeeprAnalysis.regime}</span>
+                <p className="text-[11px] text-slate-400 font-mono">
+                  p = {deeeprAnalysis.range.position_p} {deeeprAnalysis.range.in_no_trade_zone ? '⚠️ NO-TRADE ZONE (0.40–0.60)' : ''}
+                </p>
+                <p className="text-[10px] text-slate-500 font-mono">
+                  Range: ${deeeprAnalysis.range.low?.toLocaleString()} — ${deeeprAnalysis.range.high?.toLocaleString()}
+                </p>
+              </div>
+
+              {/* Step 2: MTF Structure */}
+              <div className="bg-[#071126] p-3 rounded-lg border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">2. MTF Structure</span>
+                <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                  <span>1D: <strong className="text-slate-200">{deeeprAnalysis.structure['1D']}</strong></span>
+                  <span>•</span>
+                  <span>4H: <strong className="text-slate-200">{deeeprAnalysis.structure['4H']}</strong></span>
+                </div>
+                <p className="text-[11px] text-cyan-400 font-mono font-bold mt-1">
+                  Allowed Direction: {deeeprAnalysis.structure.allowed_direction.toUpperCase()}
+                </p>
+              </div>
+
+              {/* Step 4: Liquidity & Flow */}
+              <div className="bg-[#071126] p-3 rounded-lg border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">4. Liquidity & Flow</span>
+                <p className="text-[11px] text-emerald-400 font-mono">{deeeprAnalysis.liquidity_flow.cvd}</p>
+                <p className="text-[10px] text-slate-400 font-mono">{deeeprAnalysis.liquidity_flow.oi_price}</p>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                  Liq Data: {deeeprAnalysis.liquidity_flow.liq_data}
+                </span>
+              </div>
+
+              {/* Step 5: Volume Profile */}
+              <div className="bg-[#071126] p-3 rounded-lg border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">5. Volume Profile</span>
+                <p className="text-[11px] font-mono text-pink-400">
+                  POC: ${deeeprAnalysis.volume_profile.poc?.toLocaleString()}
+                </p>
+                <p className="text-[10px] font-mono text-slate-400">
+                  VAH: ${deeeprAnalysis.volume_profile.vah?.toLocaleString()} | VAL: ${deeeprAnalysis.volume_profile.val?.toLocaleString()}
+                </p>
+                <span className="text-[10px] text-slate-300 font-mono">
+                  Location: <strong>{deeeprAnalysis.volume_profile.location.toUpperCase()}</strong> Value Area
+                </span>
+              </div>
+            </div>
+
+            {/* 3. Three Conditional Scenarios (Summing to 100%) */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wide block">
+                🎯 Step 7: Conditional Scenarios (Probabilities Sum to 100%)
+              </span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {deeeprAnalysis.scenarios.map((sc) => (
+                  <div
+                    key={sc.name}
+                    className={`p-3 rounded-lg border ${
+                      sc.name === 'Base'
+                        ? 'bg-emerald-950/20 border-emerald-500/40'
+                        : sc.name === 'Alternate'
+                        ? 'bg-blue-950/20 border-blue-500/40'
+                        : 'bg-purple-950/20 border-purple-500/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
+                      <span className="font-bold text-xs text-white uppercase">{sc.name} Scenario</span>
+                      <span className="px-2 py-0.5 rounded text-xs font-mono font-black bg-slate-900 text-cyan-300">
+                        {sc.probability}% Prob
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 text-[11px] font-mono">
+                      <p><span className="text-slate-400">Trigger:</span> <strong className="text-slate-200">{sc.trigger}</strong></p>
+                      <p><span className="text-emerald-400">Target:</span> {sc.target}</p>
+                      <p><span className="text-rose-400">Invalidation:</span> {sc.invalidation}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 4. Market Awareness Radar */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-wide block">
+                📡 Market Awareness Radar (Sessions, Volatility, Event & Trap Risks)
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {deeeprAnalysis.awareness.map((aw, idx) => (
+                  <div key={idx} className="bg-[#060e20] p-2.5 rounded-lg border border-slate-800 text-[11px]">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-[10px] uppercase text-slate-300">{aw.type}</span>
+                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                        aw.severity === 'high' ? 'bg-rose-950 text-rose-300' : aw.severity === 'medium' ? 'bg-amber-950 text-amber-300' : 'bg-slate-800 text-slate-300'
+                      }`}>
+                        {aw.action}
+                      </span>
+                    </div>
+                    <p className="text-slate-300 font-mono text-[10.5px] leading-tight">{aw.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. Hinglish Summary (Max 8 Lines) */}
+            <div className="p-3.5 bg-[#030712] border border-cyan-500/20 rounded-xl space-y-1.5 text-xs font-mono text-slate-300 leading-relaxed">
+              <span className="text-[11px] font-bold text-amber-300 uppercase block mb-1">
+                💬 Simple Hinglish Market Summary:
+              </span>
+              {deeeprAnalysis.hinglish_summary.map((line, idx) => (
+                <p key={idx}>{line}</p>
+              ))}
+            </div>
+
+            {/* Strict JSON Details Toggle */}
+            <details className="text-xs font-mono text-slate-400 bg-[#040816] p-3 rounded-lg border border-slate-800">
+              <summary className="cursor-pointer text-cyan-400 font-bold select-none">
+                Inspect Raw DEEEPR Output JSON Schema →
+              </summary>
+              <pre className="mt-2 text-[11px] text-cyan-200 overflow-x-auto leading-relaxed">
+                {JSON.stringify(deeeprAnalysis, null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
 
         {/* Tab 1: Multi-Timeframe Structure Matrix */}
         {activeInspectorTab === 'OVERVIEW' && (

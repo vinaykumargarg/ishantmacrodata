@@ -501,7 +501,7 @@ export const IshantMacroPortalView: React.FC<IshantMacroPortalViewProps> = ({
           {[
             { id: 'global-score', icon: '▦', title: 'Macro Dashboard', desc: 'Global bias gauge + 16 summary cards' },
             { id: 'ultra-ai', icon: '⚡', title: 'TradeAI Terminal', desc: 'Signals · paper trading · risk console' },
-            { id: 'deeepr-ai', icon: '🔮', title: 'DEEEPR.AI Copilot', desc: '2,000 / 2,500 / 3,000 pts swing roadmap' },
+            { id: 'deeepr-ai', icon: '🔮', title: 'DEEEPR Decision Engine v4', desc: 'Location-First Master Arbiter · Strict Risk Gates' },
             { id: 'indian-stock-ai', icon: '🎯', title: 'NIFTY Scalper 3m', desc: 'Triple-confluence scalping cockpit + live futures chart' },
             { id: 'scanner', icon: '⇄', title: 'Bull/Bear Scanner', desc: 'Factor-by-factor bias per asset' },
             { id: 'fed', icon: '🏛', title: 'Federal Reserve', desc: 'Odds · dot plot · hawk-dove meter' },

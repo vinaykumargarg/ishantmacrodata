@@ -134,7 +134,7 @@ function NSEInteractiveChart({
 /* ────────────────────────────────────────────────────────────────────────── */
 /* MAIN STOCK AI VIEW COMPONENT                                                */
 /* ────────────────────────────────────────────────────────────────────────── */
-export default function StockAiView() {
+export default function StockAiView({ onNavigate }: { onNavigate?: (tab: string) => void } = {}) {
   // Mode selection: Tactical vs INDmoney 1-6 Month Investment Mode vs Deeepr.ai 1-2D Hold
   const [activeMode, setActiveMode] = useState<'INDMONEY_INVESTMENT' | 'TACTICAL' | 'DEEEPR_TRADING'>('INDMONEY_INVESTMENT');
   const [search, setSearch] = useState('');
@@ -414,6 +414,13 @@ export default function StockAiView() {
             >
               <Activity className="w-3.5 h-3.5 text-cyan-300" />
               🎯 Deeepr.ai 1–2D Hold
+            </button>
+            <button
+              onClick={() => onNavigate ? onNavigate('deeepr-stock-research') : (window.location.hash = '#deeepr-stock-research')}
+              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 border border-cyan-400/40 flex items-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <Shield className="w-3.5 h-3.5 text-cyan-200" />
+              <span>🏛️ DEEEPR Stock Research (5–12M) ↗</span>
             </button>
             <a
               href="#indian-stock-ai"

@@ -1,0 +1,420 @@
+/* ==========================================================================
+   DEEEPR / ISHANTMACRO.AI — INSTITUTIONAL DESIGN TOKENS (tokens.css)
+   Quiet, calm, high-density institutional financial terminal design system.
+   Strict single-source-of-truth tokens for Typography, Color, Spacing, Elevation.
+   ========================================================================== */
+
+:root,
+html.dark,
+html[data-theme='dark'],
+body.dark,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* ── 1. NEUTRALS (Cool Slate, 0% Purple tint, Bloomberg/Linear grade) ── */
+  --bg-base: #0b0e14;
+  --bg-subtle: #0f131b;
+  --surface-1: #131822;
+  --surface-2: #1a2030;
+  --surface-3: #222a3c;
+  --surface-hover: #263046;
+
+  /* Hairline Borders */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-focus: #5b8cff;
+
+  /* High-Contrast Accessible Text (WCAG AA & AAA compliant) */
+  --text-primary: #e8ecf4;      /* >= 13:1 on dark base */
+  --text-secondary: #a7b0c3;    /* >= 7:1 */
+  --text-tertiary: #7c8699;     /* >= 4.5:1 meta */
+  --text-disabled: #556070;
+
+  /* ── 2. SINGLE BRAND ACCENT ── */
+  --accent: #5b8cff;
+  --accent-hover: #7aa2ff;
+  --accent-active: #4a7be8;
+  --accent-subtle: rgba(91, 140, 255, 0.12);
+  --accent-fg: #ffffff;
+
+  /* Optional Gold Accent (reserved strictly for Gold context chips/indicators) */
+  --gold-accent: #d4a94c;
+  --gold-accent-hover: #e5bd62;
+  --gold-accent-subtle: rgba(212, 169, 76, 0.14);
+
+  /* ── 3. SEMANTIC SYSTEM (Restrained, Muted, Never Neon) ── */
+  --color-positive: #2ebd85;
+  --color-positive-hover: #38d396;
+  --color-positive-subtle: rgba(46, 189, 133, 0.12);
+  --color-positive-border: rgba(46, 189, 133, 0.28);
+
+  --color-negative: #f0616d;
+  --color-negative-hover: #f37b85;
+  --color-negative-subtle: rgba(240, 97, 109, 0.12);
+  --color-negative-border: rgba(240, 97, 109, 0.28);
+
+  --color-warning: #e8b04a;
+  --color-warning-hover: #f0be5f;
+  --color-warning-subtle: rgba(232, 176, 74, 0.12);
+  --color-warning-border: rgba(232, 176, 74, 0.28);
+
+  --color-info: #5b8cff;
+  --color-info-subtle: rgba(91, 140, 255, 0.12);
+
+  --color-neutral: #8a94a8;
+  --color-neutral-subtle: rgba(138, 148, 168, 0.12);
+
+  /* ── 4. SHAPE & ELEVATION (No garish glows, crisp micro-elevation) ── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;     /* Controls, Inputs, Buttons */
+  --radius-lg: 12px;    /* Cards, Panels */
+  --radius-xl: 16px;    /* Modals, Drawers */
+  --radius-full: 9999px;/* Chips, Badges */
+
+  --shadow-e1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-e2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+  /* ── 5. SPACING (4px grid tokens) ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── 6. TYPOGRAPHY (Inter + Roboto + Open Sans + JetBrains Mono) ── */
+  --font-sans: 'Inter', 'Roboto', 'Open Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-devanagari: 'Noto Sans Devanagari', 'Inter', sans-serif;
+
+  /* Minor third type scale (16px base) */
+  --font-size-caption: 0.6875rem; /* 11px meta */
+  --font-size-xs: 0.75rem;       /* 12px captions */
+  --font-size-sm: 0.8125rem;     /* 13px dense UI text */
+  --font-size-base: 0.875rem;    /* 14px default body */
+  --font-size-md: 1rem;          /* 16px prominent body */
+  --font-size-lg: 1.125rem;      /* 18px subheadings */
+  --font-size-xl: 1.25rem;       /* 20px h4 */
+  --font-size-2xl: 1.5rem;       /* 24px h3 */
+  --font-size-3xl: 1.875rem;     /* 30px h2 */
+  --font-size-hero: 2.375rem;    /* 38px hero price */
+  --font-size-display: 3rem;     /* 48px grand banner */
+
+  /* Line Heights */
+  --line-height-tight: 1.2;
+  --line-height-dense: 1.35;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  /* Letter Spacing */
+  --track-micro: 0.07em;         /* Uppercase micro-labels */
+  --track-normal: 0em;           /* Body */
+  --track-heading: -0.015em;     /* Headings */
+
+  /* Legacy Bridge Mappings (So existing components inherit new calm palette seamlessly) */
+  --bg: var(--bg-base);
+  --bg2: var(--bg-subtle);
+  --panel: var(--surface-1);
+  --panel2: var(--surface-2);
+  --surface: var(--surface-1);
+  --surface-2: var(--surface-2);
+  --card: var(--surface-1);
+  --card-foreground: var(--text-primary);
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --border: var(--border-default);
+  --line: var(--border-subtle);
+  --line2: var(--border-default);
+  --rowline: var(--border-subtle);
+  --barbg: var(--surface-2);
+  --topbar: rgba(11, 14, 20, 0.92);
+  --txt: var(--text-primary);
+  --txt2: var(--text-secondary);
+  --txt3: var(--text-tertiary);
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --text-main: var(--text-primary);
+  --text-dim: var(--text-secondary);
+  --grn: var(--color-positive);
+  --grnbg: var(--color-positive-subtle);
+  --red: var(--color-negative);
+  --redbg: var(--color-negative-subtle);
+  --amb: var(--color-warning);
+  --ambbg: var(--color-warning-subtle);
+  --blu: var(--accent);
+  --blubg: var(--accent-subtle);
+  --up: var(--color-positive);
+  --up-bg: var(--color-positive-subtle);
+  --down: var(--color-negative);
+  --down-bg: var(--color-negative-subtle);
+  --gold: var(--gold-accent);
+  --gold-bg: var(--gold-accent-subtle);
+  --bull: var(--color-positive);
+  --bear: var(--color-negative);
+  --neutral: var(--color-neutral);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-fg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-secondary);
+  --input: var(--border-default);
+  --ring: var(--accent);
+  --radius: var(--radius-lg);
+
+  /* Disarm all garish neons and glows */
+  --neon-cyan: var(--accent);
+  --neon-green: var(--color-positive);
+  --neon-red: var(--color-negative);
+  --neon-amber: var(--color-warning);
+  --neon-purple: var(--accent);
+  --neon-indigo: var(--accent);
+  --shadow-glow: none;
+}
+
+/* ── LIGHT THEME OVERRIDES (Clean Financial Pro, Stripe/Linear Light Mode) ── */
+html.light,
+html[data-theme='light'],
+body.light,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-base: #f6f8fb;
+  --bg-subtle: #edf1f7;
+  --surface-1: #ffffff;
+  --surface-2: #f1f4f9;
+  --surface-3: #e5ebf5;
+  --surface-hover: #dbe4f2;
+
+  --border-subtle: #e2e8f0;
+  --border-default: #cbd5e1;
+  --border-strong: #94a3b8;
+  --border-focus: #2563eb;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --text-disabled: #94a3b8;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-active: #1e40af;
+  --accent-subtle: rgba(37, 99, 235, 0.08);
+  --accent-fg: #ffffff;
+
+  --gold-accent: #b45309;
+  --gold-accent-hover: #92400e;
+  --gold-accent-subtle: rgba(180, 83, 9, 0.08);
+
+  --color-positive: #059669;
+  --color-positive-hover: #047857;
+  --color-positive-subtle: rgba(5, 150, 105, 0.08);
+  --color-positive-border: rgba(5, 150, 105, 0.25);
+
+  --color-negative: #dc2626;
+  --color-negative-hover: #b91c1c;
+  --color-negative-subtle: rgba(220, 38, 38, 0.08);
+  --color-negative-border: rgba(220, 38, 38, 0.25);
+
+  --color-warning: #b45309;
+  --color-warning-hover: #92400e;
+  --color-warning-subtle: rgba(180, 83, 9, 0.08);
+  --color-warning-border: rgba(180, 83, 9, 0.25);
+
+  --color-info: #2563eb;
+  --color-info-subtle: rgba(37, 99, 235, 0.08);
+
+  --color-neutral: #64748b;
+  --color-neutral-subtle: rgba(100, 116, 139, 0.08);
+
+  --shadow-e1: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-e2: 0 10px 25px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.05);
+
+  /* Bridge mappings */
+  --bg: var(--bg-base);
+  --bg2: var(--bg-subtle);
+  --panel: var(--surface-1);
+  --panel2: var(--surface-2);
+  --surface: var(--surface-1);
+  --surface-2: var(--surface-2);
+  --card: var(--surface-1);
+  --card-foreground: var(--text-primary);
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --border: var(--border-default);
+  --line: var(--border-subtle);
+  --line2: var(--border-default);
+  --rowline: var(--border-subtle);
+  --barbg: var(--surface-2);
+  --topbar: rgba(255, 255, 255, 0.94);
+  --txt: var(--text-primary);
+  --txt2: var(--text-secondary);
+  --txt3: var(--text-tertiary);
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --text-main: var(--text-primary);
+  --text-dim: var(--text-secondary);
+  --grn: var(--color-positive);
+  --grnbg: var(--color-positive-subtle);
+  --red: var(--color-negative);
+  --redbg: var(--color-negative-subtle);
+  --amb: var(--color-warning);
+  --ambbg: var(--color-warning-subtle);
+  --blu: var(--accent);
+  --blubg: var(--accent-subtle);
+  --up: var(--color-positive);
+  --up-bg: var(--color-positive-subtle);
+  --down: var(--color-negative);
+  --down-bg: var(--color-negative-subtle);
+  --gold: var(--gold-accent);
+  --gold-bg: var(--gold-accent-subtle);
+  --bull: var(--color-positive);
+  --bear: var(--color-negative);
+  --neutral: var(--color-neutral);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-fg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-secondary);
+  --input: var(--border-default);
+  --ring: var(--accent);
+}
+
+/* ────────────────── GLOBAL BASE STYLES & RESET ────────────────── */
+html {
+  font-size: 14px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  box-sizing: border-box;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  background-image: var(--bg-grad);
+  color: var(--text);
+  font-family: var(--font-body), var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  letter-spacing: var(--track-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── SELECTION & FOCUS ── */
+::selection {
+  background-color: rgba(99, 102, 241, 0.3);
+  color: var(--text-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus) !important;
+  outline-offset: 2px !important;
+}
+
+/* ── NUMERIC DATA (Tabular Nums, Slashed Zero) ── */
+.tabular-nums,
+.num,
+.price,
+.ticker,
+.font-mono,
+code,
+pre,
+[data-numeric='true'],
+table td:has(span.num),
+table td:has(span.price) {
+  font-family: var(--font-mono) !important;
+  font-variant-numeric: tabular-nums slashed-zero !important;
+  letter-spacing: -0.01em;
+}
+
+/* ── HEADINGS (Clean, Restrained Weight, Subtle Tracking) ── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), var(--font-sans);
+  font-weight: 600;
+  letter-spacing: var(--track-heading);
+  color: var(--text-primary);
+  margin-top: 0;
+}
+
+/* ── MICRO LABELS (Uppercase with readable letter-spacing) ── */
+.label-micro,
+.text-micro-label {
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: var(--track-micro);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* ── QUIET INSTITUTIONAL CARDS & SURFACES ── */
+.card,
+.panel,
+.royal-card,
+.terminal-panel,
+.top5-card,
+.terminal-hero-spotlight {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover,
+.panel:hover,
+.royal-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* Disarm Hero Spotlight pseudo-elements & neon halos */
+.terminal-hero-spotlight::before,
+.terminal-hero-spotlight::after {
+  display: none !important;
+}
+
+/* ── CLEAN THIN SCROLLBAR ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-disabled);
+}
+
+/* ── PREFERS-REDUCED-MOTION ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

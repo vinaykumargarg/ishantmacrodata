@@ -258,7 +258,7 @@ export const INDIAN_MACRO_SNAPSHOT = {
 /* TOP 500 UNIVERSE DEEP BENCHMARK DATABASE                                  */
 /* ────────────────────────────────────────────────────────────────────────── */
 export const INDIAN_STOCKS_DATABASE: IndianStockProfile[] = [
-  // ── 1. RELIANCE INDUSTRIES ──
+  // ── 1. RELIANCE INDUSTRIES (Post 1:1 Bonus Oct-2024 adjusted) ──
   {
     symbol: 'RELIANCE',
     bseCode: '500325',
@@ -285,7 +285,7 @@ export const INDIAN_STOCKS_DATABASE: IndianStockProfile[] = [
     roe: 9.8,
     roce: 10.4,
     debtToEquity: 0.42,
-    bookValue: 598,
+    bookValue: 299,
     isFnO: true,
     tradingViewSymbol: 'NSE:RELIANCE',
 
@@ -325,16 +325,16 @@ export const INDIAN_STOCKS_DATABASE: IndianStockProfile[] = [
     workingCapitalCr: 42100,
 
     financialYears: [
-      { year: 'FY24', revenueCr: 914472, ebitdaCr: 178677, netProfitCr: 69621, eps: 102.9, ocfCr: 158200, fcfCr: 38400, roePct: 9.8, rocePct: 10.4, d2e: 0.42, opmPct: 19.5, npmPct: 7.6 },
-      { year: 'FY23', revenueCr: 892911, ebitdaCr: 153928, netProfitCr: 66702, eps: 98.6, ocfCr: 142100, fcfCr: 28900, roePct: 9.6, rocePct: 10.1, d2e: 0.44, opmPct: 17.2, npmPct: 7.5 },
-      { year: 'FY22', revenueCr: 699962, ebitdaCr: 125687, netProfitCr: 60705, eps: 89.8, ocfCr: 110800, fcfCr: 18200, roePct: 8.9, rocePct: 9.3, d2e: 0.46, opmPct: 17.9, npmPct: 8.7 },
-      { year: 'FY21', revenueCr: 486326, ebitdaCr: 97580, netProfitCr: 49128, eps: 76.1, ocfCr: 88400, fcfCr: 12400, roePct: 7.9, rocePct: 8.2, d2e: 0.38, opmPct: 20.1, npmPct: 10.1 }
+      { year: 'FY24', revenueCr: 914472, ebitdaCr: 178677, netProfitCr: 69621, eps: 51.5, ocfCr: 158200, fcfCr: 38400, roePct: 9.8, rocePct: 10.4, d2e: 0.42, opmPct: 19.5, npmPct: 7.6 },
+      { year: 'FY23', revenueCr: 892911, ebitdaCr: 153928, netProfitCr: 66702, eps: 49.3, ocfCr: 142100, fcfCr: 28900, roePct: 9.6, rocePct: 10.1, d2e: 0.44, opmPct: 17.2, npmPct: 7.5 },
+      { year: 'FY22', revenueCr: 699962, ebitdaCr: 125687, netProfitCr: 60705, eps: 44.9, ocfCr: 110800, fcfCr: 18200, roePct: 8.9, rocePct: 9.3, d2e: 0.46, opmPct: 17.9, npmPct: 8.7 },
+      { year: 'FY21', revenueCr: 486326, ebitdaCr: 97580, netProfitCr: 49128, eps: 38.1, ocfCr: 88400, fcfCr: 12400, roePct: 7.9, rocePct: 8.2, d2e: 0.38, opmPct: 20.1, npmPct: 10.1 }
     ],
     quarters: [
-      { qtr: 'Q3 FY25', revenueCr: 248100, yoyRevGrowth: 8.4, ebitdaCr: 46200, netProfitCr: 19400, yoyPatGrowth: 11.2, eps: 28.7, opmPct: 18.6, beatMiss: 'BEAT' },
-      { qtr: 'Q2 FY25', revenueCr: 235400, yoyRevGrowth: 0.2, ebitdaCr: 43900, netProfitCr: 16560, yoyPatGrowth: -4.8, eps: 24.5, opmPct: 18.6, beatMiss: 'IN-LINE' },
-      { qtr: 'Q1 FY25', revenueCr: 236200, yoyRevGrowth: 11.5, ebitdaCr: 42700, netProfitCr: 15140, yoyPatGrowth: -5.5, eps: 22.4, opmPct: 18.1, beatMiss: 'MISS' },
-      { qtr: 'Q4 FY24', revenueCr: 240700, yoyRevGrowth: 11.3, ebitdaCr: 47100, netProfitCr: 18950, yoyPatGrowth: 1.8, eps: 28.0, opmPct: 19.6, beatMiss: 'BEAT' }
+      { qtr: 'Q3 FY25', revenueCr: 248100, yoyRevGrowth: 8.4, ebitdaCr: 46200, netProfitCr: 19400, yoyPatGrowth: 11.2, eps: 14.35, opmPct: 18.6, beatMiss: 'BEAT' },
+      { qtr: 'Q2 FY25', revenueCr: 235400, yoyRevGrowth: 0.2, ebitdaCr: 43900, netProfitCr: 16560, yoyPatGrowth: -4.8, eps: 12.25, opmPct: 18.6, beatMiss: 'IN-LINE' },
+      { qtr: 'Q1 FY25', revenueCr: 236200, yoyRevGrowth: 11.5, ebitdaCr: 42700, netProfitCr: 15140, yoyPatGrowth: -5.5, eps: 11.2, opmPct: 18.1, beatMiss: 'MISS' },
+      { qtr: 'Q4 FY24', revenueCr: 240700, yoyRevGrowth: 11.3, ebitdaCr: 47100, netProfitCr: 18950, yoyPatGrowth: 1.8, eps: 14.0, opmPct: 19.6, beatMiss: 'BEAT' }
     ],
 
     promoterHoldingPct: 50.31,
@@ -358,41 +358,41 @@ export const INDIAN_STOCKS_DATABASE: IndianStockProfile[] = [
     majorRisksDisclosed: ['Crude oil refining margin volatility (Singapore GRM swings)', 'Tariff hike impact on low-end prepaid churn', 'Global petrochemical oversupply from China'],
     contingentLiabilitiesCr: 14200,
     capitalAllocationPolicy: 'Disciplined deleveraging while preserving AAA domestic credit rating and sustainable dividend payout.',
-    corporateActionHistory: '1:1 Bonus share issued in Oct 2024; regular annual dividend of ₹10/share.',
+    corporateActionHistory: '1:1 Bonus share issued in Oct 2024; regular annual dividend of ₹5/share (post-bonus adjusted).',
 
     peBandMin: 22.0,
     peBandMedian: 27.5,
     peBandMax: 34.0,
-    dcfIntrinsicValue: 3120,
+    dcfIntrinsicValue: 1560,
     reverseDcfImpliedGrowth: 10.8,
-    bearCaseFairValue: 2450,
-    baseCaseFairValue: 3050,
-    bullCaseFairValue: 3450,
-    valuationVerdict: 'Fairly Valued',
+    bearCaseFairValue: 1225,
+    baseCaseFairValue: 1525,
+    bullCaseFairValue: 1725,
+    valuationVerdict: 'Undervalued',
 
     trendMonthly: 'Strong Uptrend',
     trendDaily: 'Pullback to Support',
-    marketStructure: 'Retesting multi-month horizontal demand zone at 2,680–2,720 with bullish divergence on Daily RSI.',
-    supplyZones: ['₹2,920–2,960 (Major daily resistance)', '₹3,180–3,220 (All-time high zone)'],
-    demandZones: ['₹2,680–2,720 (High volume anchor node)', '₹2,580–2,620 (200-week EMA support)'],
-    orderBlockPrice: 2715,
-    fvgLevel: '₹2,740–2,760 daily FVG filled',
-    pocVolumeProfile: 2730,
-    vahLevel: 2880,
-    valLevel: 2690,
+    marketStructure: 'Retesting multi-month horizontal demand zone at ₹1,140–1,160 with bullish divergence on Daily RSI.',
+    supplyZones: ['₹1,260–1,280 (Major daily resistance)', '₹1,390–1,410 (52W high zone)'],
+    demandZones: ['₹1,140–1,160 (High volume anchor node)', '₹1,090–1,110 (200-week EMA support)'],
+    orderBlockPrice: 1158,
+    fvgLevel: '₹1,170–1,180 daily FVG filled',
+    pocVolumeProfile: 1165,
+    vahLevel: 1240,
+    valLevel: 1145,
     rsi14: 48.2,
-    ema20: 2762,
-    ema50: 2795,
-    ema200: 2780,
+    ema20: 1181,
+    ema50: 1198,
+    ema200: 1190,
     deliveryPct: 58.4,
     relVolume: 1.15,
     relativeStrengthVsNifty: 'Inline',
 
     futuresOiContracts: 142000,
     oiChangePct: 2.4,
-    futuresBasis: '+₹6.50 (Healthy Spot-Perp premium)',
+    futuresBasis: '+₹3.25 (Healthy Spot-Perp premium)',
     pcr: 1.08,
-    maxPain: 2760,
+    maxPain: 1180,
     ivPct: 15.2,
     fiiDiiBias: 'DII Absorption',
 
@@ -415,33 +415,33 @@ export const INDIAN_STOCKS_DATABASE: IndianStockProfile[] = [
 
     intraday: {
       action: 'BUY',
-      entry: '₹2,735–2,745',
-      sl: '₹2,718',
-      tp1: '₹2,770',
-      tp2: '₹2,795',
+      entry: '₹1,168–1,173',
+      sl: '₹1,159',
+      tp1: '₹1,185',
+      tp2: '₹1,198',
       rr: '1:2.2',
       holding: 'Day session',
       setup: 'POC bounce with delivery volume expansion',
-      rationale: 'Daily support test at ₹2,730 holding with 58% delivery.'
+      rationale: 'Daily support test at ₹1,165 holding with 58% delivery.'
     },
     swing: {
       action: 'BUY',
-      entry: '₹2,720–2,750',
-      sl: '₹2,660 (Close below demand block)',
-      tp1: '₹2,860',
-      tp2: '₹2,950',
-      tp3: '₹3,050',
+      entry: '₹1,160–1,175',
+      sl: '₹1,130 (Close below demand block)',
+      tp1: '₹1,230',
+      tp2: '₹1,275',
+      tp3: '₹1,325',
       rr: '1:3.4',
       holding: '1–4 weeks',
       setup: 'Accumulation spring above 200 EMA with bullish RSI divergence',
-      rationale: 'Risk-reward asymmetric near the ₹2,700 base with impending telecom earnings catalyst.'
+      rationale: 'Risk-reward asymmetric near the ₹1,150 base with impending telecom earnings catalyst.'
     },
     shortTerm: {
       action: 'ACCUMULATE',
-      entry: '₹2,700–2,750',
-      sl: '₹2,580',
-      tp1: '₹2,980',
-      tp2: '₹3,150',
+      entry: '₹1,150–1,175',
+      sl: '₹1,090',
+      tp1: '₹1,290',
+      tp2: '₹1,375',
       rr: '1:3.1',
       holding: '1–3 months',
       setup: 'Base breakout retest with institutional delivery',
@@ -449,35 +449,35 @@ export const INDIAN_STOCKS_DATABASE: IndianStockProfile[] = [
     },
     mediumTerm: {
       action: 'BUY',
-      entry: '₹2,680–2,750',
-      sl: '₹2,500',
-      tp1: '₹3,150',
-      tp2: '₹3,350',
-      rr: '1:3.8',
+      entry: '₹1,140–1,175',
+      sl: '₹1,050',
+      tp1: '₹1,375',
+      tp2: '₹1,475',
+      rr: '1:3.0',
       holding: '3–6 months',
       setup: 'Value accumulation prior to telecom/retail spin-off clarity',
-      rationale: 'Targeting ₹3,150 base case DCF fair value.'
+      rationale: 'Targeting ₹1,525 base case DCF fair value (post-bonus adjusted).'
     },
     longTerm: {
       action: 'STRONG BUY',
-      entry: '₹2,650–2,750',
-      sl: '₹2,380',
-      tp1: '₹3,450',
-      tp2: '₹3,800',
-      rr: '1:4.5',
+      entry: '₹1,125–1,175',
+      sl: '₹990',
+      tp1: '₹1,525',
+      tp2: '₹1,725',
+      rr: '1:3.5',
       holding: '6–12 months / 1–3 years',
       setup: 'Core bluechip compounder with New Energy & Consumer spin-off triggers',
       rationale: 'Earnings CAGR expected at 14% over FY24-27 with ₹38,000 Cr+ free cash generation.'
     },
 
     priceScenarios: {
-      m1: { bear: 2650, base: 2840, bull: 2950, probBase: 65 },
-      m3: { bear: 2580, base: 2980, bull: 3180, probBase: 60 },
-      m6: { bear: 2500, base: 3120, bull: 3380, probBase: 62 },
-      m12: { bear: 2450, base: 3450, bull: 3850, probBase: 58 }
+      m1: { bear: 1125, base: 1220, bull: 1275, probBase: 65 },
+      m3: { bear: 1090, base: 1290, bull: 1390, probBase: 60 },
+      m6: { bear: 1050, base: 1375, bull: 1490, probBase: 62 },
+      m12: { bear: 1025, base: 1525, bull: 1725, probBase: 58 }
     },
 
-    overallDecision: 'STRONG BUY CANDIDATE',
+    overallDecision: 'BUY ON CONFIRMATION',
     top3ReasonsToInvest: [
       'De-leveraging and peak capex behind: Free Cash Flow set to double to ₹60,000 Cr+ over next 24 months.',
       'Massive value unlocking potential through planned listing of Reliance Jio & Reliance Retail.',
@@ -488,7 +488,7 @@ export const INDIAN_STOCKS_DATABASE: IndianStockProfile[] = [
       'Delay in consumer subsidiary IPO timelines.',
       'Slower ramp-up in green hydrogen unit profitability.'
     ],
-    invalidationTrigger: 'Break below ₹2,580 on weekly close or structural collapse in refining margins below $5/bbl.',
+    invalidationTrigger: 'Break below ₹1,090 on weekly close or structural collapse in refining margins below $5/bbl.',
 
     peers: [
       { symbol: 'TCS', name: 'Tata Consultancy Services', pe: 27.8, evEbitda: 19.4, roe: 49.2, roce: 62.1, mcapCr: 1420000, salesCagr3y: 11.2 },
@@ -2177,6 +2177,615 @@ export const INDIAN_STOCKS_DATABASE: IndianStockProfile[] = [
       { symbol: 'TITAN', name: 'Titan Company Ltd', pe: 78.5, evEbitda: 48.2, roe: 28.4, roce: 34.2, mcapCr: 295000, salesCagr3y: 26.4 },
       { symbol: 'VEDANTFASH', name: 'Vedant Fashions (Manyavar)', pe: 54.2, evEbitda: 32.8, roe: 24.8, roce: 31.4, mcapCr: 24000, salesCagr3y: 18.2 }
     ]
+  },
+
+  // ── 9. TATA POWER COMPANY LIMITED (TATAPOWER) ──
+  {
+    symbol: 'TATAPOWER',
+    bseCode: '500400',
+    isin: 'INE245A01021',
+    name: 'Tata Power Company Limited',
+    sector: 'Power & Renewable Energy',
+    industry: 'Integrated Power Utility / Solar EPC & EV Charging',
+    capTier: 'Large-Cap',
+    indexMembership: ['Nifty Next 50', 'Nifty 100', 'Nifty 500', 'Nifty Energy'],
+    cmp: 412.00,
+    change24h: 3.30,
+    changePct24h: 0.81,
+    high52w: 494.85,
+    low52w: 310.20,
+    mcapCr: 131650,
+    freeFloatMcapCr: 70040,
+    avgDailyVolShares: '12.4M',
+    avgTurnoverCr: 510,
+    peRatio: 34.2,
+    industryPE: 28.5,
+    pbRatio: 3.65,
+    evEbitda: 14.8,
+    dividendYield: 0.52,
+    roe: 13.8,
+    roce: 14.6,
+    debtToEquity: 1.22,
+    bookValue: 112.8,
+    isFnO: true,
+    tradingViewSymbol: 'NSE:TATAPOWER',
+
+    businessOverview: 'Tata Power is India\'s largest integrated green power conglomerate, transitioning rapidly to 70% clean energy by 2030. It operates across utility-scale renewables (5.5 GW pipeline), rooftop solar (20%+ Indian market share), 4.3 GW cell/module manufacturing at Tirunelveli, transmission & distribution (covering 12M+ customers in Odisha and Mumbai), and nationwide EV charging infrastructure (5,500+ public chargers).',
+    revenueStreams: [
+      { name: 'Renewables (Solar/Wind/Hydro & EPC)', sharePct: 38, description: 'Utility-scale IPP, rooftop solar installations, and Tata Power Solar EPC contracts' },
+      { name: 'Power Transmission & Distribution (T&D)', sharePct: 35, description: 'Regulated Discoms in Odisha (CESU/NESCO/SOUTHCO/WESCO) and Mumbai/Delhi' },
+      { name: 'Conventional Generation (Thermal/Mundra)', sharePct: 22, description: 'Mundra UMPP (Section 11 cost pass-through) and Maithon power plant' },
+      { name: 'EV Charging, Microgrids & Solar Rooftops', sharePct: 5, description: '5,500+ public EV chargers, 86,000+ home chargers, and rural microgrids' }
+    ],
+    coreProducts: ['Tata Power Solar Rooftop (PM Surya Ghar)', 'EZ Charge EV Network', 'Utility Solar PPA Power', 'Smart Home Energy Management'],
+    geographicalPresence: [
+      { region: 'India (Pan-India Renewable & Discom)', pct: 96 },
+      { region: 'Overseas (Georgia Hydro / Indonesia Coal stake)', pct: 4 }
+    ],
+    moats: [
+      'Solar Rooftop Monopolistic Distribution: #1 player in India for 9 consecutive years with 20%+ market share, ideally positioned for PM Surya Ghar Muft Bijli Yojana (1 Cr homes)',
+      'Integrated Value Chain: From 4.3 GW domestic solar cell/module manufacturing to EPC installation and 25-year utility PPA generation',
+      'Massive Renewable Order Book: ₹15,900+ Cr solar EPC order backlog providing clear 2.5-year revenue trajectory',
+      'Tata Brand Trust: Customer preference for home solar rooftops and residential EV charging partnerships (Tata Motors EV ecosystem)'
+    ],
+    competitiveAdvantages: ['Lowest cost integrated solar EPC execution', 'Regulated Return on Equity (14–15.5% ROE) from Odisha and Mumbai distribution licenses', 'First-mover advantage in public highway EV fast-charging corridors'],
+    cyclicality: 'Low',
+    pricingPower: 'High',
+
+    revenue3yCagr: 22.4,
+    revenue5yCagr: 16.8,
+    revenue10yCagr: 11.2,
+    profit3yCagr: 36.8,
+    profit5yCagr: 28.4,
+    profit10yCagr: 18.2,
+    ocfToNetProfit: 1.84,
+    freeCashFlowCr: 5400,
+    netDebtCr: 38400,
+    interestCoverage: 3.4,
+    cashConversionCycleDays: 28,
+    workingCapitalCr: 4120,
+
+    financialYears: [
+      { year: 'FY24', revenueCr: 61449, ebitdaCr: 12700, netProfitCr: 4280, eps: 12.04, ocfCr: 7880, fcfCr: 5400, roePct: 13.8, rocePct: 14.6, d2e: 1.22, opmPct: 20.7, npmPct: 7.0 },
+      { year: 'FY23', revenueCr: 56033, ebitdaCr: 10100, netProfitCr: 3810, eps: 10.72, ocfCr: 6920, fcfCr: 4200, roePct: 12.6, rocePct: 13.2, d2e: 1.38, opmPct: 18.0, npmPct: 6.8 },
+      { year: 'FY22', revenueCr: 42816, ebitdaCr: 8200, netProfitCr: 2156, eps: 6.74, ocfCr: 5400, fcfCr: 3100, roePct: 9.8, rocePct: 10.4, d2e: 1.62, opmPct: 19.1, npmPct: 5.0 },
+      { year: 'FY21', revenueCr: 32703, ebitdaCr: 6900, netProfitCr: 1438, eps: 4.50, ocfCr: 4200, fcfCr: 1800, roePct: 7.2, rocePct: 8.1, d2e: 1.84, opmPct: 21.1, npmPct: 4.4 }
+    ],
+    quarters: [
+      { qtr: 'Q3 FY25', revenueCr: 15420, yoyRevGrowth: 8.2, ebitdaCr: 3340, netProfitCr: 1140, yoyPatGrowth: 18.4, eps: 3.22, opmPct: 21.6, beatMiss: 'BEAT' },
+      { qtr: 'Q2 FY25', revenueCr: 15698, yoyRevGrowth: 0.5, ebitdaCr: 3280, netProfitCr: 1093, yoyPatGrowth: 7.4, eps: 3.08, opmPct: 20.9, beatMiss: 'IN-LINE' },
+      { qtr: 'Q1 FY25', revenueCr: 17294, yoyRevGrowth: 13.7, ebitdaCr: 3410, netProfitCr: 1189, yoyPatGrowth: 31.4, eps: 3.35, opmPct: 19.7, beatMiss: 'BEAT' },
+      { qtr: 'Q4 FY24', revenueCr: 15846, yoyRevGrowth: 27.2, ebitdaCr: 3120, netProfitCr: 1045, yoyPatGrowth: 15.2, eps: 2.94, opmPct: 19.7, beatMiss: 'BEAT' }
+    ],
+
+    promoterHoldingPct: 46.86,
+    promoterChangeQoQ: '0.00% (Tata Sons backing)',
+    promoterPledgePct: 0.00,
+    fiiHoldingPct: 10.42,
+    fiiChangeQoQ: '+0.68% (Global Clean Energy ETF inflow)',
+    diiHoldingPct: 15.84,
+    diiChangeQoQ: '+0.45% (Domestic MF long-term accumulation)',
+    publicHoldingPct: 26.88,
+    auditorName: 'S R B C & CO LLP (Ernst & Young affiliate)',
+    auditorRemarks: 'Unqualified clean audit opinion; robust internal financial controls.',
+    governanceRedFlags: ['None. Premier Tata Group governance standards with zero promoter pledge.'],
+    dilutionRisk: 'None',
+
+    managementCommentary: 'Management targets doubling EBITDA and PAT over next 3 years through aggressive expansion of 4.3 GW cell/module plant, scaling rooftop solar under PM Surya Ghar Yojana, and commissioning 5.5 GW clean energy pipeline to take total clean capacity to 15 GW by 2027.',
+    capexGuidance: 'Annual capex of ₹15,000–20,000 Cr focused 80%+ on green energy, fully funded through internal cash generation and project-debt at competitive 7.8% interest rates.',
+    orderBookCr: 15900,
+    rdSpendCr: 280,
+    keyGrowthDrivers: [
+      'PM Surya Ghar Muft Bijli Yojana: Direct beneficiary with 20%+ market share in domestic rooftop solar',
+      '4.3 GW Tirunelveli Gigafactory: Self-sufficient module/cell supply boosting solar EPC EBITDA margins by 250-300 bps',
+      'EV Charging Dominance: 5,500+ public chargers scaling to 25,000+ by 2028 with Tata Motors co-branding',
+      'Pumped Hydro Storage: 2.8 GW pumped storage projects in Maharashtra to supply 24/7 round-the-clock green power'
+    ],
+    majorRisksDisclosed: [
+      'Delay in DISCOM tariff approval revisions for Mundra thermal plant under Section 11',
+      'Intermittent renewable generation curtailment if grid transmission lines experience congestion',
+      'Fluctuations in global polysilicon and wafer import pricing'
+    ],
+    contingentLiabilitiesCr: 4850,
+    capitalAllocationPolicy: 'Targeting net debt/EBITDA < 3.5x while sustaining 30%+ dividend payout ratio.',
+    corporateActionHistory: 'Consistent annual dividend of ₹2.00/share, steady deleveraging track record.',
+
+    peBandMin: 24.0,
+    peBandMedian: 32.5,
+    peBandMax: 44.0,
+    dcfIntrinsicValue: 520,
+    reverseDcfImpliedGrowth: 14.2,
+    bearCaseFairValue: 360,
+    baseCaseFairValue: 510,
+    bullCaseFairValue: 585,
+    valuationVerdict: 'Growth at Reasonable Price (GARP)',
+
+    trendMonthly: 'Strong Uptrend',
+    trendDaily: 'Consolidation above 200 EMA',
+    marketStructure: 'Higher highs on weekly structure; holding firm support at ₹395–405 demand zone.',
+    supplyZones: ['₹448–460 (Daily resistance)', '₹490–495 (52-week all-time high)'],
+    demandZones: ['₹395–405 (POC anchor node & 200-day EMA)', '₹370–380 (Multi-month breakout base)'],
+    orderBlockPrice: 402,
+    fvgLevel: '₹406–410 daily FVG holding',
+    pocVolumeProfile: 408,
+    vahLevel: 442,
+    valLevel: 398,
+    rsi14: 52.4,
+    ema20: 414,
+    ema50: 421,
+    ema200: 405,
+    deliveryPct: 54.2,
+    relVolume: 1.18,
+    relativeStrengthVsNifty: 'Strong Outperformer',
+
+    futuresOiContracts: 84000,
+    oiChangePct: 3.1,
+    futuresBasis: '+₹1.40 (Healthy premium)',
+    pcr: 1.14,
+    maxPain: 410,
+    ivPct: 24.5,
+    fiiDiiBias: 'Strong FII Accumulation',
+
+    rbiRateSensitivity: 'Positive (Rate cuts lower capital intensive renewable financing costs)',
+    crudeOilSensitivity: 'Beneficiary of High Oil (accelerates clean energy transition)',
+    usdInrSensitivity: 'Domestic Insulation',
+    sectorCatalysts: [
+      'PM Surya Ghar Scheme disbursements reaching scale',
+      'Upcoming IPO/value unlocking of Tata Power Renewable Energy Ltd (TPREL)',
+      'Green hydrogen and pumped hydro storage long-term PPAs'
+    ],
+
+    businessQualityScore: 92,
+    financialStrengthScore: 84,
+    earningsConsistencyScore: 89,
+    valuationScore: 80,
+    governanceScore: 95,
+    technicalTrendScore: 82,
+    sectorStrengthScore: 94,
+    liquidityScore: 96,
+    macroSensitivityScore: 86,
+    riskAdjustedScore: 88,
+    compositeQualityScore: 88,
+
+    intraday: {
+      action: 'BUY',
+      entry: '₹409–412',
+      sl: '₹404',
+      tp1: '₹419',
+      tp2: '₹426',
+      rr: '1:2.3',
+      holding: 'Day session',
+      setup: 'POC bounce off ₹408 with volume surge',
+      rationale: 'Delivery volume expansion above 54% confirming intraday absorption.'
+    },
+    swing: {
+      action: 'BUY',
+      entry: '₹405–412',
+      sl: '₹388 (Close below 200-day EMA)',
+      tp1: '₹438',
+      tp2: '₹455',
+      tp3: '₹480',
+      rr: '1:3.4',
+      holding: '1–4 weeks',
+      setup: 'Bullish rebound from 200 EMA with RSI positive crossover',
+      rationale: 'De-risked entry near structural demand floor. Execution strategy: Book 50% profits at TP1 (₹438) and move stop-loss to entry (₹408); book 30% at TP2 (₹455); let remaining 20% ride to TP3 (₹480).'
+    },
+    shortTerm: {
+      action: 'ACCUMULATE',
+      entry: '₹400–415',
+      sl: '₹375',
+      tp1: '₹465',
+      tp2: '₹495',
+      rr: '1:3.2',
+      holding: '1–3 months',
+      setup: 'Multi-week cup-and-handle consolidation breakout',
+      rationale: 'Quarterly renewable capacity commissioning announcements.'
+    },
+    mediumTerm: {
+      action: 'STRONG BUY',
+      entry: '₹395–415',
+      sl: '₹360',
+      tp1: '₹510',
+      tp2: '₹550',
+      rr: '1:3.8',
+      holding: '3–6 months',
+      setup: 'Fundamental transformation to green monopoly',
+      rationale: 'Targeting ₹510 DCF base fair value on solar cell factory margin expansion.'
+    },
+    longTerm: {
+      action: 'STRONG BUY',
+      entry: '₹390–415',
+      sl: '₹340',
+      tp1: '₹585',
+      tp2: '₹650',
+      rr: '1:4.8',
+      holding: '6–12 months / 1–3 years',
+      setup: 'Generational energy transition bluechip',
+      rationale: 'Targeting 35%+ PAT CAGR and ₹15,000 Cr+ EBITDA by FY27.'
+    },
+
+    priceScenarios: {
+      m1: { bear: 395, base: 430, bull: 450, probBase: 65 },
+      m3: { bear: 380, base: 465, bull: 495, probBase: 62 },
+      m6: { bear: 365, base: 510, bull: 550, probBase: 60 },
+      m12: { bear: 350, base: 585, bull: 650, probBase: 58 }
+    },
+
+    overallDecision: 'BUY ON CONFIRMATION',
+    top3ReasonsToInvest: [
+      'Uncontested leadership in India\'s rooftop solar revolution under PM Surya Ghar Yojana (target 1 Crore households).',
+      '4.3 GW in-house solar cell & module manufacturing drastically lowers EPC costs and expands operating margins.',
+      'De-risked balance sheet with net debt/EBITDA falling from 4.5x to 2.8x alongside premier Tata Group backing.'
+    ],
+    top3Risks: [
+      'Grid transmission connectivity bottlenecks causing renewable project commissioning delays.',
+      'Regulatory revisions on Mundra thermal power plant cost-plus pricing under Section 11.',
+      'Volatile prices of raw polysilicon imported from global markets.'
+    ],
+    invalidationTrigger: 'Sustained weekly close below ₹360 or collapse of renewable EPC EBITDA margins below 8%.',
+
+    peers: [
+      { symbol: 'NTPC', name: 'NTPC Limited', pe: 16.8, evEbitda: 10.4, roe: 13.8, roce: 11.2, mcapCr: 357000, salesCagr3y: 18.2 },
+      { symbol: 'ADANIGREEN', name: 'Adani Green Energy', pe: 112.4, evEbitda: 28.5, roe: 18.2, roce: 12.8, mcapCr: 295000, salesCagr3y: 42.1 },
+      { symbol: 'SUZLON', name: 'Suzlon Energy Ltd', pe: 68.4, evEbitda: 32.1, roe: 24.2, roce: 22.8, mcapCr: 88400, salesCagr3y: 28.5 },
+      { symbol: 'KPIGREEN', name: 'KPI Green Energy Ltd', pe: 42.5, evEbitda: 22.8, roe: 31.4, roce: 26.8, mcapCr: 9450, salesCagr3y: 84.5 }
+    ]
+  },
+
+  // ── 10. KPI GREEN ENERGY LIMITED (KPIGREEN) ──
+  {
+    symbol: 'KPIGREEN',
+    bseCode: '542323',
+    isin: 'INE542W01017',
+    name: 'KPI Green Energy Limited',
+    sector: 'Power & Renewable Energy',
+    industry: 'Solar & Wind IPP / Captive Power Producer (CPP)',
+    capTier: 'Small-Cap',
+    indexMembership: ['Nifty Smallcap 250', 'Nifty Energy'],
+    cmp: 785.40,
+    change24h: 18.60,
+    changePct24h: 2.43,
+    high52w: 1115.00,
+    low52w: 385.00,
+    mcapCr: 9480,
+    freeFloatMcapCr: 4455,
+    avgDailyVolShares: '1.4M',
+    avgTurnoverCr: 110,
+    peRatio: 42.5,
+    industryPE: 38.0,
+    pbRatio: 8.8,
+    evEbitda: 22.8,
+    dividendYield: 0.25,
+    roe: 31.4,
+    roce: 26.8,
+    debtToEquity: 0.84,
+    bookValue: 89.2,
+    isFnO: false,
+    tradingViewSymbol: 'BSE:542323',
+
+    businessOverview: 'KPI Green Energy is one of India\'s fastest-growing renewable power developers, operating through a dual business model: (1) Independent Power Producer (IPP) selling clean energy under 25-year PPAs to utilities like GUVNL, and (2) Captive Power Producer (CPP) developing turnkey hybrid solar-wind parks for bluechip commercial and industrial clients. It targets 10 GW commissioned renewable capacity by 2030.',
+    revenueStreams: [
+      { name: 'Captive Power Producer (CPP) EPC', sharePct: 62, description: 'Turnkey development, engineering, procurement & commissioning of solar/wind parks for C&I clients' },
+      { name: 'Independent Power Producer (IPP) Electricity', sharePct: 28, description: 'Direct power sales through long-term 25-year PPAs to GUVNL and private industrial users' },
+      { name: 'Operation & Maintenance (O&M)', sharePct: 10, description: 'High-margin recurring 25-year plant maintenance, monitoring and transmission line upkeep' }
+    ],
+    coreProducts: ['Hybrid Solar-Wind Power Parks', 'Solarism Green Power Units', 'Bilateral PPA Power Sales', 'Commercial Rooftop & Ground Mounted EPC'],
+    geographicalPresence: [
+      { region: 'Gujarat (Bharuch, Bhavnagar, Surat)', pct: 82 },
+      { region: 'Maharashtra, Rajasthan & Other States', pct: 18 }
+    ],
+    moats: [
+      'Dual Revenue Synergies: High-margin upfront CPP cash flows fund equity portion of long-term IPP asset creation',
+      'Explosive Profit Trajectory: 3-Year PAT CAGR of 112.4% (FY21 net profit ₹22 Cr -> FY24 net profit ₹161 Cr)',
+      'Robust Order Book: ₹3,150+ Cr confirmed orders across hybrid solar and wind installations giving over 2.5x revenue visibility',
+      'Transmission Interconnection Moat: Owns dedicated high-voltage evacuation lines and substations in Gujarat, eliminating grid connectivity delays'
+    ],
+    competitiveAdvantages: ['First mover in hybrid solar-wind parks in Gujarat with 70%+ PLF efficiency', 'Zero payment default risk on CPP contracts due to milestone advance payments', 'Rapid project execution velocity (average 6-9 months commissioning cycle)'],
+    cyclicality: 'Low',
+    pricingPower: 'High',
+
+    revenue3yCagr: 84.5,
+    revenue5yCagr: 62.4,
+    revenue10yCagr: 48.2,
+    profit3yCagr: 112.4,
+    profit5yCagr: 88.6,
+    profit10yCagr: 52.4,
+    ocfToNetProfit: 1.15,
+    freeCashFlowCr: 142,
+    netDebtCr: 880,
+    interestCoverage: 5.8,
+    cashConversionCycleDays: 34,
+    workingCapitalCr: 320,
+
+    financialYears: [
+      { year: 'FY24', revenueCr: 1024, ebitdaCr: 342, netProfitCr: 161, eps: 18.48, ocfCr: 285, fcfCr: 142, roePct: 31.4, rocePct: 26.8, d2e: 0.84, opmPct: 33.4, npmPct: 15.7 },
+      { year: 'FY23', revenueCr: 644, ebitdaCr: 218, netProfitCr: 110, eps: 12.60, ocfCr: 184, fcfCr: 98, roePct: 28.2, rocePct: 24.1, d2e: 0.98, opmPct: 33.9, npmPct: 17.1 },
+      { year: 'FY22', revenueCr: 230, ebitdaCr: 84, netProfitCr: 43, eps: 4.92, ocfCr: 72, fcfCr: 34, roePct: 22.4, rocePct: 19.8, d2e: 1.18, opmPct: 36.5, npmPct: 18.7 },
+      { year: 'FY21', revenueCr: 103, ebitdaCr: 38, netProfitCr: 22, eps: 2.52, ocfCr: 31, fcfCr: 12, roePct: 16.8, rocePct: 15.2, d2e: 1.42, opmPct: 36.9, npmPct: 21.4 }
+    ],
+    quarters: [
+      { qtr: 'Q3 FY25', revenueCr: 360, yoyRevGrowth: 48.2, ebitdaCr: 124, netProfitCr: 68, yoyPatGrowth: 62.4, eps: 5.64, opmPct: 34.4, beatMiss: 'BEAT' },
+      { qtr: 'Q2 FY25', revenueCr: 348, yoyRevGrowth: 52.1, ebitdaCr: 119, netProfitCr: 64, yoyPatGrowth: 58.0, eps: 5.30, opmPct: 34.2, beatMiss: 'BEAT' },
+      { qtr: 'Q1 FY25', revenueCr: 349, yoyRevGrowth: 83.7, ebitdaCr: 121, netProfitCr: 66, yoyPatGrowth: 98.5, eps: 5.48, opmPct: 34.7, beatMiss: 'BEAT' },
+      { qtr: 'Q4 FY24', revenueCr: 292, yoyRevGrowth: 60.4, ebitdaCr: 98, netProfitCr: 47, yoyPatGrowth: 35.8, eps: 3.92, opmPct: 33.6, beatMiss: 'BEAT' }
+    ],
+
+    promoterHoldingPct: 53.08,
+    promoterChangeQoQ: '0.00% (Dr. Faruk G. Patel promoter family)',
+    promoterPledgePct: 0.00,
+    fiiHoldingPct: 8.92,
+    fiiChangeQoQ: '+1.42% (Foreign institution aggressive accumulation)',
+    diiHoldingPct: 3.84,
+    diiChangeQoQ: '+0.85% (Domestic mutual funds initiating coverage)',
+    publicHoldingPct: 34.16,
+    auditorName: 'K A Sanghvi & Co LLP',
+    auditorRemarks: 'Unqualified clean audit opinion; zero qualifications.',
+    governanceRedFlags: ['None. Unpledged promoter equity and transparent quarterly disclosures.'],
+    dilutionRisk: 'Low (Successful QIP of ₹300 Cr in 2024 to fund 1 GW expansion)',
+
+    managementCommentary: 'Management has outlined Vision 2030 to achieve 10 GW operational renewable capacity. With a hybrid project pipeline of 2.8+ GW already in execution and ₹3,150+ Cr order book, company expects 40%+ annual profit growth over next 3 fiscal years.',
+    capexGuidance: 'Capex of ₹2,200 Cr over FY25–26, funded via ₹300 Cr QIP equity, internal cash flows of ₹350 Cr+, and tied-up debt at 8.25% interest.',
+    orderBookCr: 3150,
+    rdSpendCr: 18,
+    keyGrowthDrivers: [
+      'Active Order Book of ₹3,150+ Cr providing high revenue visibility through FY26',
+      'Hybrid Wind-Solar Parks in Gujarat offering superior tariffs and higher plant load factor (PLF)',
+      'Expansion into Maharashtra, Rajasthan, and Madhya Pradesh diversifying geographic risk',
+      'Surging corporate demand for captive green power driven by RE100 and ESG mandates'
+    ],
+    majorRisksDisclosed: [
+      'Customer concentration in Gujarat industrial corridor',
+      'Fluctuations in imported wind turbine and solar module prices',
+      'Interest rate sensitivity on project term loans'
+    ],
+    contingentLiabilitiesCr: 185,
+    capitalAllocationPolicy: 'Reinvesting 85%+ of operating cash flow into high-IRR (16–18%) renewable generation assets.',
+    corporateActionHistory: '1:2 Bonus shares issued in Feb 2024; regular quarterly interim dividends.',
+
+    peBandMin: 28.0,
+    peBandMedian: 40.0,
+    peBandMax: 65.0,
+    dcfIntrinsicValue: 1050,
+    reverseDcfImpliedGrowth: 24.5,
+    bearCaseFairValue: 680,
+    baseCaseFairValue: 1020,
+    bullCaseFairValue: 1250,
+    valuationVerdict: 'High-Growth Multibagger Compounder',
+
+    trendMonthly: 'Strong Uptrend',
+    trendDaily: 'Accumulation Spring above 50 EMA',
+    marketStructure: 'Consolidating in ₹740–790 base following 30% healthy correction from ₹1,115 high.',
+    supplyZones: ['₹890–920 (Previous breakdown resistance)', '₹1,080–1,115 (All-time high peak)'],
+    demandZones: ['₹740–770 (High volume anchor demand node)', '₹680–710 (200-day EMA floor)'],
+    orderBlockPrice: 755,
+    fvgLevel: '₹765–780 bullish daily FVG',
+    pocVolumeProfile: 772,
+    vahLevel: 865,
+    valLevel: 745,
+    rsi14: 56.8,
+    ema20: 778,
+    ema50: 765,
+    ema200: 692,
+    deliveryPct: 62.4,
+    relVolume: 1.35,
+    relativeStrengthVsNifty: 'Strong Outperformer',
+
+    futuresOiContracts: 0,
+    fiiDiiBias: 'Strong FII Accumulation',
+
+    rbiRateSensitivity: 'Positive (Interest rate cuts expand project equity IRRs)',
+    crudeOilSensitivity: 'Beneficiary of High Oil',
+    usdInrSensitivity: 'Domestic Insulation',
+    sectorCatalysts: [
+      'Gujarat Government aggressive renewable energy policy 2030',
+      'Commissioning of landmark 100 MW hybrid solar-wind captive park',
+      'Credit rating upgrade from leading rating agencies lowering borrowing costs'
+    ],
+
+    businessQualityScore: 89,
+    financialStrengthScore: 85,
+    earningsConsistencyScore: 96,
+    valuationScore: 82,
+    governanceScore: 88,
+    technicalTrendScore: 86,
+    sectorStrengthScore: 95,
+    liquidityScore: 82,
+    macroSensitivityScore: 84,
+    riskAdjustedScore: 90,
+    compositeQualityScore: 88,
+
+    intraday: {
+      action: 'BUY',
+      entry: '₹775–785',
+      sl: '₹762',
+      tp1: '₹808',
+      tp2: '₹825',
+      rr: '1:2.5',
+      holding: 'Day session',
+      setup: 'Volume breakout above morning VWAP',
+      rationale: 'High delivery percentage of 62% confirming institutional accumulation.'
+    },
+    swing: {
+      action: 'BUY',
+      entry: '₹765–785',
+      sl: '₹720 (Close below daily demand block)',
+      tp1: '₹850',
+      tp2: '₹920',
+      tp3: '₹990',
+      rr: '1:3.4',
+      holding: '1–4 weeks',
+      setup: 'Base breakout above 50-day EMA with expanding delivery',
+      rationale: 'Risk-reward asymmetric near the ₹760 base with impending Q4 earnings beat. Execution schedule: Book 50% profits at TP1 (₹850) and move SL to entry (₹775); book 30% at TP2 (₹920); trail 20% to TP3 (₹990).'
+    },
+    shortTerm: {
+      action: 'BUY',
+      entry: '₹750–785',
+      sl: '₹690',
+      tp1: '₹920',
+      tp2: '₹1,020',
+      rr: '1:3.6',
+      holding: '1–3 months',
+      setup: 'Double bottom accumulation spring',
+      rationale: 'Commissioning of new IPP capacity flow into quarterly books.'
+    },
+    mediumTerm: {
+      action: 'STRONG BUY',
+      entry: '₹740–790',
+      sl: '₹650',
+      tp1: '₹1,050',
+      tp2: '₹1,180',
+      rr: '1:3.9',
+      holding: '3–6 months',
+      setup: 'Earnings momentum continuation',
+      rationale: 'Targeting ₹1,020 DCF base fair value on 50%+ PAT expansion.'
+    },
+    longTerm: {
+      action: 'STRONG BUY',
+      entry: '₹730–790',
+      sl: '₹600',
+      tp1: '₹1,250',
+      tp2: '₹1,450',
+      rr: '1:4.6',
+      holding: '6–12 months / 1–3 years',
+      setup: 'Small-cap to mid-cap green transition winner',
+      rationale: 'Targeting 10 GW capacity roadmap by 2030 with 30%+ compounding ROE.'
+    },
+
+    priceScenarios: {
+      m1: { bear: 740, base: 840, bull: 900, probBase: 65 },
+      m3: { bear: 700, base: 920, bull: 1020, probBase: 62 },
+      m6: { bear: 660, base: 1050, bull: 1180, probBase: 60 },
+      m12: { bear: 620, base: 1250, bull: 1450, probBase: 58 }
+    },
+
+    overallDecision: 'BUY ON CONFIRMATION',
+    top3ReasonsToInvest: [
+      'Unprecedented 112% 3-year net profit CAGR with 31%+ ROE, outperforming virtually all peers in the renewable sector.',
+      'Active Order Book of ₹3,150+ Cr providing multi-year earnings visibility and cash-backed project milestones.',
+      'Dual IPP/CPP hybrid business model eliminates working capital stress while creating long-term annuity cash flows.'
+    ],
+    top3Risks: [
+      'Small-cap liquidity and higher beta relative to broad market indices.',
+      'Concentration of operational assets primarily within the state of Gujarat.',
+      'Regulatory shifts in state open-access cross-subsidy surcharges.'
+    ],
+    invalidationTrigger: 'Break below ₹680 on weekly close or sudden deceleration in quarterly revenue growth below 20%.',
+
+    peers: [
+      { symbol: 'TATAPOWER', name: 'Tata Power Company Ltd', pe: 34.2, evEbitda: 14.8, roe: 13.8, roce: 14.6, mcapCr: 131650, salesCagr3y: 22.4 },
+      { symbol: 'SUZLON', name: 'Suzlon Energy Ltd', pe: 68.4, evEbitda: 32.1, roe: 24.2, roce: 22.8, mcapCr: 88400, salesCagr3y: 28.5 },
+      { symbol: 'ADANIGREEN', name: 'Adani Green Energy', pe: 112.4, evEbitda: 28.5, roe: 18.2, roce: 12.8, mcapCr: 295000, salesCagr3y: 42.1 },
+      { symbol: 'WAAREEENER', name: 'Waaree Energies Ltd', pe: 46.8, evEbitda: 26.4, roe: 34.2, roce: 38.5, mcapCr: 82000, salesCagr3y: 92.4 }
+    ]
+  }
+];
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* SECTOR INTELLIGENCE REPORT DATA (RENEWABLE ENERGY & DEFENCE FOCUS)        */
+/* ────────────────────────────────────────────────────────────────────────── */
+export interface IndianSectorAnalysis {
+  sectorId: string;
+  sectorName: string;
+  outlook: 'STRONG OVERWEIGHT' | 'OVERWEIGHT' | 'NEUTRAL';
+  horizon: string;
+  expectedCagr: string;
+  macroDriverSummary: string;
+  governmentInitiatives: string[];
+  keyRisks: string[];
+  topPicks: {
+    symbol: string;
+    name: string;
+    pe: number;
+    debtToEquity: number;
+    patCagr3y: number;
+    orderBookCr: number;
+    pipelineHighlights: string;
+    verdict: string;
+  }[];
+}
+
+export const INDIAN_SECTOR_INTELLIGENCE: IndianSectorAnalysis[] = [
+  {
+    sectorId: 'RENEWABLE_ENERGY',
+    sectorName: 'Indian Renewable Energy & Clean Power Transition',
+    outlook: 'STRONG OVERWEIGHT',
+    horizon: '2025–2030 (Multidecade Megatrend)',
+    expectedCagr: '24–28% Annual Sector Growth',
+    macroDriverSummary: 'India has committed to reaching 500 GW of non-fossil capacity by 2030 (currently ~190 GW), requiring an annual addition of 40–50 GW. Surging power demand driven by AI data centers, industrial manufacturing, and residential AC load is creating peak power deficits that only hybrid solar-wind and storage can fulfill.',
+    governmentInitiatives: [
+      'PM Surya Ghar Muft Bijli Yojana (₹75,021 Cr outlay targeting 1 Crore household solar rooftops with 60% direct subsidy)',
+      'Solar PLI Scheme (Production Linked Incentive) creating 45+ GW of domestic cell & module manufacturing to displace Chinese imports',
+      'Inter-State Transmission System (ISTS) green energy corridors with waiver of transmission charges for 25 years',
+      'National Green Hydrogen Mission targeting 5 MMT annual production requiring 125 GW of dedicated renewable capacity'
+    ],
+    keyRisks: [
+      'Transmission grid evacuation bottlenecks in solar-rich pockets of Rajasthan and Gujarat',
+      'State DISCOM financial delays in tariff adoption and PPA signing',
+      'Price volatility in polysilicon and battery energy storage systems (BESS)'
+    ],
+    topPicks: [
+      {
+        symbol: 'TATAPOWER',
+        name: 'Tata Power Company Limited',
+        pe: 34.2,
+        debtToEquity: 1.22,
+        patCagr3y: 36.8,
+        orderBookCr: 15900,
+        pipelineHighlights: '5.5 GW clean pipeline under execution, 4.3 GW cell/module plant in Tirunelveli, 20%+ national rooftop solar share, 5,500+ EV chargers.',
+        verdict: 'Large-Cap Green Energy Compounder (Target ₹510–585)'
+      },
+      {
+        symbol: 'KPIGREEN',
+        name: 'KPI Green Energy Limited',
+        pe: 42.5,
+        debtToEquity: 0.84,
+        patCagr3y: 112.4,
+        orderBookCr: 3150,
+        pipelineHighlights: '2.8+ GW hybrid solar-wind pipeline targeting 10 GW by 2030; dual IPP/CPP model with zero bad debts and 31%+ ROE.',
+        verdict: 'High-Growth Multibagger Winner (Target ₹1,020–1,250)'
+      }
+    ]
+  },
+  {
+    sectorId: 'DEFENCE',
+    sectorName: 'Indian Aerospace & National Defence Indigenisation',
+    outlook: 'STRONG OVERWEIGHT',
+    horizon: '2025–2029 (5-Year Visibility)',
+    expectedCagr: '18–22% Annual Revenue Growth',
+    macroDriverSummary: 'Geopolitical tensions and the national mandate for self-reliance have led the Ministry of Defence to mandate that 75%+ of defence capital procurement must be sourced domestically. Simultaneously, Indian defence exports have surged from ₹1,521 Cr in FY17 to ₹21,083 Cr in FY24, with a target of ₹50,000 Cr by 2029.',
+    governmentInitiatives: [
+      'Defence Acquisition Procedure (DAP 2020) with mandatory Buy (Indian-IDDM) priority',
+      'Five Positive Indigenisation Lists banning imports of 509+ military hardware platforms and subsystems',
+      'Defence Export Promotion Scheme targeting 85+ partner countries (Armenia, Philippines, Vietnam, Middle East)',
+      'Record Capital Outlay of ₹1.72 Lakh Cr for military modernization in Union Budget'
+    ],
+    keyRisks: [
+      'Delays in critical foreign sub-component deliveries (e.g. GE F404 jet engines for Tejas)',
+      'Budget pacing and bureaucratic approvals from Ministry of Defence',
+      'High single-buyer sovereign concentration risk (Indian Armed Forces account for 90%+ revenues)'
+    ],
+    topPicks: [
+      {
+        symbol: 'HAL',
+        name: 'Hindustan Aeronautics Limited',
+        pe: 36.4,
+        debtToEquity: 0.00,
+        patCagr3y: 28.5,
+        orderBookCr: 94000,
+        pipelineHighlights: '₹94,000+ Cr order book giving 3.2x revenue visibility: 83 Tejas Mk1A fighters, 97 additional Tejas Mk1A DAC pipeline, 156 Prachand LCH attack helicopters, Su-30MKI upgrade.',
+        verdict: 'Uncontested Defence Aviation Monopoly (Target ₹5,200–5,800)'
+      },
+      {
+        symbol: 'BEL',
+        name: 'Bharat Electronics Limited',
+        pe: 48.5,
+        debtToEquity: 0.00,
+        patCagr3y: 24.8,
+        orderBookCr: 76000,
+        pipelineHighlights: '₹76,000+ Cr order book giving 3.8x revenue visibility: Akash Prime missile electronics, QRSAM radar systems, Next-Gen Corvettes EW suites, zero debt with ₹11,000 Cr cash.',
+        verdict: 'Premier Military Electronics & Radar Leader (Target ₹350–390)'
+      }
+    ]
   }
 ];
 
@@ -2238,6 +2847,7 @@ export const TOP_500_UNIVERSE_LIST: Top500ConstituentItem[] = [
   { symbol: 'POLYCAB', name: 'Polycab India Limited', sector: 'Cables & Wires / FMEG', capTier: 'Mid-Cap', index: 'Nifty Next 50', cmp: 6420.00, changePct: 1.80, high52w: 7550.00, low52w: 4620.00, pe: 48.2, mcapCr: 96400, tvSymbol: 'NSE:POLYCAB', isFnO: true },
   { symbol: 'PERSISTENT', name: 'Persistent Systems Ltd', sector: 'Information Technology', capTier: 'Mid-Cap', index: 'Nifty Midcap 150', cmp: 5640.00, changePct: 2.10, high52w: 6180.00, low52w: 3500.00, pe: 58.4, mcapCr: 86800, tvSymbol: 'NSE:PERSISTENT', isFnO: true },
   { symbol: 'TATAPOWER', name: 'Tata Power Company Ltd', sector: 'Power & Renewables / EV', capTier: 'Large-Cap', index: 'Nifty Next 50', cmp: 412.00, changePct: 0.80, high52w: 494.00, low52w: 310.00, pe: 34.2, mcapCr: 131600, tvSymbol: 'NSE:TATAPOWER', isFnO: true },
+  { symbol: 'KPIGREEN', name: 'KPI Green Energy Ltd', sector: 'Power & Renewable Energy', capTier: 'Small-Cap', index: 'Nifty Smallcap 250', cmp: 785.40, changePct: 2.43, high52w: 1115.00, low52w: 385.00, pe: 42.5, mcapCr: 9480, tvSymbol: 'BSE:542323', isFnO: false },
   { symbol: 'CDSL', name: 'Central Depository Services', sector: 'Financial Market Infrastructure', capTier: 'Mid-Cap', index: 'Nifty Midcap 150', cmp: 1580.00, changePct: 2.45, high52w: 1980.00, low52w: 840.00, pe: 52.1, mcapCr: 33000, tvSymbol: 'NSE:CDSL', isFnO: true },
   { symbol: 'BSE', name: 'BSE Limited', sector: 'Capital Markets / Exchange', capTier: 'Mid-Cap', index: 'Nifty Midcap 150', cmp: 5120.00, changePct: 3.40, high52w: 5740.00, low52w: 1890.00, pe: 64.8, mcapCr: 69400, tvSymbol: 'NSE:BSE', isFnO: true },
   { symbol: 'ANGELONE', name: 'Angel One Limited', sector: 'Retail Fintech Brokerage', capTier: 'Mid-Cap', index: 'Nifty Smallcap 250', cmp: 2780.00, changePct: 1.65, high52w: 3890.00, low52w: 2200.00, pe: 19.4, mcapCr: 24800, tvSymbol: 'NSE:ANGELONE', isFnO: true },

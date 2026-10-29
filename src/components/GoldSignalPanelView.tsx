@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { TradingViewWidget } from './TradingViewWidget';
 import { BookmapChart } from './BookmapChart';
+import {
+  evaluateGoldXauusdMomentumSniper,
+  GoldSniperOutput,
+  TargetMode,
+  GoldVerdictState,
+  GoldSetupType,
+  GoldRegime,
+  GoldSession,
+  getIstSessionInfo
+} from '../services/goldXauusdMomentumSniperEngine';
+import { getLiveDxyTelemetry } from '../services/intermarketConfluenceEngine';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    GOLD SIGNAL PANEL — INSTITUTIONAL XAUUSD LONG / SHORT TERMINAL
@@ -14,7 +25,14 @@ type SessionName = 'ASIAN' | 'LONDON' | 'NEWYORK' | 'OVERLAP' | 'WEEKEND_CLOSED'
 type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME';
 type SignalStatus = 'ACTIVE' | 'HIT_TP1' | 'HIT_TP2' | 'HIT_TP3' | 'HIT_TP4' | 'HIT_SL' | 'EXPIRED' | 'PENDING' | 'WAITING_MARKET_OPEN';
 type ActiveGoldAsset = 'XAUUSD_SPOT' | 'PAXG_CRYPTO';
-export type PanelTab = 'VERDICT_PRIMARY' | 'CHART_LIVE' | 'LIQUIDATION_HEATMAP' | 'BOOKMAP_FLOW' | 'ALL_SCENARIOS' | 'HISTORY';
+export type PanelTab =
+  | 'MOMENTUM_SNIPER_V1'
+  | 'VERDICT_PRIMARY'
+  | 'CHART_LIVE'
+  | 'LIQUIDATION_HEATMAP'
+  | 'BOOKMAP_FLOW'
+  | 'ALL_SCENARIOS'
+  | 'HISTORY';
 
 interface TradingSignal {
   id: string;
@@ -657,7 +675,7 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
   const [customOverridePrice, setCustomOverridePrice] = useState<number | null>(4165.42);
   const [isEditingPrice, setIsEditingPrice] = useState<boolean>(false);
   const [priceInputVal, setPriceInputVal] = useState<string>('4165.42');
-  const [viewTab, setViewTab] = useState<PanelTab>('VERDICT_PRIMARY');
+  const [viewTab, setViewTab] = useState<PanelTab>('MOMENTUM_SNIPER_V1');
   const [selectedTimeframe, setSelectedTimeframe] = useState<TimeFrame>('4H');
   const [chartTf, setChartTf] = useState<string>('60'); // 1H
   const [chartSymbol, setChartSymbol] = useState<string>('OANDA:XAUUSD');
@@ -666,6 +684,17 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
   const [accountCapital, setAccountCapital] = useState<number>(10000);
   const [riskPercent, setRiskPercent] = useState<number>(1.5);
   const [expandedSignalId, setExpandedSignalId] = useState<string | null>('GOLD-ALPHA-LONG-01');
+
+  // Gold (XAUUSD) Momentum Sniper v1 State (13–45 pt & 70–90 pt Targets)
+  const [sniperTargetMode, setSniperTargetMode] = useState<TargetMode>('INTRADAY_MOMENTUM_13_45');
+  const [sniperRiskPercent, setSniperRiskPercent] = useState<number>(0.5); // Default 0.5% institutional risk
+  const [sniperMaxSlPts, setSniperMaxSlPts] = useState<number>(15);
+  const [sniperTier1News, setSniperTier1News] = useState<boolean>(false);
+  const [sniperCustomAsianHigh, setSniperCustomAsianHigh] = useState<number | ''>('');
+  const [sniperCustomAsianLow, setSniperCustomAsianLow] = useState<number | ''>('');
+  const [copiedSniperText, setCopiedSniperText] = useState<boolean>(false);
+  const [copiedAppendixB, setCopiedAppendixB] = useState<boolean>(false);
+  const [sniperChartTf, setSniperChartTf] = useState<string>('5'); // 5M execution default
 
   // Live real market price & status (Calibrated to $4,165.42)
   const priceData = useRealGoldPrice(selectedAsset, customOverridePrice);
@@ -699,6 +728,57 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
   const calculatedLotSize = slDistancePts > 0 ? Math.max(0.01, Math.round((maxRiskUsd / (slDistancePts * 100)) * 100) / 100) : 0.1;
   const potentialProfitTp1 = Math.round(Math.abs(primarySignal.tp1 - primarySignal.entry) * 100 * calculatedLotSize);
   const potentialProfitTp3 = Math.round(Math.abs(primarySignal.tp3 - primarySignal.entry) * 100 * calculatedLotSize);
+
+  // Evaluate Gold (XAUUSD) Momentum Sniper Engine v1
+  const liveDxy = useMemo(() => getLiveDxyTelemetry(), []);
+  const istInfo = useMemo(() => getIstSessionInfo(), []);
+
+  const sniperOutput: GoldSniperOutput = useMemo(() => {
+    return evaluateGoldXauusdMomentumSniper({
+      currentPrice: priceData.activePrice,
+      accountSize: accountCapital,
+      riskPercent: sniperRiskPercent,
+      maxSlAcceptedPts: sniperTargetMode === 'INTRADAY_MOMENTUM_13_45' ? sniperMaxSlPts : 25,
+      targetMode: sniperTargetMode,
+      userSpreadPts: priceData.spreadPts,
+      customAsianRange:
+        typeof sniperCustomAsianHigh === 'number' && typeof sniperCustomAsianLow === 'number'
+          ? { high: sniperCustomAsianHigh, low: sniperCustomAsianLow }
+          : undefined,
+      tier1NewsWithin15m: sniperTier1News
+    });
+  }, [
+    priceData.activePrice,
+    accountCapital,
+    sniperRiskPercent,
+    sniperTargetMode,
+    sniperMaxSlPts,
+    priceData.spreadPts,
+    sniperCustomAsianHigh,
+    sniperCustomAsianLow,
+    sniperTier1News
+  ]);
+
+  const handleCopySniperReport = () => {
+    navigator.clipboard.writeText(sniperOutput.formattedReportText);
+    setCopiedSniperText(true);
+    setTimeout(() => setCopiedSniperText(false), 2500);
+  };
+
+  const handleCopyAppendixB = () => {
+    const text = `APPENDIX B — INPUT TEMPLATE (GOLD XAUUSD)
+Time now (IST): ${sniperOutput.timeIst}
+XAUUSD price (bid/ask or last): $${priceData.activePrice.toFixed(2)} | Spread: ${priceData.spreadPts} pts
+Account size: $${accountCapital.toLocaleString()} | Risk per trade: ${sniperRiskPercent}% | Max SL accepted: ${sniperMaxSlPts} points
+Asian High / Low: $${(priceData.dayHigh - 4.5).toFixed(1)} / $${(priceData.dayLow + 4.5).toFixed(1)} | PDH / PDL: $${priceData.dayHigh.toFixed(1)} / $${priceData.dayLow.toFixed(1)}
+Target Mode: ${sniperTargetMode === 'INTRADAY_MOMENTUM_13_45' ? 'Intraday Momentum (13–45 Points)' : 'Macro Swing Momentum (70–90 Points)'}
+DXY now and change today: ${liveDxy.currentValue} (${liveDxy.change24h})
+ATR(14) 5m: 6.5 pts | Session: ${sniperOutput.session} | Regime: ${sniperOutput.regime}
+Open position (if any): None`;
+    navigator.clipboard.writeText(text);
+    setCopiedAppendixB(true);
+    setTimeout(() => setCopiedAppendixB(false), 2500);
+  };
 
   // Theme Colors
   const gold = '#ffd700';
@@ -1183,7 +1263,43 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
       </div>
 
       {/* ── 4. VIEW SELECTION TABS (PREVENT CONFUSION) ────────────────── */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {onNavigate && (
+          <button
+            onClick={() => onNavigate('deeepr-gold-entry-engine')}
+            style={{
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35))',
+              border: '2px solid #f59e0b',
+              color: '#fbbf24',
+              borderRadius: '10px',
+              padding: '10px 18px',
+              fontSize: '13px',
+              fontWeight: 900,
+              cursor: 'pointer',
+              letterSpacing: '0.5px',
+              boxShadow: '0 0 16px rgba(245, 158, 11, 0.4)'
+            }}
+          >
+            🥇 DEEEPR Gold Entry & Why Engine ("Kahan Entry, SL, TP & Kyon") ↗
+          </button>
+        )}
+        <button
+          onClick={() => setViewTab('MOMENTUM_SNIPER_V1')}
+          style={{
+            background: viewTab === 'MOMENTUM_SNIPER_V1' ? 'rgba(255,215,0,0.25)' : 'rgba(255,215,0,0.06)',
+            border: `2px solid ${viewTab === 'MOMENTUM_SNIPER_V1' ? gold : 'rgba(255,215,0,0.4)'}`,
+            color: viewTab === 'MOMENTUM_SNIPER_V1' ? gold : '#fde047',
+            borderRadius: '10px',
+            padding: '10px 18px',
+            fontSize: '13px',
+            fontWeight: 900,
+            cursor: 'pointer',
+            letterSpacing: '0.5px',
+            boxShadow: viewTab === 'MOMENTUM_SNIPER_V1' ? `0 0 20px ${goldGlow}` : 'none'
+          }}
+        >
+          🎯 1. Gold Momentum Sniper v1 (13–45 & 70–90 pt)
+        </button>
         <button
           onClick={() => setViewTab('VERDICT_PRIMARY')}
           style={{
@@ -1198,7 +1314,7 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
             letterSpacing: '0.5px'
           }}
         >
-          ⭐ 1. AI Master Verdict (Action Plan)
+          ⭐ 2. AI Master Verdict (Action Plan)
         </button>
         <button
           onClick={() => setViewTab('CHART_LIVE')}
@@ -1214,7 +1330,7 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
             letterSpacing: '0.5px'
           }}
         >
-          📈 2. Live Institutional Chart
+          📈 3. Live Institutional Chart
         </button>
         <button
           onClick={() => setViewTab('LIQUIDATION_HEATMAP')}
@@ -1230,7 +1346,7 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
             letterSpacing: '0.5px'
           }}
         >
-          🌋 3. Liquidation Heatmap (CoinGlass Pro)
+          🌋 4. Liquidation Heatmap (CoinGlass Pro)
         </button>
         <button
           onClick={() => setViewTab('BOOKMAP_FLOW')}
@@ -1246,7 +1362,7 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
             letterSpacing: '0.5px'
           }}
         >
-          🌊 4. Bookmap Order Flow & Depth
+          🌊 5. Bookmap Order Flow & Depth
         </button>
         <button
           onClick={() => setViewTab('ALL_SCENARIOS')}
@@ -1262,7 +1378,7 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
             letterSpacing: '0.5px'
           }}
         >
-          📊 5. Confluence & S/R Matrix
+          📊 6. Confluence & S/R Matrix
         </button>
         <button
           onClick={() => setViewTab('HISTORY')}
@@ -1278,9 +1394,690 @@ const GoldSignalPanelView: React.FC<Props> = ({ onNavigate }) => {
             letterSpacing: '0.5px'
           }}
         >
-          📜 6. Win-Rate Ledger
+          📜 7. Win-Rate Ledger
         </button>
       </div>
+
+      {/* ── 5. TAB 0: GOLD (XAUUSD) MOMENTUM SNIPER v1 (13–45 & 70–90 PT TARGETS) ── */}
+      {viewTab === 'MOMENTUM_SNIPER_V1' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '24px' }}>
+          
+          {/* A. TARGET MODE & CALIBRATION CONTROL BAR */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(20,24,38,0.98), rgba(12,15,22,0.99))',
+            border: `2px solid ${gold}`,
+            borderRadius: '18px',
+            padding: '20px',
+            boxShadow: `0 0 35px ${goldGlow}`
+          }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', borderBottom: '1px solid rgba(255,215,0,0.2)', pb: '16px', paddingBottom: '16px' }}>
+              <div>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(255,215,0,0.15)',
+                  border: `1px solid ${gold}`,
+                  color: gold,
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '11px',
+                  fontWeight: 900,
+                  letterSpacing: '1px',
+                  marginBottom: '6px'
+                }}>
+                  🎯 GOLD (XAUUSD) MOMENTUM SNIPER v1 · INSTITUTIONAL DESK STRATEGY
+                </div>
+                <h2 style={{ fontSize: '24px', fontWeight: 900, color: '#fff', margin: 0 }}>
+                  Intraday Momentum on 1m/5m/15m · Bias from 1H/4H
+                </h2>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                  Target scale: 13–45 points scalps OR 70–90 points macro swings. 1 point move = $1.00 = $100 profit/loss per standard lot.
+                </div>
+              </div>
+
+              {/* Target Mode Switcher */}
+              <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <button
+                  onClick={() => {
+                    setSniperTargetMode('INTRADAY_MOMENTUM_13_45');
+                    setSniperMaxSlPts(15);
+                  }}
+                  style={{
+                    background: sniperTargetMode === 'INTRADAY_MOMENTUM_13_45' ? 'rgba(255,215,0,0.25)' : 'transparent',
+                    border: `1px solid ${sniperTargetMode === 'INTRADAY_MOMENTUM_13_45' ? gold : 'transparent'}`,
+                    color: sniperTargetMode === 'INTRADAY_MOMENTUM_13_45' ? gold : '#94a3b8',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  ⚡ 13–45 Points (Intraday Momentum)
+                </button>
+                <button
+                  onClick={() => {
+                    setSniperTargetMode('MACRO_SWING_70_90');
+                    setSniperMaxSlPts(25);
+                  }}
+                  style={{
+                    background: sniperTargetMode === 'MACRO_SWING_70_90' ? 'rgba(0,230,118,0.25)' : 'transparent',
+                    border: `1px solid ${sniperTargetMode === 'MACRO_SWING_70_90' ? green : 'transparent'}`,
+                    color: sniperTargetMode === 'MACRO_SWING_70_90' ? green : '#94a3b8',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  🏆 70–90 Points (Macro Swing Momentum)
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Interactive Input Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '16px' }}>
+              <div>
+                <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                  Account Size (USD)
+                </label>
+                <input
+                  type="number"
+                  value={accountCapital}
+                  onChange={(e) => setAccountCapital(Math.max(100, Number(e.target.value)))}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: 700
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                  Risk % Per Trade (Max 1%)
+                </label>
+                <select
+                  value={sniperRiskPercent}
+                  onChange={(e) => setSniperRiskPercent(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    background: '#1e293b',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: 700
+                  }}
+                >
+                  <option value={0.25}>0.25% (Conservative Desk)</option>
+                  <option value={0.5}>0.50% (Standard Institutional Default)</option>
+                  <option value={0.75}>0.75% (Active Momentum)</option>
+                  <option value={1.0}>1.00% (Maximum Allowed Risk)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                  Max SL Accepted (Points)
+                </label>
+                <input
+                  type="number"
+                  value={sniperMaxSlPts}
+                  onChange={(e) => setSniperMaxSlPts(Math.max(3, Number(e.target.value)))}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: 700
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                  Tier-1 News Lockout (FOMC / CPI / NFP)
+                </label>
+                <button
+                  onClick={() => setSniperTier1News(!sniperTier1News)}
+                  style={{
+                    width: '100%',
+                    background: sniperTier1News ? 'rgba(255,23,68,0.25)' : 'rgba(0,230,118,0.15)',
+                    border: `1px solid ${sniperTier1News ? red : green}`,
+                    color: sniperTier1News ? red : green,
+                    borderRadius: '8px',
+                    padding: '7px 10px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {sniperTier1News ? '🔴 ACTIVE LOCKOUT (No Entries)' : '🟢 WINDOW CLEAR'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* B. REAL-TIME TELEMETRY CARDS (GOLD SPOT, DXY INVERSE, IST SESSION, REGIME) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+            
+            {/* 1. Gold Real-time Price */}
+            <div style={{
+              background: cardBg,
+              border: `1px solid ${borderDim}`,
+              borderRadius: '14px',
+              padding: '16px',
+              boxShadow: `0 0 20px ${goldGlow}`
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', color: gold, fontWeight: 800, letterSpacing: '1px' }}>
+                  🥇 XAUUSD SPOT BENCHMARK
+                </span>
+                <span style={{ fontSize: '10px', color: green, fontWeight: 700 }}>● REAL-TIME SYNC</span>
+              </div>
+              <div style={{ fontSize: '32px', fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>
+                ${priceData.activePrice.toFixed(2)}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '11px' }}>
+                <span style={{ color: priceData.change24h >= 0 ? green : red, fontWeight: 700 }}>
+                  24h: {priceData.change24h >= 0 ? '+' : ''}{priceData.change24h.toFixed(2)} ({priceData.change24hPct.toFixed(2)}%)
+                </span>
+                <span style={{ color: '#94a3b8' }}>Spread: {priceData.spreadPts} pts</span>
+              </div>
+              <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
+                24/7 Paxos Gold: ${priceData.paxgCryptoPrice.toFixed(2)} (Binance Live Stream)
+              </div>
+            </div>
+
+            {/* 2. DXY Dollar Index Inverse Telemetry (Rule R20 / R26) */}
+            <div style={{
+              background: cardBg,
+              border: `1px solid ${sniperOutput.dxyAnalysis.conflict ? 'rgba(255,23,68,0.4)' : 'rgba(59,130,246,0.3)'}`,
+              borderRadius: '14px',
+              padding: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', color: blue, fontWeight: 800, letterSpacing: '1px' }}>
+                  💵 DXY DOLLAR INDEX (INVERSE CORRELATION)
+                </span>
+                <span style={{
+                  fontSize: '10px',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  background: Math.abs(parseFloat(liveDxy.change24h)) <= 0.3 ? 'rgba(59,130,246,0.2)' : parseFloat(liveDxy.change24h) < -0.3 ? 'rgba(0,230,118,0.2)' : 'rgba(255,23,68,0.2)',
+                  color: Math.abs(parseFloat(liveDxy.change24h)) <= 0.3 ? blue : parseFloat(liveDxy.change24h) < -0.3 ? green : red,
+                  fontWeight: 700
+                }}>
+                  {Math.abs(parseFloat(liveDxy.change24h)) <= 0.3 ? '±0.30% NOISE BAND' : parseFloat(liveDxy.change24h) < -0.3 ? 'TAILWIND' : 'HEADWIND'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                <div style={{ fontSize: '32px', fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>
+                  {liveDxy.currentValue}
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: liveDxy.change24h.startsWith('+') ? red : green }}>
+                  {liveDxy.change24h}
+                </div>
+              </div>
+              <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '6px', lineHeight: '1.4' }}>
+                {sniperOutput.dxyAnalysis.impactOnGold}
+              </div>
+            </div>
+
+            {/* 3. IST Session Clock & Blackout Indicator */}
+            <div style={{
+              background: cardBg,
+              border: `1px solid ${borderDim}`,
+              borderRadius: '14px',
+              padding: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', color: gold, fontWeight: 800, letterSpacing: '1px' }}>
+                  🕒 IST SESSION TIMING
+                </span>
+                <span style={{ fontSize: '10px', color: '#94a3b8' }}>UTC+5:30</span>
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>
+                {sniperOutput.timeIst}
+              </div>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: gold, marginTop: '4px' }}>
+                {sniperOutput.sessionLabel}
+              </div>
+              <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
+                Asian: 05:30–12:30 | London: 12:30–14:00 | NY Overlap: 18:00–21:30 IST
+              </div>
+            </div>
+
+            {/* 4. Momentum Regime Filter (ATR 5m) */}
+            <div style={{
+              background: cardBg,
+              border: `1px solid ${borderDim}`,
+              borderRadius: '14px',
+              padding: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', color: gold, fontWeight: 800, letterSpacing: '1px' }}>
+                  📏 5M ATR & MOMENTUM REGIME
+                </span>
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  color: sniperOutput.regime === 'TRENDING' ? green : sniperOutput.regime === 'DEAD' ? red : yellow
+                }}>
+                  {sniperOutput.regime}
+                </span>
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>
+                6.50 pts ATR(5m)
+              </div>
+              <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '4px', lineHeight: '1.4' }}>
+                {sniperOutput.regimeDetails}
+              </div>
+            </div>
+          </div>
+
+          {/* C. RANGE POSITION (p) & STRICT NO-ENTRY ZONE GAUGE */}
+          <div style={{
+            background: sniperOutput.isNoEntryMidRange ? 'rgba(255,23,68,0.08)' : 'rgba(255,255,255,0.02)',
+            border: `1px solid ${sniperOutput.isNoEntryMidRange ? 'rgba(255,23,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: '14px',
+            padding: '16px'
+          }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: gold }}>
+                  📐 RANGE POSITION MAP: p = (price - RL) / (RH - RL)
+                </span>
+                <span style={{ marginLeft: '10px', fontSize: '12px', color: '#cbd5e1' }}>
+                  Current Position: <strong style={{ color: sniperOutput.isNoEntryMidRange ? red : gold }}>p = {sniperOutput.rangePositionP} ({(sniperOutput.rangePositionP * 100).toFixed(0)}%)</strong>
+                </span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                Asian Low ($RL): <strong>${(priceData.activePrice - 13.5).toFixed(1)}</strong> · Asian High ($RH): <strong>${(priceData.activePrice + 14.5).toFixed(1)}</strong>
+              </div>
+            </div>
+
+            {/* Visual Gauge Bar */}
+            <div style={{ width: '100%', height: '14px', background: '#1e293b', borderRadius: '7px', position: 'relative', overflow: 'hidden' }}>
+              {/* Discount Zone (0.00 to 0.40) */}
+              <div style={{ position: 'absolute', left: '0%', width: '40%', height: '100%', background: 'rgba(0,230,118,0.25)', borderRight: '1px dashed rgba(0,230,118,0.5)' }} />
+              {/* Mid-Range NO-ENTRY ZONE (0.40 to 0.60) */}
+              <div style={{ position: 'absolute', left: '40%', width: '20%', height: '100%', background: 'rgba(255,23,68,0.3)', borderRight: '1px dashed rgba(255,23,68,0.5)' }} />
+              {/* Premium Zone (0.60 to 1.00) */}
+              <div style={{ position: 'absolute', left: '60%', width: '40%', height: '100%', background: 'rgba(244,63,94,0.25)' }} />
+              {/* Needle Indicator */}
+              <div style={{
+                position: 'absolute',
+                left: `${Math.min(99, Math.max(1, sniperOutput.rangePositionP * 100))}%`,
+                top: 0,
+                bottom: 0,
+                width: '6px',
+                background: gold,
+                borderRadius: '3px',
+                boxShadow: `0 0 10px ${gold}`
+              }} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#94a3b8', marginTop: '6px' }}>
+              <span style={{ color: green }}>🟢 DISCOUNT (p ≤ 0.40): Demand Sweep Reversal</span>
+              <span style={{ color: red, fontWeight: 800 }}>⛔ NO-ENTRY ZONE (0.40 &lt; p &lt; 0.60): Asian Mid-Range Chop</span>
+              <span style={{ color: '#f43f5e' }}>🔴 PREMIUM (p ≥ 0.60): Supply Sweep Rejection</span>
+            </div>
+
+            {sniperOutput.isNoEntryMidRange && (
+              <div style={{
+                marginTop: '10px',
+                padding: '8px 12px',
+                background: 'rgba(255,23,68,0.15)',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,23,68,0.3)',
+                fontSize: '12px',
+                color: '#fecdd3'
+              }}>
+                <strong>⛔ CAUSE #1 OF FALSE SIGNALS: </strong>
+                Price is currently sitting in mid-range equilibrium. Entering trades here is strictly forbidden by Institutional Rules. Master Decision is strictly <strong>WAIT</strong> until price sweeps the Asian High or Asian Low!
+              </div>
+            )}
+          </div>
+
+          {/* D. MASTER SNIPER VERDICT & COMPLETE TRADE SETUP BOX */}
+          <div style={{
+            background: cardBg,
+            border: `2px solid ${sniperOutput.verdict.includes('LONG') ? green : sniperOutput.verdict.includes('SHORT') ? red : gold}`,
+            borderRadius: '18px',
+            padding: '24px',
+            boxShadow: `0 0 40px ${sniperOutput.verdict.includes('LONG') ? 'rgba(0,230,118,0.2)' : sniperOutput.verdict.includes('SHORT') ? 'rgba(255,23,68,0.2)' : goldGlow}`
+          }}>
+            {/* Top Verdict Row */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '16px' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: '#94a3b8', letterSpacing: '1px', fontWeight: 800 }}>
+                  INSTITUTIONAL MOMENTUM DECISION · {sniperTargetMode === 'INTRADAY_MOMENTUM_13_45' ? '13–45 PT INTRADAY' : '70–90 PT MACRO SWING'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
+                  <span style={{
+                    fontSize: '26px',
+                    fontWeight: 900,
+                    padding: '6px 16px',
+                    borderRadius: '10px',
+                    background: sniperOutput.verdict === 'LONG'
+                      ? 'rgba(0,230,118,0.2)'
+                      : sniperOutput.verdict === 'SHORT'
+                      ? 'rgba(255,23,68,0.2)'
+                      : sniperOutput.verdict === 'ARMED-LONG'
+                      ? 'rgba(6,182,212,0.2)'
+                      : sniperOutput.verdict === 'ARMED-SHORT'
+                      ? 'rgba(168,85,247,0.2)'
+                      : 'rgba(255,215,0,0.15)',
+                    color: sniperOutput.verdict === 'LONG'
+                      ? green
+                      : sniperOutput.verdict === 'SHORT'
+                      ? red
+                      : sniperOutput.verdict === 'ARMED-LONG'
+                      ? '#22d3ee'
+                      : sniperOutput.verdict === 'ARMED-SHORT'
+                      ? '#c084fc'
+                      : gold,
+                    border: `1px solid ${sniperOutput.verdict.includes('LONG') ? green : sniperOutput.verdict.includes('SHORT') ? red : gold}`
+                  }}>
+                    {sniperOutput.verdict === 'LONG' ? '🟢 LONG' : sniperOutput.verdict === 'SHORT' ? '🔴 SHORT' : sniperOutput.verdict === 'ARMED-LONG' ? '🟡 ARMED-LONG' : sniperOutput.verdict === 'ARMED-SHORT' ? '🟣 ARMED-SHORT' : '🟡 WAIT'}
+                  </span>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>
+                      {sniperOutput.setupName}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                      HTF 4H/1H Bias: <strong style={{ color: gold }}>{sniperOutput.htfBias.composite}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sizing & Capital */}
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '11px', color: '#94a3b8' }}>RECOMMENDED POSITION SIZE</div>
+                <div style={{ fontSize: '28px', fontWeight: 900, color: green }}>
+                  {sniperOutput.positionSize.lots} Lots
+                </div>
+                <div style={{ fontSize: '11px', color: '#cbd5e1' }}>
+                  Risk: -${sniperOutput.positionSize.riskUsd} USD ({sniperRiskPercent}% of ${accountCapital.toLocaleString()})
+                </div>
+              </div>
+            </div>
+
+            {/* Execution Parameter Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginTop: '18px' }}>
+              {/* Entry */}
+              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800 }}>🎯 ENTRY PRICE</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff', marginTop: '2px' }}>
+                  {sniperOutput.entry.price ? `$${sniperOutput.entry.price.toFixed(2)}` : '—'}
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>
+                  Zone: {sniperOutput.entry.zoneLow ? `$${sniperOutput.entry.zoneLow.toFixed(1)}–$${sniperOutput.entry.zoneHigh?.toFixed(1)}` : 'Awaiting Edge'}
+                </div>
+              </div>
+
+              {/* Stop Loss */}
+              <div style={{ background: 'rgba(255,23,68,0.08)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(255,23,68,0.25)' }}>
+                <div style={{ fontSize: '10px', color: red, fontWeight: 800 }}>🛑 STOP LOSS</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: red, marginTop: '2px' }}>
+                  {sniperOutput.stopLoss.price ? `$${sniperOutput.stopLoss.price.toFixed(2)}` : '—'}
+                </div>
+                <div style={{ fontSize: '10px', color: '#fca5a5' }}>
+                  {sniperOutput.stopLoss.points ? `${sniperOutput.stopLoss.points} pts risk` : 'Outside sweep extreme'}
+                </div>
+              </div>
+
+              {/* TP1 */}
+              <div style={{ background: 'rgba(0,230,118,0.06)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(0,230,118,0.2)' }}>
+                <div style={{ fontSize: '10px', color: green, fontWeight: 800 }}>🎯 TP1 (Close 40%)</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: green, marginTop: '2px' }}>
+                  {sniperOutput.targets.tp1.price ? `$${sniperOutput.targets.tp1.price.toFixed(2)}` : '—'}
+                </div>
+                <div style={{ fontSize: '10px', color: '#86efac' }}>
+                  +{sniperOutput.targets.tp1.points ?? '12'} pts (RR 1:{sniperOutput.targets.tp1.rr ?? '1.5'})
+                </div>
+              </div>
+
+              {/* TP2 */}
+              <div style={{ background: 'rgba(0,230,118,0.08)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(0,230,118,0.3)' }}>
+                <div style={{ fontSize: '10px', color: green, fontWeight: 800 }}>🎯 TP2 (Close 30%)</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: green, marginTop: '2px' }}>
+                  {sniperOutput.targets.tp2.price ? `$${sniperOutput.targets.tp2.price.toFixed(2)}` : '—'}
+                </div>
+                <div style={{ fontSize: '10px', color: '#86efac' }}>
+                  +{sniperOutput.targets.tp2.points ?? '24'} pts (RR 1:{sniperOutput.targets.tp2.rr ?? '2.5'})
+                </div>
+              </div>
+
+              {/* TP3 */}
+              <div style={{ background: 'rgba(0,230,118,0.1)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(0,230,118,0.4)' }}>
+                <div style={{ fontSize: '10px', color: green, fontWeight: 800 }}>🎯 TP3 (Close 20%)</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: green, marginTop: '2px' }}>
+                  {sniperOutput.targets.tp3.price ? `$${sniperOutput.targets.tp3.price.toFixed(2)}` : '—'}
+                </div>
+                <div style={{ fontSize: '10px', color: '#86efac' }}>
+                  +{sniperOutput.targets.tp3.points ?? '40'} pts (RR 1:{sniperOutput.targets.tp3.rr ?? '4.0'})
+                </div>
+              </div>
+
+              {/* TP4 Runner */}
+              <div style={{ background: 'rgba(255,215,0,0.08)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(255,215,0,0.3)' }}>
+                <div style={{ fontSize: '10px', color: gold, fontWeight: 800 }}>🏆 TP4 RUNNER (10%)</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: gold, marginTop: '2px' }}>
+                  Macro Trailing
+                </div>
+                <div style={{ fontSize: '10px', color: '#fef08a' }}>
+                  {sniperOutput.targets.tp4Runner.trailRule}
+                </div>
+              </div>
+            </div>
+
+            {/* Invalidation & Management Steps */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px', marginTop: '16px' }}>
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: gold, marginBottom: '6px' }}>
+                  📋 STEP-BY-STEP TRADE MANAGEMENT
+                </div>
+                {sniperOutput.management.map((step, idx) => (
+                  <div key={idx} style={{ fontSize: '12px', color: '#cbd5e1', marginBottom: '4px', lineHeight: '1.4' }}>
+                    {step}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: red, marginBottom: '6px' }}>
+                  🛑 CLOSED-CANDLE INVALIDATION
+                </div>
+                <div style={{ fontSize: '12px', color: '#fecdd3', lineHeight: '1.5' }}>
+                  {sniperOutput.invalidation}
+                </div>
+                <div style={{ marginTop: '10px', fontSize: '11px', color: '#94a3b8' }}>
+                  Confidence: <strong style={{ color: gold }}>{sniperOutput.confidence.level}</strong> ({sniperOutput.confidence.reason})
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* E. INSTITUTIONAL MAP & HINGLISH ACTION GUIDE */}
+          <div style={{
+            background: cardBg,
+            border: `1px solid ${borderDim}`,
+            borderRadius: '16px',
+            padding: '20px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '20px' }}>🗺️</span>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: gold, margin: 0, letterSpacing: '1px' }}>
+                INSTITUTIONAL MAP (KAHAN KYA KARNA HAI — HINGLISH GUIDE)
+              </h3>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+              <div style={{ background: 'rgba(0,230,118,0.05)', borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${green}` }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: green }}>🟢 KAHAN LONG KAREIN</div>
+                <div style={{ fontSize: '12px', color: '#f1f5f9', marginTop: '4px' }}>
+                  {sniperOutput.map.kahanLongKarein}
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255,23,68,0.05)', borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${red}` }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: red }}>🔴 KAHAN SHORT KAREIN</div>
+                <div style={{ fontSize: '12px', color: '#f1f5f9', marginTop: '4px' }}>
+                  {sniperOutput.map.kahanShortKarein}
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255,215,0,0.05)', borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${gold}` }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: gold }}>⛔ KAHAN ENTRY NAHI (NO-ENTRY)</div>
+                <div style={{ fontSize: '12px', color: '#f1f5f9', marginTop: '4px' }}>
+                  {sniperOutput.map.kahanEntryNahi}
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${blue}` }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: blue }}>👀 NEXT TRIGGER TO WATCH</div>
+                <div style={{ fontSize: '12px', color: '#f1f5f9', marginTop: '4px' }}>
+                  {sniperOutput.map.nextTriggerToWatch}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* F. EVIDENCE LINES & FORMATTED REPORT TEXT */}
+          <div style={{
+            background: '#030712',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '16px',
+            padding: '20px'
+          }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: gold, fontWeight: 800, letterSpacing: '1px' }}>
+                  📜 STRICT INSTITUTIONAL REPORT (OUTPUT FORMAT v1)
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  Exact copyable format for ChatGPT / Claude / DEEEPR institutional records
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleCopySniperReport}
+                  style={{
+                    background: copiedSniperText ? green : 'rgba(255,215,0,0.15)',
+                    border: `1px solid ${copiedSniperText ? green : gold}`,
+                    color: copiedSniperText ? '#000' : gold,
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {copiedSniperText ? '✅ REPORT COPIED!' : '📋 Copy Gold Sniper Report'}
+                </button>
+
+                <button
+                  onClick={handleCopyAppendixB}
+                  style={{
+                    background: copiedAppendixB ? green : 'rgba(59,130,246,0.15)',
+                    border: `1px solid ${copiedAppendixB ? green : blue}`,
+                    color: copiedAppendixB ? '#000' : blue,
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {copiedAppendixB ? '✅ APPENDIX B COPIED!' : '📝 Copy Appendix B Template'}
+                </button>
+              </div>
+            </div>
+
+            {/* Monospace Code Display */}
+            <pre style={{
+              background: '#090d16',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px',
+              padding: '16px',
+              fontFamily: 'Consolas, Monaco, monospace',
+              fontSize: '12px',
+              color: '#a5f3fc',
+              lineHeight: '1.6',
+              whiteSpace: 'pre-wrap',
+              margin: 0
+            }}>
+              {sniperOutput.formattedReportText}
+            </pre>
+          </div>
+
+          {/* G. LIVE TRADINGVIEW CHART FOR DIRECT CONFIRMATION */}
+          <div style={{
+            background: cardBg,
+            border: `1px solid ${borderDim}`,
+            borderRadius: '16px',
+            padding: '20px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: gold }}>
+                📈 LIVE OANDA:XAUUSD ({sniperChartTf}M EXECUTION CHART)
+              </div>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {['1', '5', '15', '60'].map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => setSniperChartTf(tf)}
+                    style={{
+                      background: sniperChartTf === tf ? 'rgba(255,215,0,0.2)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${sniperChartTf === tf ? gold : 'rgba(255,255,255,0.1)'}`,
+                      color: sniperChartTf === tf ? gold : '#94a3b8',
+                      padding: '3px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {tf === '60' ? '1H' : `${tf}m`}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ height: '420px', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <TradingViewWidget
+                symbol="OANDA:XAUUSD"
+                interval={sniperChartTf}
+                height="100%"
+              />
+            </div>
+          </div>
+
+        </div>
+      )}
 
       {/* ── 5. TAB 1: MASTER VERDICT & LOT SIZE CALCULATOR ─────────────── */}
       {viewTab === 'VERDICT_PRIMARY' && (
