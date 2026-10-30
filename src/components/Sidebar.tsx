@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { isTabPremium, isFounderPassportActive } from '../services/subscriptionEntitlementService';
 import { Lock } from 'lucide-react';
+import { soundEffects } from '../services/soundEffectsService';
 
 export interface NavCategory {
   title: string;
@@ -315,7 +316,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     type="button"
                     key={item.route + item.name}
-                    onClick={() => onSelectTab(item.route)}
+                    onClick={() => {
+                      soundEffects.playBlip();
+                      onSelectTab(item.route);
+                    }}
                     title={item.name}
                     className={`iitian-item-btn w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] text-left text-[12.8px] leading-tight transition-all cursor-pointer ${
                       isActive

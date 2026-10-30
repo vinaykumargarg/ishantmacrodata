@@ -18,9 +18,12 @@ import {
   ExternalLink,
   Check,
   ChevronRight,
-  Menu
+  Menu,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
+import { soundEffects } from '../services/soundEffectsService';
 
 export type AppTheme = 'dark' | 'light' | 'gold';
 export type TradingMode = 'beginner' | 'advanced';
@@ -225,6 +228,13 @@ export const Header: React.FC<HeaderProps> = ({
     } catch {}
     return 'advanced';
   });
+
+  const [isSoundOn, setIsSoundOn] = useState<boolean>(() => soundEffects.isEnabled());
+
+  const handleToggleSound = () => {
+    const next = soundEffects.toggleSound();
+    setIsSoundOn(next);
+  };
 
   // Search State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -703,6 +713,23 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
+        {/* ── 4.5. [LIVE OKX STATUS BADGE - 1:1 LOVABLE MATCH] ── */}
+        <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-mono font-medium text-emerald-500 select-none">
+          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>LIVE - OKX</span>
+        </div>
+
+        {/* ── 4.6. [TERMINAL AUDIO / SOUND TOGGLE] ── */}
+        <button
+          type="button"
+          onClick={handleToggleSound}
+          style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
+          className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px] border text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-3)] transition-all cursor-pointer shadow-xs shrink-0"
+          title={isSoundOn ? "Terminal Audio: ON (Click to mute)" : "Terminal Audio: MUTED (Click to unmute)"}
+        >
+          {isSoundOn ? <Volume2 className="w-3.5 h-3.5 text-blue-500" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
+        </button>
+
         {/* ── 5. [DARK / LIGHT THEME TOGGLE] ── */}
         <div
           style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
@@ -710,39 +737,47 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <button
             type="button"
-            onClick={() => onSelectTheme ? onSelectTheme('dark') : onToggleTheme()}
+            onClick={() => {
+              soundEffects.playClick();
+              if (onSelectTheme) onSelectTheme('dark');
+              else onToggleTheme();
+            }}
             style={
               theme === 'dark' || (!theme && isDarkMode)
-                ? { background: 'var(--brand-grad)', color: '#ffffff' }
+                ? { background: '#2563eb', color: '#ffffff' }
                 : undefined
             }
-            className={`px-2 py-1 rounded-[6px] text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-[6px] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               theme === 'dark' || (!theme && isDarkMode)
-                ? 'shadow-xs'
+                ? 'shadow-xs font-medium'
                 : 'text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-3)]'
             }`}
             title="Dark Mode (Terminal Cyber)"
           >
             <Moon className="w-3 h-3" />
-            <span className="hidden 2xl:inline text-[11px]">Dark</span>
+            <span className="hidden sm:inline text-[11.5px]">Dark</span>
           </button>
           <button
             type="button"
-            onClick={() => onSelectTheme ? onSelectTheme('light') : onToggleTheme()}
+            onClick={() => {
+              soundEffects.playClick();
+              if (onSelectTheme) onSelectTheme('light');
+              else onToggleTheme();
+            }}
             style={
               theme === 'light'
-                ? { background: 'var(--brand-grad)', color: '#ffffff' }
+                ? { background: '#2563eb', color: '#ffffff' }
                 : undefined
             }
-            className={`px-2 py-1 rounded-[6px] text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-[6px] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               theme === 'light'
-                ? 'shadow-xs'
+                ? 'shadow-xs font-medium'
                 : 'text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-3)]'
             }`}
             title="Light Mode (Financial Pro)"
           >
             <Sun className="w-3 h-3" />
-            <span className="hidden 2xl:inline text-[11px]">Light</span>
+            <span className="hidden sm:inline text-[11.5px]">Light</span>
           </button>
         </div>
 
@@ -1006,12 +1041,15 @@ export const Header: React.FC<HeaderProps> = ({
           ) : (
             <button
               type="button"
-              onClick={() => openAuthModal('LOGIN')}
-              className="flex h-[34px] items-center gap-1.5 rounded-md border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-indigo-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 px-3 text-xs font-semibold text-cyan-300 hover:text-white transition-all cursor-pointer shadow-xs active:scale-95"
+              onClick={() => {
+                soundEffects.playClick();
+                openAuthModal('LOGIN');
+              }}
+              className="flex h-[32px] items-center gap-1.5 rounded-[7px] bg-[#2563eb] hover:bg-blue-700 px-3.5 text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-blue-600/25 active:scale-95"
               title="Sign in to your institutional account"
             >
-              <User className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span>Sign In</span>
+              <User className="w-3.5 h-3.5 text-white shrink-0" />
+              <span>Login</span>
             </button>
           )}
         </div>

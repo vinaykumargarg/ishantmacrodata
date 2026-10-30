@@ -352,7 +352,7 @@ function TerminalApp() {
       const stored = localStorage.getItem('theme');
       if (stored === 'light' || stored === 'gold' || stored === 'dark') return stored;
     }
-    return 'dark';
+    return 'light';
   });
   const isDarkMode = theme !== 'light';
   const [liveTickers, setLiveTickers] = useState<MarketTicker[]>(BASE_TICKERS);
