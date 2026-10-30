@@ -466,16 +466,16 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-2 shrink-0 bg-transparent border-none p-0 cursor-pointer group focus:outline-none text-left"
             title="IshantMacro | Institutional Macro Command Centre"
           >
-            {/* 32px rounded square brand-gradient with "IM" white bold */}
+            {/* 32px rounded square brand-gradient with ⚡ */}
             <div
-              style={{ background: 'var(--brand-grad)' }}
-              className="flex size-8 shrink-0 items-center justify-center rounded-[9px] text-white font-bold text-xs shadow-md shadow-indigo-500/25 select-none transition-transform duration-200 group-hover:scale-105 font-mono"
+              style={{ background: 'linear-gradient(135deg, #2563eb, #4f46e5 55%, #06b6d4)' }}
+              className="flex size-8 shrink-0 items-center justify-center rounded-[9px] text-white font-bold text-sm shadow-md shadow-blue-500/25 select-none transition-transform duration-200 group-hover:scale-105"
             >
-              IM
+              ⚡
             </div>
             <div className="flex flex-col justify-center min-w-0 leading-tight">
-              <span className="font-['Sora'] text-[13.5px] font-bold text-[var(--text)] tracking-tight">
-                IshantMacro
+              <span className="font-['IBM_Plex_Sans'] text-[13.5px] font-semibold text-[var(--text)] tracking-tight">
+                Ishant Jakhenia
               </span>
               <span className="font-['JetBrains_Mono'] text-[8px] font-medium tracking-wider text-[var(--text-3)] uppercase leading-none mt-0.5">
                 GLOBAL MACRO COMMAND CENTRE

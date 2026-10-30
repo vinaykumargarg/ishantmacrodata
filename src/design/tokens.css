@@ -88,8 +88,8 @@ body.dark,
   --space-12: 48px;
   --space-16: 64px;
 
-  /* ── 6. TYPOGRAPHY (Inter + Roboto + Open Sans + JetBrains Mono) ── */
-  --font-sans: 'Inter', 'Roboto', 'Open Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* ── 6. TYPOGRAPHY (IBM Plex Sans + JetBrains Mono - Matching ishantmircodata.lovable.app) ── */
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-devanagari: 'Noto Sans Devanagari', 'Inter', sans-serif;
 

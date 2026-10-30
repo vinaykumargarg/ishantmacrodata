@@ -520,20 +520,20 @@ function TerminalApp() {
             onClick={() => setIsMobileSidebarOpen(false)}
           />
           <div className="relative flex flex-col w-[310px] max-w-[88vw] h-full bg-[#f6f1f1] border-r border-[#e6dede] shadow-2xl z-10 overflow-hidden animate-fadeIn">
-            <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-[#e6dede] bg-[#f6f1f1]">
+            <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-[var(--border)] bg-[var(--surface-1)]">
               <div className="flex items-center gap-2.5">
                 <div
-                  className="flex items-center justify-center shrink-0 w-[30px] h-[30px] rounded-[8px] text-white font-bold text-xs shadow-sm"
-                  style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}
+                  className="flex items-center justify-center shrink-0 w-[32px] h-[32px] rounded-[8px] text-white font-bold text-sm shadow-md shadow-blue-500/25"
+                  style={{ background: 'linear-gradient(135deg, #2563eb, #4f46e5 55%, #06b6d4)' }}
                 >
-                  IM
+                  ⚡
                 </div>
                 <div className="flex flex-col leading-tight">
-                  <span className="font-['Inter'] text-[13px] font-bold text-[#1f2937]">
-                    IshantMacro
+                  <span className="font-['IBM_Plex_Sans'] text-[13.5px] font-semibold text-[var(--text)]">
+                    Ishant Jakhenia
                   </span>
-                  <span className="font-['JetBrains_Mono'] text-[8.5px] font-medium tracking-[1px] text-[#6b7390] uppercase">
-                    AI MACRO PANEL
+                  <span className="font-['JetBrains_Mono'] text-[8px] font-medium tracking-[1px] text-[var(--text-3)] uppercase">
+                    GLOBAL MACRO COMMAND CENTRE
                   </span>
                 </div>
               </div>

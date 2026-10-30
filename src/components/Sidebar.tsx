@@ -23,21 +23,34 @@ export interface SidebarSectionItem {
 export interface SidebarSection {
   title: string;
   color: string;
+  icon?: string;
   items: SidebarSectionItem[];
 }
 
 // ── COLOR-CODED MASTER SECTIONS CATALOG (BLOOMBERG / TRADINGVIEW / LINEAR) ──
 export const SECTIONS: SidebarSection[] = [
   {
+    title: 'DASHBOARD',
+    color: '#3b82f6', // Royal Blue
+    icon: '📊',
+    items: [
+      { emoji: '🎯', name: 'Global Market Score', route: 'global-score' },
+      { emoji: '🏛️', name: 'Institutional AI Terminal', route: 'institutional-terminal' },
+      { emoji: '🎯', name: 'AI Sniper Chart', route: 'ai-chart' },
+      { emoji: '⚡', name: 'AI Decision & Live Chart', route: 'institutional-multi-asset' },
+      { emoji: '📊', name: 'Live Market Overview', route: 'overview' },
+      { emoji: '📰', name: 'Daily Market Report', route: 'daily-report' },
+      { emoji: '👥', name: 'Crowd Long/Short Sentiment', route: 'crowd' },
+    ],
+  },
+  {
     title: 'AI & CONFLUENCE',
     color: '#818cf8', // Indigo
+    icon: '⚡',
     items: [
-      { emoji: '⚡', name: 'AI Decision & Live Chart', route: 'institutional-multi-asset' },
       { emoji: '🤖', name: 'DEEEPR.AI Copilot', route: 'deeepr-ai' },
       { emoji: '🎯', name: 'DEEEPR Precision Entry', route: 'deeepr-precision-entry' },
-      { emoji: '🏛️', name: 'Institutional AI Terminal', route: 'institutional-terminal' },
       { emoji: '📈', name: 'Market Chart AI Analyzer', route: 'market-chart-analyse' },
-      { emoji: '🎯', name: 'AI Sniper Chart', route: 'ai-chart' },
       { emoji: '✨', name: 'DEEEPR A-to-Z Pipeline', route: 'deeepr-atoz' },
       { emoji: '🧭', name: 'MTF Trend Analysis', route: 'trend-analysis' },
       { emoji: '📊', name: 'TradeAI Terminal', route: 'ultra-ai' },
@@ -50,6 +63,7 @@ export const SECTIONS: SidebarSection[] = [
   {
     title: 'LIQUIDATION & ORDER FLOW',
     color: '#fb7185', // Rose
+    icon: '🌊',
     items: [
       { emoji: '🌊', name: 'Bookmap Liquidation Live', route: 'bookmap-liquidation' },
       { emoji: '💧', name: 'Liquidity Sweep & Liquidation', route: 'liquidity-sweep-map' },
@@ -59,12 +73,12 @@ export const SECTIONS: SidebarSection[] = [
       { emoji: '🗺️', name: 'Liquidation (CoinGlass)', route: 'liquidation-map' },
       { emoji: '🐋', name: 'Whale Engine & Smart Money', route: 'whales' },
       { emoji: '🏊', name: 'Banking & Global Liquidity', route: 'liquidity' },
-      { emoji: '👥', name: 'Crowd Long/Short Sentiment', route: 'crowd' },
     ],
   },
   {
     title: 'GOLD, METALS & COMMODITIES',
     color: '#f5c451', // Gold
+    icon: '🥇',
     items: [
       { emoji: '🥇', name: 'Gold Macro Overview', route: 'gold' },
       { emoji: '🪙', name: 'DEEEPR Gold Entry & Reason', route: 'deeepr-gold-entry-engine' },
@@ -81,6 +95,7 @@ export const SECTIONS: SidebarSection[] = [
   {
     title: 'ANALYSIS, VOLUME & MOMENTUM',
     color: '#34d399', // Emerald
+    icon: '📈',
     items: [
       { emoji: '🔮', name: 'BTC-USDT Momentum Prediction', route: 'btc-usdt-momentum' },
       { emoji: '📊', name: 'DEEEPR Volume Profile Scanner', route: 'deeepr-volume-profile-scanner' },
@@ -94,11 +109,11 @@ export const SECTIONS: SidebarSection[] = [
   {
     title: 'STOCKS & EQUITY RESEARCH',
     color: '#60a5fa', // Sky Blue
+    icon: '💼',
     items: [
       { emoji: '🇮🇳', name: 'Indian Stocks AI (Top 500)', route: 'indian-stock-ai' },
       { emoji: '🇺🇸', name: 'USA Top 1000 AI (INDmoney)', route: 'usa-stock-ai' },
       { emoji: '📈', name: 'AI Stocks (US + NIFTY 100)', route: 'stock-ai' },
-      { emoji: '📊', name: 'Global Stock Score Engine', route: 'global-score' },
       { emoji: '⚡', name: 'USA Stocks 4H Swing Scanner', route: 'usa-swing-scanner' },
       { emoji: '🛡️', name: 'Earnings Risk Guard (<14D)', route: 'usa-earnings-guard' },
       { emoji: '💼', name: 'US 1-6M Portfolio Builder', route: 'usa-portfolio-builder' },
@@ -108,6 +123,7 @@ export const SECTIONS: SidebarSection[] = [
   {
     title: 'CRYPTO & DELTA INDIA',
     color: '#a78bfa', // Violet
+    icon: '₿',
     items: [
       { emoji: '🇮🇳', name: 'Delta India Multi-Coin Engine', route: 'delta-intelligence' },
       { emoji: '⚡', name: 'Delta 4H All-Coin Scanner', route: 'delta-swing-scanner' },
@@ -132,9 +148,9 @@ export const SECTIONS: SidebarSection[] = [
   {
     title: 'GLOBAL MACRO & ECONOMY',
     color: '#38bdf8', // Cyan
+    icon: '🌐',
     items: [
       { emoji: '🌐', name: 'Global Macro Overview', route: 'landing' },
-      { emoji: '📊', name: 'Live Market Overview', route: 'overview' },
       { emoji: '⚡', name: 'Live Event Impact Engine', route: 'event-impact-engine' },
       { emoji: '🎯', name: '3-Scenario Matrix (CPI/FOMC)', route: 'macro-scenarios-matrix' },
       { emoji: '🌍', name: 'Global Intelligence', route: 'global-intel' },
@@ -156,17 +172,18 @@ export const SECTIONS: SidebarSection[] = [
   {
     title: 'NEWS, VOICE & ALERTS',
     color: '#c084fc', // Purple
+    icon: '📰',
     items: [
       { emoji: '📰', name: 'Financial News', route: 'news' },
       { emoji: '🎙️', name: 'Jarvis AI Market Voice', route: 'jarvis-voice-ai' },
       { emoji: '🤖', name: 'Jarvis Voice Assistant', route: 'assistant' },
       { emoji: '📲', name: 'Telegram AI Alerts', route: 'telegram-alerts' },
-      { emoji: '📰', name: 'Daily Market Report', route: 'daily-report' },
     ],
   },
   {
     title: 'ACCOUNT & JOURNAL',
     color: '#f472b6', // Pink
+    icon: '👤',
     items: [
       { emoji: '📜', name: 'Trading Journal', route: 'journal' },
       { emoji: '📑', name: 'Journal Reports', route: 'reports' },
@@ -251,23 +268,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
           : 'hidden shrink-0 sticky top-[46px] h-[calc(100vh-46px)] lg:block'
       } overflow-y-scroll pb-12 z-20 transition-[width] duration-75`}
     >
-      <div className="py-2 px-1.5 space-y-2">
+      {/* Brand Header block matching ishantmircodata.lovable.app */}
+      <div className="px-3 py-3 mb-1.5 flex items-center gap-2.5 border-b border-[var(--border)] bg-[var(--surface-1)]/40 shrink-0">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 via-indigo-600 to-sky-500 text-sm font-bold text-white shadow-md shadow-blue-500/25">
+          ⚡
+        </div>
+        <div className="flex flex-col min-w-0 leading-tight">
+          <span className="font-['IBM_Plex_Sans'] text-[13.5px] font-semibold text-[var(--text)] tracking-tight truncate">
+            Ishant Jakhenia
+          </span>
+          <span className="font-['JetBrains_Mono'] text-[8px] font-medium tracking-wider text-[var(--text-3)] uppercase truncate">
+            GLOBAL MACRO COMMAND CENTRE
+          </span>
+        </div>
+      </div>
+
+      <div className="py-2 px-1.5 space-y-3">
         {SECTIONS.map((section) => (
-          <div key={section.title} className="space-y-0.5">
-            {/* Section Heading: 10px uppercase, letter-spacing 1.5px, section's color + 5px dot */}
+          <div key={section.title} className="space-y-1">
+            {/* Section Heading: clean mono uppercase with small icon badge matching lovable.app */}
             <div
-              className="iitian-section-heading px-1.5 pt-2 pb-0.5 flex items-center gap-1.5"
+              className="iitian-section-heading px-2 pt-1.5 pb-0.5 flex items-center gap-2"
               style={{ color: section.color }}
             >
               <span
-                className="section-dot"
-                style={{ backgroundColor: section.color, color: section.color }}
-              />
-              <span className="tracking-[1.5px] truncate">{section.title}</span>
+                className="flex size-5 shrink-0 items-center justify-center rounded-[5px] text-[11px]"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${section.color} 15%, transparent)`,
+                  color: section.color,
+                }}
+              >
+                {section.icon || '⚡'}
+              </span>
+              <span className="font-['JetBrains_Mono'] text-[10px] font-semibold tracking-[1.3px] truncate">
+                {section.title}
+              </span>
             </div>
 
             {/* Section Items */}
-            <div className="space-y-[1px]">
+            <div className="space-y-[1.5px]">
               {section.items.map((item) => {
                 const isActive = activeTab === item.route;
                 const isLocked = isTabPremium(item.route) && !isUnlocked;
@@ -278,29 +317,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={item.route + item.name}
                     onClick={() => onSelectTab(item.route)}
                     title={item.name}
-                    style={
+                    className={`iitian-item-btn w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] text-left text-[12.8px] leading-tight transition-all cursor-pointer ${
                       isActive
-                        ? {
-                            background: `linear-gradient(90deg, color-mix(in srgb, ${section.color} 22%, transparent), transparent)`,
-                            borderLeftColor: section.color,
-                            color: 'var(--text)',
-                          }
-                        : undefined
-                    }
-                    className={`iitian-item-btn w-full flex items-center gap-2 px-2 py-1.5 rounded-[7px] text-left text-[12.5px] leading-tight transition-all cursor-pointer border-l-[3px] ${
-                      isActive
-                        ? 'active font-semibold'
-                        : 'border-transparent text-[var(--text-2)] hover:bg-[var(--surface-3)] hover:text-[var(--text)]'
+                        ? 'active font-semibold bg-[#2563eb] text-white shadow-md shadow-blue-600/30'
+                        : 'text-[var(--text-2)] hover:bg-[var(--surface-3)] hover:text-[var(--text)]'
                     }`}
                   >
-                    <span className="iitian-item-emoji text-[13.5px] shrink-0 w-3.5 text-center leading-none">
+                    <span className={`iitian-item-emoji text-[13px] shrink-0 w-4 text-center leading-none ${isActive ? 'text-white' : ''}`}>
                       {item.emoji}
                     </span>
-                    <span className="iitian-item-label flex-1 leading-snug truncate">
+                    <span className={`iitian-item-label flex-1 leading-snug truncate ${isActive ? 'text-white font-medium' : ''}`}>
                       {item.name}
                     </span>
                     {isLocked && (
-                      <Lock className="w-2.5 h-2.5 text-amber-400 shrink-0 opacity-75 ml-0.5" />
+                      <Lock className={`w-3 h-3 shrink-0 ml-0.5 ${isActive ? 'text-white/80' : 'text-amber-400 opacity-75'}`} />
                     )}
                   </button>
                 );
