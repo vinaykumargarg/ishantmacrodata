@@ -706,55 +706,79 @@ aside.sidebar {
 
 .iitian-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--surface-3) transparent;
+  scrollbar-color: #64748b #e2e8f0;
+}
+
+[data-theme='dark'] .iitian-scroll,
+.dark .iitian-scroll {
+  scrollbar-color: #64748b #111a33;
 }
 
 .iitian-scroll::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 
 .iitian-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: #f1f5f9;
+  border-left: 1px solid #e2e8f0;
 }
 
 .iitian-scroll::-webkit-scrollbar-thumb {
-  background-color: var(--surface-3);
+  background-color: #94a3b8;
   border-radius: 9999px;
+  border: 1px solid #e2e8f0;
 }
 
 .iitian-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: var(--border-strong);
+  background-color: #475569;
+}
+
+[data-theme='dark'] .iitian-scroll::-webkit-scrollbar-track,
+.dark .iitian-scroll::-webkit-scrollbar-track {
+  background: #0a1124;
+  border-left: 1px solid #1e293b;
+}
+
+[data-theme='dark'] .iitian-scroll::-webkit-scrollbar-thumb,
+.dark .iitian-scroll::-webkit-scrollbar-thumb {
+  background-color: #475569;
+  border: 1px solid #1e293b;
+}
+
+[data-theme='dark'] .iitian-scroll::-webkit-scrollbar-thumb:hover,
+.dark .iitian-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #38bdf8;
 }
 
 .iitian-section-heading {
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   user-select: none;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .section-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 9999px;
   flex-shrink: 0;
-  box-shadow: 0 0 6px currentColor;
+  box-shadow: 0 0 5px currentColor;
 }
 
 .iitian-item-btn {
   font-family: var(--font-body);
   user-select: none;
-  font-size: 13.5px;
+  font-size: 12.5px;
   color: var(--text-2);
-  padding: 7px 11px;
-  border-radius: 9px;
-  line-height: 1.35;
-  transition: all 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 5px 8px;
+  border-radius: 7px;
+  line-height: 1.25;
+  transition: all 140ms cubic-bezier(0.4, 0, 0.2, 1);
   border-left: 3px solid transparent;
 }
 
@@ -767,14 +791,14 @@ aside.sidebar {
 .iitian-item-btn.active {
   color: var(--text);
   font-weight: 600;
-  box-shadow: inset 1px 0 10px rgba(99, 102, 241, 0.12);
+  box-shadow: inset 1px 0 8px rgba(99, 102, 241, 0.12);
 }
 
 .iitian-item-emoji {
-  font-size: 15px;
+  font-size: 13.5px;
   line-height: 1;
   flex-shrink: 0;
-  width: 18px;
+  width: 16px;
   text-align: center;
   display: inline-flex;
   align-items: center;
@@ -783,9 +807,12 @@ aside.sidebar {
 
 .iitian-item-label {
   flex: 1;
-  font-size: 13.5px;
+  font-size: 12.5px;
   color: inherit;
   font-family: var(--font-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── LINEAR / TRADINGVIEW CARDS & PANELS ── */

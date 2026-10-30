@@ -205,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   isDarkMode = true,
   isMobile = false,
-  width = 240,
+  width = 205,
 }) => {
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -249,25 +249,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         isMobile
           ? 'block w-full h-full border-none'
           : 'hidden shrink-0 sticky top-[46px] h-[calc(100vh-46px)] lg:block'
-      } overflow-y-auto pb-12 z-20 transition-[width] duration-75`}
+      } overflow-y-scroll pb-12 z-20 transition-[width] duration-75`}
     >
-      <div className="py-2.5 px-2 space-y-3">
+      <div className="py-2 px-1.5 space-y-2">
         {SECTIONS.map((section) => (
-          <div key={section.title} className="space-y-1">
-            {/* Section Heading: 11px uppercase, letter-spacing 2px, section's color + 6px dot */}
+          <div key={section.title} className="space-y-0.5">
+            {/* Section Heading: 10px uppercase, letter-spacing 1.5px, section's color + 5px dot */}
             <div
-              className="iitian-section-heading px-2 pt-2.5 pb-1 flex items-center gap-1.5"
+              className="iitian-section-heading px-1.5 pt-2 pb-0.5 flex items-center gap-1.5"
               style={{ color: section.color }}
             >
               <span
                 className="section-dot"
                 style={{ backgroundColor: section.color, color: section.color }}
               />
-              <span className="tracking-[2px]">{section.title}</span>
+              <span className="tracking-[1.5px] truncate">{section.title}</span>
             </div>
 
             {/* Section Items */}
-            <div className="space-y-[2px]">
+            <div className="space-y-[1px]">
               {section.items.map((item) => {
                 const isActive = activeTab === item.route;
                 const isLocked = isTabPremium(item.route) && !isUnlocked;
@@ -287,20 +287,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           }
                         : undefined
                     }
-                    className={`iitian-item-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[14px] leading-tight transition-all cursor-pointer border-l-[3px] ${
+                    className={`iitian-item-btn w-full flex items-center gap-2 px-2 py-1.5 rounded-[7px] text-left text-[12.5px] leading-tight transition-all cursor-pointer border-l-[3px] ${
                       isActive
                         ? 'active font-semibold'
                         : 'border-transparent text-[var(--text-2)] hover:bg-[var(--surface-3)] hover:text-[var(--text)]'
                     }`}
                   >
-                    <span className="iitian-item-emoji text-[15px] shrink-0 w-4 text-center leading-none">
+                    <span className="iitian-item-emoji text-[13.5px] shrink-0 w-3.5 text-center leading-none">
                       {item.emoji}
                     </span>
-                    <span className="iitian-item-label flex-1 leading-snug">
+                    <span className="iitian-item-label flex-1 leading-snug truncate">
                       {item.name}
                     </span>
                     {isLocked && (
-                      <Lock className="w-3 h-3 text-amber-400 shrink-0 opacity-75 ml-1" />
+                      <Lock className="w-2.5 h-2.5 text-amber-400 shrink-0 opacity-75 ml-0.5" />
                     )}
                   </button>
                 );

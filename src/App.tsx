@@ -358,18 +358,20 @@ function TerminalApp() {
   const [liveTickers, setLiveTickers] = useState<MarketTicker[]>(BASE_TICKERS);
   const [isLiveWs, setIsLiveWs] = useState<boolean>(false);
 
-  // ── Resizable Sidebar Width (Default: 230px, Min: 160px, Max: 420px) ──
+  // ── Resizable Sidebar Width (Default: 205px, Min: 150px, Max: 380px) ──
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('ishant_sidebar_width');
         if (saved) {
           const parsed = parseInt(saved, 10);
-          if (!isNaN(parsed) && parsed >= 160 && parsed <= 420) return parsed;
+          // If previous default was 230 or 240, normalize to new compact 205px
+          if (parsed === 230 || parsed === 240) return 205;
+          if (!isNaN(parsed) && parsed >= 150 && parsed <= 380) return parsed;
         }
       } catch {}
     }
-    return 230;
+    return 205;
   });
   const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
 
@@ -377,7 +379,7 @@ function TerminalApp() {
     if (!isResizingSidebar) return;
 
     const handlePointerMove = (e: PointerEvent) => {
-      const newWidth = Math.max(160, Math.min(420, e.clientX));
+      const newWidth = Math.max(150, Math.min(380, e.clientX));
       setSidebarWidth(newWidth);
     };
 
@@ -578,9 +580,9 @@ function TerminalApp() {
             setIsResizingSidebar(true);
           }}
           onDoubleClick={() => {
-            setSidebarWidth(230);
+            setSidebarWidth(205);
             try {
-              localStorage.setItem('ishant_sidebar_width', '230');
+              localStorage.setItem('ishant_sidebar_width', '205');
             } catch {}
           }}
           className={`hidden lg:flex items-center justify-center relative cursor-col-resize select-none shrink-0 z-30 transition-colors ${
@@ -589,7 +591,7 @@ function TerminalApp() {
               : 'w-2 hover:bg-blue-500/15'
           }`}
           style={{ touchAction: 'none' }}
-          title="Drag left/right to resize sidebar (Double click to reset to 230px)"
+          title="Drag left/right to resize sidebar (Double click to reset to 205px)"
         >
           {/* Visible thin line */}
           <div
