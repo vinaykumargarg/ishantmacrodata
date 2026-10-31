@@ -1,15 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Crown, Shield, Award, Activity, AlertTriangle, TrendingUp, TrendingDown,
-  Layers, Clock, Compass, Zap, CheckCircle2, ChevronRight,
-  Info, Eye, Play, BookOpen, Volume2, VolumeX, RefreshCw,
-  Crosshair, Maximize2, Minimize2, Sliders, ArrowUpRight, ArrowDownRight,
-  FileText, Check, HelpCircle, Move, ZoomIn, ZoomOut, RotateCcw,
-  Sparkles, Filter, Lock, Target, Calendar, Globe, BarChart2
+  Crown, Move, ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2
 } from 'lucide-react';
 import {
   TimeframeOption,
-  MarketRegime,
   GoldCandle,
   SMCSwing,
   BOSLine,
@@ -27,18 +21,15 @@ import {
 import { soundEffects } from '../services/soundEffectsService';
 
 export default function GoldSmcAutoTradeLabView() {
-  // Navigation & Market Regime state
   const [activeAsset, setActiveAsset] = useState<'GOLD' | 'BTC' | 'ETH' | 'SOL'>('GOLD');
   const [timeframe, setTimeframe] = useState<TimeframeOption>('15m');
-  const [marketRegime, setMarketRegime] = useState<MarketRegime>('BULLISH');
   const [isThemeDark, setIsThemeDark] = useState<boolean>(true);
 
-  // Live Telemetry
+  // Live Telemetry matching screenshot
   const [livePrice, setLivePrice] = useState<number>(4012.45);
-  const [isLiveActive, setIsLiveActive] = useState<boolean>(true);
   const [currentTimeStr, setCurrentTimeStr] = useState<string>('29 Oct 2026, 21:45:32 IST');
 
-  // Interactive Chart Pan & Zoom state
+  // Interactive Chart Drag & Move / Zoom
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -49,10 +40,7 @@ export default function GoldSmcAutoTradeLabView() {
   const initialPanRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // Voice narration state
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-
-  // Live Clock updater
+  // Update live clock
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
@@ -63,20 +51,20 @@ export default function GoldSmcAutoTradeLabView() {
     return () => clearInterval(timer);
   }, []);
 
-  // Compute Candles & SMC structures
+  // Compute Candles & SMC Structures
   const candles = useMemo(() => {
-    return generateInstitutionalGoldCandles(marketRegime, livePrice);
-  }, [marketRegime, livePrice]);
+    return generateInstitutionalGoldCandles('BULLISH', livePrice);
+  }, [livePrice]);
 
   const smcStructures = useMemo(() => {
-    return getInstitutionalSMCStructures(marketRegime, candles);
-  }, [marketRegime, candles]);
+    return getInstitutionalSMCStructures('BULLISH', candles);
+  }, [candles]);
 
   const tradePlan: ExactTradePlan = useMemo(() => {
-    return getExactInstitutionalTradePlan(marketRegime, candles);
-  }, [marketRegime, candles]);
+    return getExactInstitutionalTradePlan('BULLISH', candles);
+  }, [candles]);
 
-  const topAssets = useMemo(() => {
+  const topAssets: AssetTelemetry[] = useMemo(() => {
     return getTopAssetTelemetry(livePrice);
   }, [livePrice]);
 
@@ -84,15 +72,15 @@ export default function GoldSmcAutoTradeLabView() {
     return getBottomDashboardData();
   }, []);
 
-  // Chart Layout Dimensions
-  const chartWidth = 960;
+  // Exact Layout Dimensions for Chart
+  const chartWidth = 980;
   const chartHeight = 440;
-  const padding = { top: 35, bottom: 45, left: 15, right: 85 };
+  const padding = { top: 32, bottom: 42, left: 15, right: 80 };
 
-  // Price Bounds matching screenshot (3,995.00 to 4,035.00)
+  // Fixed Price Bounds matching screenshot (3,995.00 to 4,035.00)
   const minP = 3995.0;
   const maxP = 4035.0;
-  const pRange = maxP - minP || 1;
+  const pRange = maxP - minP;
   const usableW = chartWidth - padding.left - padding.right;
   const usableH = chartHeight - padding.top - padding.bottom;
 
@@ -111,7 +99,7 @@ export default function GoldSmcAutoTradeLabView() {
     return `${vx} ${vy} ${w} ${h}`;
   }, [chartWidth, chartHeight, zoomLevel, panOffset]);
 
-  // Mouse & Touch Dragging Handlers
+  // Mouse & Touch Drag Handlers
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
     setIsDragging(true);
@@ -167,38 +155,20 @@ export default function GoldSmcAutoTradeLabView() {
     setPanOffset({ x: 0, y: 0 });
   };
 
-  // Audio Assistant
-  const handleToggleVoice = () => {
-    if (isSpeaking) {
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      return;
-    }
-
-    if (!('speechSynthesis' in window)) return;
-    const text = `Gold Institutional Command Centre briefing. XAUUSD is trading at ${livePrice}. Active setup is ${tradePlan.status}. Entry planned at ${tradePlan.entryPrice}, Stop Loss at ${tradePlan.stopLoss}, Target 1 at ${tradePlan.tp1}, Target 2 at ${tradePlan.tp2}, Target 3 at ${tradePlan.tp3}. Reward to risk ratio is ${tradePlan.rrrTp3}. Setup Grade is ${tradePlan.setupGrade} with ${tradePlan.confidence} percent confidence.`;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
-    setIsSpeaking(true);
-  };
-
   return (
-    <div className={`space-y-3 font-sans text-slate-100 ${isMaximized ? 'fixed inset-0 z-50 bg-[#060a12] p-4 overflow-y-auto' : ''}`}>
-      {/* ── 1. TOP HEADER & BRAND BAR (1:1 with Screenshot) ── */}
-      <div className="rounded-xl border border-slate-800 bg-[#070b14] px-4 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xl font-mono">
+    <div className={`space-y-3 font-sans text-slate-100 ${isMaximized ? 'fixed inset-0 z-50 bg-[#040812] p-4 overflow-y-auto' : ''}`}>
+      {/* ── 1. TOP HEADER & BRAND BAR (Exact Match with Screenshot) ── */}
+      <div className="rounded-xl border border-[#162032] bg-[#070b14] px-4 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xl font-mono">
         {/* Brand & Subtitle */}
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 text-slate-950 font-black shadow-[0_0_15px_rgba(245,158,11,0.4)] shrink-0">
             <Crown className="h-6 w-6 text-slate-950 fill-current" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-black tracking-tight text-white font-sans flex items-center gap-2">
-              <span>Ishant Jakhenia Marco Panel Global Marco Command Centre</span>
+            <h1 className="text-base sm:text-lg font-black tracking-tight text-white font-sans">
+              Ishant Jakhenia Marco Panel Global Marco Command Centre
             </h1>
-            <p className="text-[11px] text-slate-400 font-medium">
+            <p className="text-[11px] text-[#94a3b8] font-medium mt-0.5">
               AI Powered Trading • SMC | Liquidity | Smart Money | Macro Analysis
             </p>
           </div>
@@ -206,29 +176,29 @@ export default function GoldSmcAutoTradeLabView() {
 
         {/* Live Data Badge, Clock & Theme Toggle */}
         <div className="flex items-center gap-3 self-end md:self-auto text-xs">
-          <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+          <div className="flex items-center gap-1.5 text-[#22c55e] font-bold">
+            <span className="h-2 w-2 rounded-full bg-[#22c55e] animate-ping" />
             <span className="text-[11px] tracking-wider uppercase font-black">LIVE DATA</span>
           </div>
 
-          <span className="text-[11px] text-slate-400">
+          <span className="text-[11px] text-[#94a3b8]">
             Last Update: <strong className="text-slate-300 font-normal">{currentTimeStr}</strong>
           </span>
 
           {/* Dark / Light Toggle Pills */}
-          <div className="flex items-center rounded-lg border border-slate-700 bg-slate-900 p-0.5 text-[11px]">
+          <div className="flex items-center rounded-lg border border-[#1e293b] bg-[#0b1322] p-0.5 text-[11px]">
             <button
               onClick={() => setIsThemeDark(true)}
-              className={`px-2 py-0.5 rounded font-bold cursor-pointer ${
-                isThemeDark ? 'bg-blue-600 text-white' : 'text-slate-400'
+              className={`px-2.5 py-0.5 rounded font-bold cursor-pointer ${
+                isThemeDark ? 'bg-[#2563eb] text-white shadow-sm' : 'text-[#94a3b8]'
               }`}
             >
               Dark
             </button>
             <button
               onClick={() => setIsThemeDark(false)}
-              className={`px-2 py-0.5 rounded font-bold cursor-pointer ${
-                !isThemeDark ? 'bg-blue-600 text-white' : 'text-slate-400'
+              className={`px-2.5 py-0.5 rounded font-bold cursor-pointer ${
+                !isThemeDark ? 'bg-[#2563eb] text-white shadow-sm' : 'text-[#94a3b8]'
               }`}
             >
               Light
@@ -237,16 +207,16 @@ export default function GoldSmcAutoTradeLabView() {
         </div>
       </div>
 
-      {/* ── 2. TOP NAVIGATION TABS & MACRO REGIME CONTROLLER ── */}
-      <div className="rounded-xl border border-slate-800 bg-[#070b14] px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+      {/* ── 2. SUB-NAVIGATION BAR (Exact Match with Screenshot) ── */}
+      <div className="rounded-xl border border-[#162032] bg-[#070b14] px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Asset Switcher Pills */}
+          {/* Active Gold AI Tab Pill */}
           <button
             onClick={() => setActiveAsset('GOLD')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition-all cursor-pointer ${
               activeAsset === 'GOLD'
-                ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-400 hover:text-white bg-slate-900 border border-slate-800'
+                ? 'bg-gradient-to-r from-[#d97706] to-[#b45309] text-white border border-[#f59e0b]/50 shadow-md shadow-amber-500/20'
+                : 'text-[#94a3b8] hover:text-white bg-[#0b1322] border border-[#162032]'
             }`}
           >
             <span>🪙 Gold AI</span>
@@ -254,135 +224,88 @@ export default function GoldSmcAutoTradeLabView() {
 
           <button
             onClick={() => setActiveAsset('BTC')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white bg-[#0b1322] border border-[#162032] cursor-pointer"
           >
-            <span>₿ BTC AI</span>
+            <span className="text-[#f97316]">₿</span>
+            <span>BTC AI</span>
           </button>
 
           <button
             onClick={() => setActiveAsset('ETH')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white bg-[#0b1322] border border-[#162032] cursor-pointer"
           >
-            <span>⟠ ETH AI</span>
+            <span className="text-[#818cf8]">⟠</span>
+            <span>ETH AI</span>
           </button>
 
           <button
             onClick={() => setActiveAsset('SOL')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white bg-[#0b1322] border border-[#162032] cursor-pointer"
           >
-            <span>◎ SOL AI</span>
+            <span className="text-[#2dd4bf]">◎</span>
+            <span>SOL AI</span>
           </button>
 
-          <span className="text-slate-700 mx-1">|</span>
+          <span className="text-[#334155] mx-1">|</span>
 
-          {/* Quick Sub-Links matching screenshot */}
-          <span className="text-slate-400 hover:text-slate-200 cursor-pointer">Market Overview</span>
-          <span className="text-slate-700">|</span>
-          <span className="text-slate-400 hover:text-slate-200 cursor-pointer">Economic Calendar</span>
-          <span className="text-slate-700">|</span>
-          <span className="text-slate-400 hover:text-slate-200 cursor-pointer">COT Report</span>
-          <span className="text-slate-700">|</span>
-          <span className="text-slate-400 hover:text-slate-200 cursor-pointer">DXY Analysis</span>
-          <span className="text-slate-700">|</span>
-          <span className="text-slate-400 hover:text-slate-200 cursor-pointer">News & Alerts</span>
-        </div>
-
-        {/* Interactive HTF Trend Fixer / Selector (Addresses User Complaint) */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-slate-400 font-bold uppercase">Trend Mode:</span>
-          <div className="flex items-center rounded-lg border border-slate-700 bg-slate-900 p-0.5 text-[11px]">
-            <button
-              onClick={() => {
-                soundEffects.playBlip();
-                setMarketRegime('BULLISH');
-              }}
-              className={`px-2 py-0.5 rounded font-black transition-all cursor-pointer ${
-                marketRegime === 'BULLISH'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="Demand Zone Retest Long Trade (1:4 RRR)"
-            >
-              🟢 Bullish Long
-            </button>
-            <button
-              onClick={() => {
-                soundEffects.playBlip();
-                setMarketRegime('BEARISH');
-              }}
-              className={`px-2 py-0.5 rounded font-black transition-all cursor-pointer ${
-                marketRegime === 'BEARISH'
-                  ? 'bg-rose-500 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="Market Falling Short Trade (500-700 Pips Target)"
-            >
-              🔴 Bearish Short (Falling)
-            </button>
-          </div>
-
-          <button
-            onClick={handleToggleVoice}
-            className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-              isSpeaking
-                ? 'border-rose-500 bg-rose-500/20 text-rose-300'
-                : 'border-slate-700 bg-slate-900 text-slate-400 hover:text-white'
-            }`}
-            title="AI Voice Briefing"
-          >
-            {isSpeaking ? <VolumeX className="h-3.5 w-3.5 text-rose-400" /> : <Volume2 className="h-3.5 w-3.5 text-amber-400" />}
-          </button>
+          {/* Sub-Links matching screenshot exactly */}
+          <span className="text-[#94a3b8] hover:text-slate-200 cursor-pointer">Market Overview</span>
+          <span className="text-[#334155]">|</span>
+          <span className="text-[#94a3b8] hover:text-slate-200 cursor-pointer">Economic Calendar</span>
+          <span className="text-[#334155]">|</span>
+          <span className="text-[#94a3b8] hover:text-slate-200 cursor-pointer">COT Report</span>
+          <span className="text-[#334155]">|</span>
+          <span className="text-[#94a3b8] hover:text-slate-200 cursor-pointer">DXY Analysis</span>
+          <span className="text-[#334155]">|</span>
+          <span className="text-[#94a3b8] hover:text-slate-200 cursor-pointer">News & Alerts</span>
+          <span className="text-[#334155]">|</span>
         </div>
       </div>
 
-      {/* ── 3. TOP 4 ASSET TELEMETRY CARDS (1:1 with Screenshot) ── */}
+      {/* ── 3. TOP 4 ASSET TELEMETRY CARDS (Exact Match with Screenshot) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono">
         {topAssets.map((asset) => (
           <div
             key={asset.symbol}
-            className={`rounded-xl border p-3 flex items-center justify-between shadow-lg transition-all ${
+            className={`rounded-xl border p-3 flex items-center justify-between shadow-lg ${
               asset.symbol.includes('GOLD')
-                ? 'border-amber-500/40 bg-gradient-to-br from-[#0c1424] to-[#070b14]'
-                : 'border-slate-800 bg-[#070b14]'
+                ? 'border-[#223554] bg-gradient-to-br from-[#0c1628] to-[#070b14]'
+                : 'border-[#162032] bg-[#070b14]'
             }`}
           >
             {/* Left: Icon, Symbol, Big Price, Change */}
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-lg shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0b1322] border border-[#1e293b] text-xl shrink-0">
                 {asset.symbol.includes('GOLD') ? '🪙' : asset.symbol.includes('BTC') ? '₿' : asset.symbol.includes('ETH') ? '⟠' : '◎'}
               </div>
               <div>
-                <span className="text-[11px] font-bold text-slate-400 block tracking-tight">
+                <span className="text-[11px] font-bold text-white block tracking-tight">
                   {asset.symbol}
                 </span>
-                <span className="text-lg font-black text-white font-sans block leading-tight">
+                <span className={`text-lg font-black font-sans block leading-tight ${
+                  asset.symbol.includes('GOLD') ? 'text-[#22c55e]' : 'text-white'
+                }`}>
                   {asset.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                <span className="text-[10px] text-emerald-400 font-bold block">
+                <span className="text-[10px] text-[#22c55e] font-bold block">
                   ▲ +{asset.changePts.toFixed(2)} (+{asset.changePct.toFixed(2)}%)
                 </span>
               </div>
             </div>
 
             {/* Right: Daily, 4H, 1H Biases */}
-            <div className="text-[10px] space-y-0.5 border-l border-slate-800/80 pl-2.5 leading-tight">
+            <div className="text-[10px] space-y-0.5 border-l border-[#1e293b] pl-2.5 leading-tight">
               <div>
-                <span className="text-slate-500">Daily Bias: </span>
-                <strong className={marketRegime === 'BEARISH' && asset.symbol.includes('GOLD') ? 'text-rose-400' : 'text-emerald-400'}>
-                  {marketRegime === 'BEARISH' && asset.symbol.includes('GOLD') ? 'BEARISH' : asset.dailyBias}
-                </strong>
+                <span className="text-[#94a3b8]">Daily Bias: </span>
+                <strong className="text-[#22c55e]">{asset.dailyBias}</strong>
               </div>
               <div>
-                <span className="text-slate-500">4H Bias: </span>
-                <strong className={marketRegime === 'BEARISH' && asset.symbol.includes('GOLD') ? 'text-rose-400' : 'text-emerald-400'}>
-                  {marketRegime === 'BEARISH' && asset.symbol.includes('GOLD') ? 'BEARISH' : asset.h4Bias}
-                </strong>
+                <span className="text-[#94a3b8]">4H Bias: </span>
+                <strong className="text-[#22c55e]">{asset.h4Bias}</strong>
               </div>
               <div>
-                <span className="text-slate-500">1H Bias: </span>
-                <strong className={marketRegime === 'BEARISH' && asset.symbol.includes('GOLD') ? 'text-rose-400' : 'text-emerald-400'}>
-                  {marketRegime === 'BEARISH' && asset.symbol.includes('GOLD') ? 'BEARISH' : asset.h1Bias}
-                </strong>
+                <span className="text-[#94a3b8]">1H Bias: </span>
+                <strong className="text-[#22c55e]">{asset.h1Bias}</strong>
               </div>
             </div>
           </div>
@@ -392,27 +315,23 @@ export default function GoldSmcAutoTradeLabView() {
       {/* ── 4. MAIN WORKSPACE: CHART (68%) + RIGHT TRADE PLAN PANEL (32%) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         {/* LEFT 68%: EXACT CANDLESTICK CHART */}
-        <div className="lg:col-span-8 xl:col-span-8 rounded-xl border border-slate-800 bg-[#070b14] p-3 shadow-2xl relative flex flex-col font-mono">
+        <div className="lg:col-span-8 xl:col-span-8 rounded-xl border border-[#162032] bg-[#070b14] p-3 shadow-2xl relative flex flex-col font-mono">
           {/* Chart Header Bar matching screenshot */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80 text-xs">
+          <div className="flex items-center justify-between pb-2 border-b border-[#162032] text-xs">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 font-bold text-amber-400">
-                <span>🪙</span>
+              <div className="flex items-center gap-1 font-bold text-white">
+                <span className="text-amber-400">🪙</span>
                 <span>XAUUSD Gold – {timeframe}</span>
               </div>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 ${
-                marketRegime === 'BEARISH'
-                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-                  : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-              }`}>
-                <span>Market Structure:</span>
-                <span>{marketRegime === 'BEARISH' ? 'BEARISH' : 'BULLISH'}</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#10b981]/20 text-[#22c55e] border border-[#10b981]/40 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#22c55e]" />
+                <span>Market Structure: BULLISH</span>
               </span>
             </div>
 
-            {/* Timeframe Selector & Move/Zoom Tool Pills */}
+            {/* Timeframe Selector & Move/Zoom Tool Icons */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
+              <div className="flex items-center gap-1 bg-[#0b1322] border border-[#1e293b] rounded-lg p-0.5 text-xs">
                 {(['1D', '4H', '1H', '30m', '15m', '5m'] as TimeframeOption[]).map((tf) => (
                   <button
                     key={tf}
@@ -422,8 +341,8 @@ export default function GoldSmcAutoTradeLabView() {
                     }}
                     className={`px-2 py-0.5 rounded text-xs font-bold transition-all cursor-pointer ${
                       timeframe === tf
-                        ? 'bg-blue-600 text-white font-black shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[#2563eb] text-white font-black shadow-sm'
+                        : 'text-[#94a3b8] hover:text-white'
                     }`}
                   >
                     {tf}
@@ -431,32 +350,32 @@ export default function GoldSmcAutoTradeLabView() {
                 ))}
               </div>
 
-              {/* Chart Move / Zoom buttons */}
-              <div className="flex items-center gap-1 text-slate-400">
+              {/* Chart Tool Icons matching screenshot */}
+              <div className="flex items-center gap-1 text-[#94a3b8]">
                 <button
                   onClick={() => setZoomLevel((z) => Math.min(3.5, +(z * 1.2).toFixed(2)))}
-                  className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+                  className="p-1 rounded bg-[#0b1322] hover:bg-[#1e293b] text-slate-300 transition-colors cursor-pointer"
                   title="Zoom In"
                 >
                   <ZoomIn className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => setZoomLevel((z) => Math.max(0.65, +(z / 1.2).toFixed(2)))}
-                  className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+                  className="p-1 rounded bg-[#0b1322] hover:bg-[#1e293b] text-slate-300 transition-colors cursor-pointer"
                   title="Zoom Out"
                 >
                   <ZoomOut className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={handleResetView}
-                  className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+                  className="p-1 rounded bg-[#0b1322] hover:bg-[#1e293b] text-slate-300 transition-colors cursor-pointer"
                   title="Reset View"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => setIsMaximized(!isMaximized)}
-                  className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+                  className="p-1 rounded bg-[#0b1322] hover:bg-[#1e293b] text-slate-300 transition-colors cursor-pointer"
                   title={isMaximized ? 'Minimize' : 'Maximize Fullscreen'}
                 >
                   {isMaximized ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
@@ -465,22 +384,22 @@ export default function GoldSmcAutoTradeLabView() {
             </div>
           </div>
 
-          {/* Canvas SVG Area with Interactive Drag to Move */}
+          {/* SVG Canvas Area with Interactive Drag to Move */}
           <div
-            className={`relative w-full overflow-hidden select-none mt-1.5 rounded-lg border border-slate-800/80 ${
+            className={`relative w-full overflow-hidden select-none mt-1.5 rounded-lg border border-[#162032] ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
             style={{ height: `${chartHeight}px` }}
           >
             {/* Live Chart Navigation Helper */}
-            <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-slate-900/85 backdrop-blur-md border border-slate-700/60 rounded px-2 py-0.5 text-[10px] text-slate-400 pointer-events-none">
-              <span className="text-amber-400 font-bold">Zoom: {(zoomLevel * 100).toFixed(0)}%</span>
+            <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-[#0b1322]/90 backdrop-blur-md border border-[#1e293b] rounded px-2 py-0.5 text-[10px] text-[#94a3b8] pointer-events-none">
+              <span className="text-[#f59e0b] font-bold">Zoom: {(zoomLevel * 100).toFixed(0)}%</span>
               <span>•</span>
               <span className="text-slate-300">Left-click & drag to move chart</span>
               {crosshair && (
                 <>
                   <span>•</span>
-                  <span className="text-cyan-400 font-bold">${crosshair.price}</span>
+                  <span className="text-[#38bdf8] font-bold">${crosshair.price}</span>
                 </>
               )}
             </div>
@@ -496,7 +415,7 @@ export default function GoldSmcAutoTradeLabView() {
               onMouseLeave={handleMouseLeave}
               onWheel={handleWheel}
             >
-              {/* Subtle Horizontal Price Grid Lines & Axis Ticks */}
+              {/* Horizontal Price Grid Lines & Axis Ticks */}
               {[4035, 4030, 4025, 4020, 4015, 4010, 4005, 4000, 3995].map((pVal) => {
                 const y = scaleY(pVal);
                 return (
@@ -825,82 +744,76 @@ export default function GoldSmcAutoTradeLabView() {
         </div>
 
         {/* RIGHT 32%: GOLD AI — TRADE PLAN CARD (1:1 with Screenshot) */}
-        <div className="lg:col-span-4 xl:col-span-4 rounded-xl border border-slate-800 bg-[#070b14] p-4 shadow-2xl relative flex flex-col justify-between font-mono">
+        <div className="lg:col-span-4 xl:col-span-4 rounded-xl border border-[#162032] bg-[#070b14] p-4 shadow-2xl relative flex flex-col justify-between font-mono">
           <div className="space-y-3.5">
             {/* Header: Golden Bar Icon + GOLD AI – Trade Plan */}
             <div className="flex items-center gap-2">
               <span className="text-xl">🪙</span>
-              <h2 className="text-sm font-black text-amber-400 tracking-wide font-sans">
+              <h2 className="text-sm font-black text-[#f59e0b] tracking-wide font-sans">
                 GOLD AI – Trade Plan
               </h2>
             </div>
 
-            {/* Big Green/Red Banner: LONG SETUP ✓ or SHORT SETUP ▼ */}
-            <div
-              className={`rounded-lg py-2.5 text-center font-sans font-black text-base tracking-wider flex items-center justify-center gap-2 shadow-lg ${
-                tradePlan.direction === 'LONG'
-                  ? 'bg-[#10b981] text-slate-950'
-                  : 'bg-[#ef4444] text-white'
-              }`}
-            >
-              <span>{tradePlan.status}</span>
+            {/* Big Bright Green Banner: LONG SETUP ✓ */}
+            <div className="rounded-lg py-2.5 text-center font-sans font-black text-base tracking-wider flex items-center justify-center gap-2 shadow-lg bg-[#22c55e] text-slate-950">
+              <span>LONG SETUP ✓</span>
             </div>
 
             {/* Key-Value Details Table matching screenshot exactly */}
             <div className="space-y-1.5 text-xs">
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
+              <div className="flex justify-between border-b border-[#162032] pb-1">
                 <span className="text-slate-300 font-bold">Entry Price :</span>
                 <strong className="text-white font-sans text-sm font-black">{tradePlan.entryPrice.toFixed(2)}</strong>
               </div>
 
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
+              <div className="flex justify-between border-b border-[#162032] pb-1">
                 <span className="text-slate-300 font-bold">Entry Zone :</span>
                 <strong className="text-slate-200">{tradePlan.entryZone}</strong>
               </div>
 
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
+              <div className="flex justify-between border-b border-[#162032] pb-1">
                 <span className="text-slate-300 font-bold">Stop Loss (SL) :</span>
-                <strong className="text-rose-400 font-sans text-sm font-black">{tradePlan.stopLoss.toFixed(2)}</strong>
+                <strong className="text-[#ef4444] font-sans text-sm font-black">{tradePlan.stopLoss.toFixed(2)}</strong>
               </div>
 
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
+              <div className="flex justify-between border-b border-[#162032] pb-1">
                 <span className="text-slate-300 font-bold">TP1 :</span>
-                <strong className="text-cyan-400 font-sans">{tradePlan.tp1.toFixed(2)} <span className="text-emerald-400 text-[11px]">(RRR {tradePlan.rrrTp1})</span></strong>
+                <strong className="text-[#38bdf8] font-sans">{tradePlan.tp1.toFixed(2)} <span className="text-[#22c55e] text-[11px]">(RRR {tradePlan.rrrTp1})</span></strong>
               </div>
 
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
+              <div className="flex justify-between border-b border-[#162032] pb-1">
                 <span className="text-slate-300 font-bold">TP2 :</span>
-                <strong className="text-cyan-400 font-sans">{tradePlan.tp2.toFixed(2)} <span className="text-emerald-400 text-[11px]">(RRR {tradePlan.rrrTp2})</span></strong>
+                <strong className="text-[#38bdf8] font-sans">{tradePlan.tp2.toFixed(2)} <span className="text-[#22c55e] text-[11px]">(RRR {tradePlan.rrrTp2})</span></strong>
               </div>
 
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
+              <div className="flex justify-between border-b border-[#162032] pb-1">
                 <span className="text-slate-300 font-bold">TP3 :</span>
-                <strong className="text-cyan-400 font-sans">{tradePlan.tp3.toFixed(2)} <span className="text-emerald-400 text-[11px]">(RRR {tradePlan.rrrTp3})</span></strong>
+                <strong className="text-[#38bdf8] font-sans">{tradePlan.tp3.toFixed(2)} <span className="text-[#22c55e] text-[11px]">(RRR {tradePlan.rrrTp3})</span></strong>
               </div>
 
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
-                <span className="text-slate-400">Market Structure :</span>
-                <span className="text-emerald-400 font-bold">{tradePlan.marketStructure}</span>
+              <div className="flex justify-between border-b border-[#162032] pb-1">
+                <span className="text-[#94a3b8]">Market Structure :</span>
+                <span className="text-[#22c55e] font-bold">{tradePlan.marketStructure}</span>
               </div>
 
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
-                <span className="text-slate-400">Liquidity :</span>
+              <div className="flex justify-between border-b border-[#162032] pb-1">
+                <span className="text-[#94a3b8]">Liquidity :</span>
                 <span className="text-slate-200">{tradePlan.liquidity}</span>
               </div>
 
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
-                <span className="text-slate-400">DXY :</span>
+              <div className="flex justify-between border-b border-[#162032] pb-1">
+                <span className="text-[#94a3b8]">DXY :</span>
                 <span className="text-slate-200">{tradePlan.dxy}</span>
               </div>
 
-              <div className="flex justify-between border-b border-slate-800/60 pb-1">
-                <span className="text-slate-400">News Impact :</span>
-                <span className="text-slate-200">{tradePlan.newsImpact}</span>
+              <div className="flex justify-between border-b border-[#162032] pb-1">
+                <span className="text-[#94a3b8]">News Impact :</span>
+                <span className="text-[#f59e0b] font-bold">{tradePlan.newsImpact}</span>
               </div>
             </div>
 
             {/* Lime Green Banner: Setup Grade: A+ | Confidence: 92% */}
-            <div className="rounded-lg bg-[#a3e635]/20 border border-[#a3e635]/50 py-2 px-3 text-center text-[#a3e635] font-black text-xs tracking-wider">
+            <div className="rounded-lg bg-[#a3e635]/15 border border-[#a3e635]/50 py-2 px-3 text-center text-[#a3e635] font-black text-xs tracking-wider">
               <span>Setup Grade : {tradePlan.setupGrade}</span>
               <span className="mx-2">|</span>
               <span>Confidence : {tradePlan.confidence}%</span>
@@ -909,15 +822,15 @@ export default function GoldSmcAutoTradeLabView() {
             {/* Bottom Explanations */}
             <div className="space-y-1 text-xs text-slate-300 leading-relaxed font-sans">
               <div>
-                <span className="text-slate-400 font-mono text-[11px]">Reason : </span>
+                <span className="text-[#94a3b8] font-mono text-[11px]">Reason : </span>
                 <span className="font-medium text-slate-200">{tradePlan.reason}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-mono text-[11px]">Invalidation : </span>
-                <strong className="text-rose-400 font-mono">{tradePlan.invalidation}</strong>
+                <span className="text-[#94a3b8] font-mono text-[11px]">Invalidation : </span>
+                <strong className="text-white font-mono">{tradePlan.invalidation}</strong>
               </div>
               <div>
-                <span className="text-slate-400 font-mono text-[11px]">Trade Expiry : </span>
+                <span className="text-[#94a3b8] font-mono text-[11px]">Trade Expiry : </span>
                 <span className="text-slate-300 font-mono">{tradePlan.tradeExpiry}</span>
               </div>
             </div>
@@ -925,53 +838,53 @@ export default function GoldSmcAutoTradeLabView() {
         </div>
       </div>
 
-      {/* ── 5. BOTTOM 4-CARD DASHBOARD GRID (1:1 with Screenshot) ── */}
+      {/* ── 5. BOTTOM 4-CARD DASHBOARD GRID (Exact Match with Screenshot) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs">
         {/* Card 1: Market Analysis Summary */}
-        <div className="rounded-xl border border-slate-800 bg-[#070b14] p-3.5 space-y-2">
-          <div className="flex items-center gap-1.5 text-slate-300 font-bold border-b border-slate-800 pb-2">
+        <div className="rounded-xl border border-[#162032] bg-[#070b14] p-3.5 space-y-2">
+          <div className="flex items-center gap-1.5 text-slate-300 font-bold border-b border-[#162032] pb-2">
             <span>📊</span>
             <span>Market Analysis Summary</span>
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
             <div className="flex justify-between">
-              <span className="text-slate-400">Gold Trend :</span>
-              <strong className="text-emerald-400 font-bold">{bottomData.marketAnalysisSummary.goldTrend}</strong>
+              <span className="text-[#94a3b8]">Gold Trend :</span>
+              <strong className="text-[#22c55e] font-bold">{bottomData.marketAnalysisSummary.goldTrend}</strong>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">DXY :</span>
-              <strong className="text-rose-400 font-bold">{bottomData.marketAnalysisSummary.dxy}</strong>
+              <span className="text-[#94a3b8]">DXY :</span>
+              <strong className="text-[#ef4444] font-bold">{bottomData.marketAnalysisSummary.dxy}</strong>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">BTC Trend :</span>
-              <strong className="text-emerald-400 font-bold">{bottomData.marketAnalysisSummary.btcTrend}</strong>
+              <span className="text-[#94a3b8]">BTC Trend :</span>
+              <strong className="text-[#22c55e] font-bold">{bottomData.marketAnalysisSummary.btcTrend}</strong>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">US 10Y :</span>
-              <strong className="text-rose-400 font-bold">{bottomData.marketAnalysisSummary.us10y}</strong>
+              <span className="text-[#94a3b8]">US 10Y :</span>
+              <strong className="text-[#ef4444] font-bold">{bottomData.marketAnalysisSummary.us10y}</strong>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">ETH Trend :</span>
-              <strong className="text-emerald-400 font-bold">{bottomData.marketAnalysisSummary.ethTrend}</strong>
+              <span className="text-[#94a3b8]">ETH Trend :</span>
+              <strong className="text-[#22c55e] font-bold">{bottomData.marketAnalysisSummary.ethTrend}</strong>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">BTC.D :</span>
-              <strong className="text-emerald-400 font-bold">{bottomData.marketAnalysisSummary.btcD}</strong>
+              <span className="text-[#94a3b8]">BTC.D :</span>
+              <strong className="text-[#22c55e] font-bold">{bottomData.marketAnalysisSummary.btcD}</strong>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">SOL Trend :</span>
-              <strong className="text-emerald-400 font-bold">{bottomData.marketAnalysisSummary.solTrend}</strong>
+              <span className="text-[#94a3b8]">SOL Trend :</span>
+              <strong className="text-[#22c55e] font-bold">{bottomData.marketAnalysisSummary.solTrend}</strong>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">USDT.D :</span>
-              <strong className="text-rose-400 font-bold">{bottomData.marketAnalysisSummary.usdtD}</strong>
+              <span className="text-[#94a3b8]">USDT.D :</span>
+              <strong className="text-[#ef4444] font-bold">{bottomData.marketAnalysisSummary.usdtD}</strong>
             </div>
           </div>
         </div>
 
         {/* Card 2: Upcoming High Impact News */}
-        <div className="rounded-xl border border-slate-800 bg-[#070b14] p-3.5 space-y-2">
-          <div className="flex items-center gap-1.5 text-slate-300 font-bold border-b border-slate-800 pb-2">
+        <div className="rounded-xl border border-[#162032] bg-[#070b14] p-3.5 space-y-2">
+          <div className="flex items-center gap-1.5 text-slate-300 font-bold border-b border-[#162032] pb-2">
             <span>📅</span>
             <span>Upcoming High Impact News</span>
           </div>
@@ -980,37 +893,37 @@ export default function GoldSmcAutoTradeLabView() {
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                    n.impact === 'High' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' : 'bg-amber-500/20 text-amber-400'
+                    n.impact === 'High' ? 'bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40' : 'bg-[#f59e0b]/20 text-[#f59e0b]'
                   }`}>
                     {n.impact}
                   </span>
                   <span className="text-slate-200">{n.title}</span>
                 </div>
-                <span className="text-slate-400 text-[11px]">{n.dateStr}</span>
+                <span className="text-[#94a3b8] text-[11px]">{n.dateStr}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Card 3: Global Market Snapshot */}
-        <div className="rounded-xl border border-slate-800 bg-[#070b14] p-3.5 space-y-2">
-          <div className="flex items-center gap-1.5 text-slate-300 font-bold border-b border-slate-800 pb-2">
+        <div className="rounded-xl border border-[#162032] bg-[#070b14] p-3.5 space-y-2">
+          <div className="flex items-center gap-1.5 text-slate-300 font-bold border-b border-[#162032] pb-2">
             <span>🌐</span>
             <span>Global Market Snapshot</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="space-y-1 text-xs">
-              <div><span className="text-slate-400">BTC Liquidation (24h) : </span><strong className="text-white">{bottomData.globalSnapshot.btcLiquidation24h}</strong></div>
-              <div><span className="text-slate-400">ETH Liquidation (24h) : </span><strong className="text-white">{bottomData.globalSnapshot.ethLiquidation24h}</strong></div>
-              <div><span className="text-slate-400">Total Crypto MC : </span><strong className="text-emerald-400">{bottomData.globalSnapshot.totalCryptoMc}</strong></div>
-              <div><span className="text-slate-400">Gold Volume : </span><strong className="text-emerald-400">{bottomData.globalSnapshot.goldVolume}</strong></div>
+              <div><span className="text-[#94a3b8]">BTC Liquidation (24h) : </span><strong className="text-white">{bottomData.globalSnapshot.btcLiquidation24h}</strong></div>
+              <div><span className="text-[#94a3b8]">ETH Liquidation (24h) : </span><strong className="text-white">{bottomData.globalSnapshot.ethLiquidation24h}</strong></div>
+              <div><span className="text-[#94a3b8]">Total Crypto MC : </span><strong className="text-[#22c55e]">{bottomData.globalSnapshot.totalCryptoMc}</strong></div>
+              <div><span className="text-[#94a3b8]">Gold Volume : </span><strong className="text-[#22c55e]">{bottomData.globalSnapshot.goldVolume}</strong></div>
             </div>
             {/* Mini Sparkline SVG */}
             <svg viewBox="0 0 70 30" className="w-16 h-10">
               <path
                 d="M 2 24 Q 15 12, 30 18 T 50 6 T 68 2"
                 fill="none"
-                stroke="#10b981"
+                stroke="#22c55e"
                 strokeWidth="2"
               />
             </svg>
@@ -1018,24 +931,24 @@ export default function GoldSmcAutoTradeLabView() {
         </div>
 
         {/* Card 4: Live Status & Trade Smart With AI */}
-        <div className="rounded-xl border border-slate-800 bg-[#070b14] p-3.5 flex items-center justify-between">
+        <div className="rounded-xl border border-[#162032] bg-[#070b14] p-3.5 flex items-center justify-between">
           <div className="space-y-1.5 text-xs">
-            <div className="flex items-center gap-1.5 text-slate-300 font-bold border-b border-slate-800 pb-1">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <div className="flex items-center gap-1.5 text-slate-300 font-bold border-b border-[#162032] pb-1">
+              <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
               <span>Live Status</span>
             </div>
             <div className="space-y-1 text-[11px]">
-              <div className="text-slate-300">✓ Chart Data : <strong className="text-emerald-400">Connected</strong></div>
-              <div className="text-slate-300">✓ News Feed : <strong className="text-emerald-400">Connected</strong></div>
-              <div className="text-slate-300">✓ COT Data : <strong className="text-emerald-400">Updated (Weekly)</strong></div>
-              <div className="text-slate-300">✓ AI Engine : <strong className="text-emerald-400">Active</strong></div>
+              <div className="text-slate-300">✓ Chart Data : <strong className="text-[#22c55e]">Connected</strong></div>
+              <div className="text-slate-300">✓ News Feed : <strong className="text-[#22c55e]">Connected</strong></div>
+              <div className="text-slate-300">✓ COT Data : <strong className="text-[#22c55e]">Updated (Weekly)</strong></div>
+              <div className="text-slate-300">✓ AI Engine : <strong className="text-[#22c55e]">Active</strong></div>
             </div>
           </div>
 
           {/* Golden Trophy / Chart Badge */}
-          <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-600/10 border border-amber-500/30 text-amber-400 text-center">
-            <TrendingUp className="h-8 w-8 text-amber-400" />
-            <span className="text-[10px] font-black uppercase tracking-wider mt-1">Trade Smart</span>
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-gradient-to-br from-[#f59e0b]/20 to-[#d97706]/10 border border-[#f59e0b]/30 text-[#f59e0b] text-center">
+            <span className="text-2xl">📈</span>
+            <span className="text-[10px] font-black uppercase tracking-wider mt-1 text-[#f59e0b]">Trade Smart</span>
             <span className="text-[9px] text-slate-300">With AI</span>
           </div>
         </div>
