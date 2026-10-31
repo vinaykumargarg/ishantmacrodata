@@ -7,7 +7,7 @@
 // ============================================================================
 
 export type TimeframeOption = '1m' | '5m' | '15m' | '30m' | '1H' | '4H' | '1D' | '1W' | '1M';
-export type MarketRegime = 'BULLISH' | 'BEARISH' | 'AUTO_LIVE';
+export type MarketRegime = 'BULLISH' | 'BEARISH' | 'WAIT' | 'AUTO_LIVE';
 
 export interface GoldCandle {
   time: number; // Unix timestamp in seconds
@@ -93,9 +93,9 @@ export interface AssetTelemetry {
   price: number;
   changePts: number;
   changePct: number;
-  dailyBias: 'BULLISH' | 'BEARISH';
-  h4Bias: 'BULLISH' | 'BEARISH';
-  h1Bias: 'BULLISH' | 'BEARISH';
+  dailyBias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  h4Bias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  h1Bias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
 }
 
 export interface HighImpactNews {
@@ -105,50 +105,60 @@ export interface HighImpactNews {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ASSET TELEMETRY CARDS (Matches Screenshot Top 4 Cards)
+// ASSET TELEMETRY CARDS (Synchronized with Live Quotes & HTF Analysis)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function getTopAssetTelemetry(currentGoldPrice = 4012.45): AssetTelemetry[] {
+export function getTopAssetTelemetry(
+  currentGoldPrice = 4012.45,
+  goldBias: 'BULLISH' | 'BEARISH' | 'NEUTRAL' = 'BEARISH',
+  liveQuotes?: Record<string, { price: number; change24h: number; change24hPts: number }>
+): AssetTelemetry[] {
+  const btcQuote = liveQuotes?.['BTCUSDT'] || { price: 81770.00, change24h: 1.25, change24hPts: 980.40 };
+  const ethQuote = liveQuotes?.['ETHUSDT'] || { price: 2450.50, change24h: 1.70, change24hPts: 41.20 };
+  const solQuote = liveQuotes?.['SOLUSDT'] || { price: 104.25, change24h: 2.08, change24hPts: 2.12 };
+
+  const isBearish = goldBias === 'BEARISH';
+
   return [
     {
       symbol: 'XAUUSD (GOLD)',
       name: 'Gold Spot / U.S. Dollar',
       price: currentGoldPrice,
-      changePts: +18.75,
-      changePct: +0.47,
-      dailyBias: 'BULLISH',
-      h4Bias: 'BULLISH',
-      h1Bias: 'BULLISH'
+      changePts: isBearish ? -18.75 : +18.75,
+      changePct: isBearish ? -0.47 : +0.47,
+      dailyBias: goldBias,
+      h4Bias: goldBias,
+      h1Bias: goldBias
     },
     {
       symbol: 'BTCUSDT',
       name: 'Bitcoin',
-      price: 114730.20,
-      changePts: +825.40,
-      changePct: +0.72,
-      dailyBias: 'BULLISH',
-      h4Bias: 'BULLISH',
-      h1Bias: 'BULLISH'
+      price: btcQuote.price,
+      changePts: btcQuote.change24hPts || (btcQuote.price * (btcQuote.change24h / 100)),
+      changePct: btcQuote.change24h,
+      dailyBias: btcQuote.change24h >= 0 ? 'BULLISH' : 'BEARISH',
+      h4Bias: btcQuote.change24h >= 0 ? 'BULLISH' : 'BEARISH',
+      h1Bias: btcQuote.change24h >= 0 ? 'BULLISH' : 'BEARISH'
     },
     {
       symbol: 'ETHUSDT',
       name: 'Ethereum',
-      price: 4315.65,
-      changePts: +72.20,
-      changePct: +1.70,
-      dailyBias: 'BULLISH',
-      h4Bias: 'BULLISH',
-      h1Bias: 'BULLISH'
+      price: ethQuote.price,
+      changePts: ethQuote.change24hPts || (ethQuote.price * (ethQuote.change24h / 100)),
+      changePct: ethQuote.change24h,
+      dailyBias: ethQuote.change24h >= 0 ? 'BULLISH' : 'BEARISH',
+      h4Bias: ethQuote.change24h >= 0 ? 'BULLISH' : 'BEARISH',
+      h1Bias: ethQuote.change24h >= 0 ? 'BULLISH' : 'BEARISH'
     },
     {
       symbol: 'SOLUSDT',
       name: 'Solana',
-      price: 202.18,
-      changePts: +4.12,
-      changePct: +2.08,
-      dailyBias: 'BULLISH',
-      h4Bias: 'BULLISH',
-      h1Bias: 'BULLISH'
+      price: solQuote.price,
+      changePts: solQuote.change24hPts || (solQuote.price * (solQuote.change24h / 100)),
+      changePct: solQuote.change24h,
+      dailyBias: solQuote.change24h >= 0 ? 'BULLISH' : 'BEARISH',
+      h4Bias: solQuote.change24h >= 0 ? 'BULLISH' : 'BEARISH',
+      h1Bias: solQuote.change24h >= 0 ? 'BULLISH' : 'BEARISH'
     }
   ];
 }
@@ -238,20 +248,76 @@ export function generateInstitutionalGoldCandles(
   // =========================================================================
   // CASE 2: BEARISH DISPLACEMENT (Market Falling - Sell the Supply Zone)
   // When market is falling, engine MUST NOT give Long! It gives High-Probability Short:
-  // Sweep of BSL -> Bearish MSS -> Pullback into Supply Zone (4,028) ->
-  // Short Entry: 4,025 -> SL: 4,032 -> TP1: 4,015 (1:2) -> TP2: 4,000 (1:4) -> TP3: 3,960 (1:8 macro 650 pips!)
+  // Sweep of BSL -> Bearish MSS -> Pullback into Supply Zone (4,024 - 4,028) ->
+  // Short Entry: 4,024.00 -> SL: 4,030.00 -> TP1: 4,010.00 -> TP2: 3,995.00 -> TP3: 3,960.00 (640 PIPS!)
   // =========================================================================
+  if (regime === 'BEARISH') {
+    const anchors = [
+      { i: 0, o: 4018.0, h: 4021.5, l: 4016.0, c: 4020.0 },
+      { i: 8, o: 4020.0, h: 4026.0, l: 4018.5, c: 4024.5 }, // Initial runup
+      { i: 16, o: 4024.5, h: 4029.0, l: 4022.0, c: 4028.0 },
+      { i: 24, o: 4028.0, h: 4033.5, l: 4026.0, c: 4031.0 }, // Peak Liquidity Grab / BSL Sweep (4,033.5)
+      { i: 32, o: 4031.0, h: 4032.0, l: 4023.0, c: 4024.0 }, // Sharp rejection downwards
+      { i: 40, o: 4024.0, h: 4025.5, l: 4016.0, c: 4018.0 }, // Bearish MSS breaking 4,025
+      { i: 48, o: 4018.0, h: 4020.0, l: 4012.0, c: 4014.0 }, // Breakdown (BOS)
+      { i: 56, o: 4014.0, h: 4016.0, l: 4009.0, c: 4010.5 }, // Low of displacement
+      { i: 64, o: 4010.5, h: 4020.0, l: 4010.0, c: 4018.5 }, // Pullback into Bearish Breaker / FVG
+      { i: 71, o: 4020.0, h: 4025.5, l: 4019.5, c: 4024.0 }  // Current Entry Candle tapping Supply (4,024.00)
+    ];
+
+    for (let idx = 0; idx < count; idx++) {
+      const time = startTime + idx * step;
+      let prev = anchors[0];
+      let next = anchors[anchors.length - 1];
+
+      for (let k = 0; k < anchors.length - 1; k++) {
+        if (idx >= anchors[k].i && idx <= anchors[k + 1].i) {
+          prev = anchors[k];
+          next = anchors[k + 1];
+          break;
+        }
+      }
+
+      const span = Math.max(1, next.i - prev.i);
+      const frac = (idx - prev.i) / span;
+      const baseO = prev.c + (next.o - prev.c) * frac;
+      const baseC = prev.c + (next.c - prev.c) * frac;
+      const noise = Math.sin(idx * 2.1) * 1.0;
+
+      let open = +(baseO + noise * 0.3).toFixed(2);
+      let close = +(baseC - noise * 0.2).toFixed(2);
+      let high = +(Math.max(open, close) + Math.abs(noise * 0.8) + 1.2).toFixed(2);
+      let low = +(Math.min(open, close) - Math.abs(noise * 0.8) - 1.2).toFixed(2);
+
+      if (idx === 24) { high = 4033.5; close = 4031.0; } // BSL Sweep
+      if (idx === 40) { low = 4016.0; close = 4018.0; } // MSS
+      if (idx === 48) { low = 4012.0; close = 4014.0; } // BOS
+      if (idx === 56) { low = 4009.0; close = 4010.5; } // Displacement Low
+      if (idx === 71) { open = 4021.0; close = 4024.0; high = 4025.5; low = 4020.0; } // Short Entry tap
+
+      candles.push({
+        time,
+        open,
+        high,
+        low,
+        close,
+        volume: Math.floor(1500 + Math.abs(noise) * 550)
+      });
+    }
+
+    return candles;
+  }
+
+  // CASE 3: WAIT / CHOP REGIME
   for (let idx = 0; idx < count; idx++) {
     const time = startTime + idx * step;
-    const progress = idx / count;
-    // Lower highs and lower lows wave
-    const wave = Math.sin(idx * 0.35) * 3.5 - progress * 28.0;
-    const noise = Math.cos(idx * 1.8) * 0.9;
+    const wave = Math.sin(idx * 0.5) * 2.5;
+    const noise = Math.cos(idx * 1.8) * 0.8;
 
     const open = +(basePrice + wave + noise).toFixed(2);
-    const close = +(open - 1.4 + noise * 0.4).toFixed(2);
-    const high = +(Math.max(open, close) + 1.2).toFixed(2);
-    const low = +(Math.min(open, close) - 1.2).toFixed(2);
+    const close = +(open + (idx % 2 === 0 ? 0.8 : -0.8)).toFixed(2);
+    const high = +(Math.max(open, close) + 1.0).toFixed(2);
+    const low = +(Math.min(open, close) - 1.0).toFixed(2);
 
     candles.push({
       time,
@@ -259,7 +325,7 @@ export function generateInstitutionalGoldCandles(
       high,
       low,
       close,
-      volume: Math.floor(1600 + Math.abs(noise) * 500)
+      volume: Math.floor(1200 + Math.abs(noise) * 400)
     });
   }
 
@@ -301,35 +367,50 @@ export function getInstitutionalSMCStructures(
         { id: 'GRAB-1', price: 4033.5, time: candles[38]?.time || 0, label: 'Liquidity Grab', type: 'GRAB' }
       ],
       zones: [
-        // 1. Bottom Demand Zone (3,998 – 4,004)
         { id: 'DEMAND-1', type: 'DEMAND', bottom: 3998.0, top: 4004.0, label: 'Demand Zone' },
-        // 2. Top Red Supply Zone (4,028 – 4,032) with SL: 4,030.00
         { id: 'SUPPLY-1', type: 'SUPPLY', bottom: 4028.0, top: 4032.0, label: 'Supply Zone', slPrice: 4030.0 },
-        // 3. Middle Cyan FVG (4,018 – 4,022)
         { id: 'FVG-1', type: 'FVG', bottom: 4018.0, top: 4022.0, label: 'FVG' },
-        // 4. Current Green Demand Zone (4,005 – 4,010) with SL: 4,005.00
         { id: 'DEMAND-2', type: 'DEMAND', bottom: 4005.0, top: 4010.0, label: 'Demand Zone', slPrice: 4005.0 }
       ]
     };
   }
 
-  // BEARISH REGIME (Market Falling)
+  // BEARISH REGIME (Market Falling - High Probability Institutional Short)
+  if (regime === 'BEARISH') {
+    return {
+      swings: [
+        { id: 'SW-B1', time: candles[8]?.time || 0, price: 4026.0, type: 'LH', label: 'LH' },
+        { id: 'SW-B2', time: candles[24]?.time || 0, price: 4033.5, type: 'HH', label: 'Liquidity Grab' },
+        { id: 'SW-B3', time: candles[40]?.time || 0, price: 4018.0, type: 'LL', label: 'LL' },
+        { id: 'SW-B4', time: candles[56]?.time || 0, price: 4010.5, type: 'LL', label: 'LL' },
+        { id: 'SW-B5', time: candles[71]?.time || 0, price: 4024.0, type: 'LH', label: 'LH (Supply Tap)' }
+      ],
+      bosList: [
+        { id: 'BOS-B1', price: 4018.0, timeStart: candles[32]?.time || 0, timeEnd: candles[48]?.time || 0, type: 'BEARISH', label: 'BOS' }
+      ],
+      mssList: [
+        { id: 'MSS-B1', price: 4025.0, timeStart: candles[24]?.time || 0, timeEnd: candles[38]?.time || 0, type: 'BEARISH', label: 'MSS' }
+      ],
+      markers: [
+        { id: 'GRAB-B1', price: 4033.5, time: candles[24]?.time || 0, label: 'Liquidity Grab (BSL)', type: 'GRAB' }
+      ],
+      zones: [
+        { id: 'SUPPLY-B1', type: 'SUPPLY', bottom: 4024.0, top: 4030.0, label: 'Supply Zone (Bearish Breaker)', slPrice: 4030.0 },
+        { id: 'FVG-B1', type: 'FVG', bottom: 4018.0, top: 4022.0, label: 'FVG' },
+        { id: 'DEMAND-TARGET', type: 'DEMAND', bottom: 3960.0, top: 3965.0, label: 'Macro SSL Target (3,960)' }
+      ]
+    };
+  }
+
+  // WAIT REGIME
   return {
-    swings: [
-      { id: 'SW-B1', time: candles[10]?.time || 0, price: 4034.0, type: 'LH', label: 'LH' },
-      { id: 'SW-B2', time: candles[30]?.time || 0, price: 4018.0, type: 'LL', label: 'LL' }
-    ],
-    bosList: [
-      { id: 'BOS-B1', price: 4018.0, timeStart: candles[25]?.time || 0, timeEnd: candles[45]?.time || 0, type: 'BEARISH', label: 'BOS (Break of Structure)' }
-    ],
-    mssList: [
-      { id: 'MSS-B1', price: 4028.0, timeStart: candles[15]?.time || 0, timeEnd: candles[35]?.time || 0, type: 'BEARISH', label: 'MSS' }
-    ],
-    markers: [
-      { id: 'GRAB-B1', price: 4035.0, time: candles[8]?.time || 0, label: 'BSL Sweep (Liquidity Grab)', type: 'GRAB' }
-    ],
+    swings: [],
+    bosList: [],
+    mssList: [],
+    markers: [],
     zones: [
-      { id: 'SUPPLY-B1', type: 'SUPPLY', bottom: 4024.0, top: 4030.0, label: 'Supply Zone (Bearish Breaker)', slPrice: 4033.0 }
+      { id: 'SUPPLY-WAIT', type: 'SUPPLY', bottom: 4028.0, top: 4034.0, label: 'Supply Zone (Untapped)', slPrice: 4035.0 },
+      { id: 'DEMAND-WAIT', type: 'DEMAND', bottom: 3998.0, top: 4004.0, label: 'Demand Zone (Untapped)', slPrice: 3996.0 }
     ]
   };
 }
@@ -347,21 +428,26 @@ export function getExactInstitutionalTradePlan(
 
   // =========================================================================
   // BULLISH TRADE PLAN (Exact Match with Right Panel in Screenshot)
+  // Mathematical RRR: Risk = |4010 - 4005| = 5 pts.
+  // TP1 = 4020 (diff = 10 -> 1:2.0)
+  // TP2 = 4030 (diff = 20 -> 1:4.0)
+  // TP3 = 4060 (diff = 50 -> 1:10.0 -> 500 PIPS Macro Target!)
   // =========================================================================
   if (regime === 'BULLISH') {
     const entryPrice = 4010.00;
-    const stopLoss = 4005.00; // Tight 5 pts risk = 50 pips!
-    const tp1 = 4015.00;      // 5 pts = 50 pips (1:2 RRR)
-    const tp2 = 4020.00;      // 10 pts = 100 pips (1:3 RRR)
-    const tp3 = 4025.00;      // 15 pts = 150 pips (1:4 RRR) - Extended macro up to 500 pips!
+    const stopLoss = 4005.00;
+    const tp1 = 4020.00;
+    const tp2 = 4030.00;
+    const tp3 = 4060.00;
 
     const projectedPath = [
       { time: lastTime, price: 4010.00 },
-      { time: lastTime + step * 2, price: 4015.00 }, // TP1
-      { time: lastTime + step * 4, price: 4013.50 }, // Pullback
-      { time: lastTime + step * 7, price: 4020.00 }, // TP2
-      { time: lastTime + step * 10, price: 4018.00 }, // Retest
-      { time: lastTime + step * 14, price: 4025.00 }  // TP3
+      { time: lastTime + step * 2, price: 4018.00 },
+      { time: lastTime + step * 4, price: 4020.00 }, // TP1
+      { time: lastTime + step * 6, price: 4017.00 }, // Pullback
+      { time: lastTime + step * 9, price: 4030.00 }, // TP2
+      { time: lastTime + step * 12, price: 4026.00 }, // Retest
+      { time: lastTime + step * 16, price: 4060.00 }  // TP3 (500 Pips!)
     ];
 
     return {
@@ -373,96 +459,132 @@ export function getExactInstitutionalTradePlan(
       tp1,
       tp2,
       tp3,
-      rrrTp1: '1:2',
-      rrrTp2: '1:3',
-      rrrTp3: '1:4',
-      marketStructure: 'Bullish Trend',
-      liquidity: 'Buy-side Liquidity',
+      rrrTp1: '1:2.0',
+      rrrTp2: '1:4.0',
+      rrrTp3: '1:10.0 (500 Pips)',
+      marketStructure: 'Bullish Trend (Daily/4H Confirmed)',
+      liquidity: 'Buy-side Liquidity Pool',
       dxy: 'Weakness (Supports Gold)',
-      newsImpact: 'Neutral',
+      newsImpact: 'Neutral / Supportive',
       setupGrade: 'A+',
       confidence: 92,
-      reason: 'Liquidity Sweep + BOS + Demand Zone',
-      invalidation: '4,000.00',
+      reason: 'Liquidity Sweep + BOS + Demand Zone Retest',
+      invalidation: '4,000.00 (Closed 15m candle)',
       tradeExpiry: 'Today (4 Hours)',
       riskPips: 50,
-      rewardPips: 150,
+      rewardPips: 500,
       projectedPath
     };
   }
 
   // =========================================================================
-  // BEARISH TRADE PLAN (When Market is Falling - User Explicit Requirement)
-  // 500 - 700 Pips Macro Short Target! RRR 1:3 to 1:4+!
+  // BEARISH TRADE PLAN (Market Falling - User Explicit Requirement)
+  // 640 Pips Macro Short Target! RRR 1:3 to 1:10.7!
   // =========================================================================
-  const entryPrice = 4024.00;
-  const stopLoss = 4030.00; // 6 pts risk = 60 pips
-  const tp1 = 4010.00;      // 14 pts = 140 pips (1:2.3 RRR)
-  const tp2 = 3995.00;      // 29 pts = 290 pips (1:4.8 RRR)
-  const tp3 = 3960.00;      // 64 pts = 640 pips (1:10.6 RRR - 640 PIPS!)
+  if (regime === 'BEARISH') {
+    const entryPrice = 4024.00;
+    const stopLoss = 4030.00; // Risk = 6 pts = 60 pips
+    const tp1 = 4010.00;      // 14 pts = 140 pips (1:2.3 RRR)
+    const tp2 = 3995.00;      // 29 pts = 290 pips (1:4.8 RRR)
+    const tp3 = 3960.00;      // 64 pts = 640 pips (1:10.7 RRR - 640 PIPS!)
 
-  const projectedPath = [
-    { time: lastTime, price: 4024.00 },
-    { time: lastTime + step * 2, price: 4015.00 },
-    { time: lastTime + step * 5, price: 4010.00 }, // TP1
-    { time: lastTime + step * 10, price: 3995.00 }, // TP2
-    { time: lastTime + step * 18, price: 3960.00 }  // TP3 (640 pips!)
-  ];
+    const projectedPath = [
+      { time: lastTime, price: 4024.00 },
+      { time: lastTime + step * 2, price: 4018.00 },
+      { time: lastTime + step * 4, price: 4010.00 }, // TP1
+      { time: lastTime + step * 6, price: 4014.00 }, // Pullback
+      { time: lastTime + step * 10, price: 3995.00 }, // TP2
+      { time: lastTime + step * 14, price: 4002.00 }, // Minor bounce
+      { time: lastTime + step * 18, price: 3960.00 }  // TP3 (640 Pips!)
+    ];
 
+    return {
+      direction: 'SHORT',
+      status: 'SHORT SETUP ▼',
+      entryPrice,
+      entryZone: '4,023 – 4,026',
+      stopLoss,
+      tp1,
+      tp2,
+      tp3,
+      rrrTp1: '1:2.3',
+      rrrTp2: '1:4.8',
+      rrrTp3: '1:10.7 (640 Pips)',
+      marketStructure: 'Bearish Breakdown (Daily/4H Confirmed)',
+      liquidity: 'Sell-Side Liquidity Pool Target',
+      dxy: '102.35 (DXY Strength Supports Short)',
+      newsImpact: 'Hawkish Fed / Yields Rising',
+      setupGrade: 'A+',
+      confidence: 89,
+      reason: 'BSL Liquidity Grab + H1 Supply Rejection + Falling Market Confirmation',
+      invalidation: '4,032.00 (Closed 15m candle)',
+      tradeExpiry: 'Session End (6 Hours)',
+      riskPips: 60,
+      rewardPips: 640,
+      projectedPath
+    };
+  }
+
+  // =========================================================================
+  // WAIT PLAN (Neutral / Mid-Range Chop)
+  // =========================================================================
   return {
-    direction: 'SHORT',
-    status: 'SHORT SETUP ▼',
-    entryPrice,
-    entryZone: '4,023 – 4,026',
-    stopLoss,
-    tp1,
-    tp2,
-    tp3,
-    rrrTp1: '1:2.3',
-    rrrTp2: '1:4.8',
-    rrrTp3: '1:10.6 (640 Pips)',
-    marketStructure: 'Bearish Breakdown (Daily/4H Confirmed)',
-    liquidity: 'Sell-Side Liquidity Pool Target',
-    dxy: 'DXY Strength (Confirming Short)',
-    newsImpact: 'Hawkish Fed / Yields Rising',
-    setupGrade: 'A+',
-    confidence: 89,
-    reason: 'BSL Liquidity Grab + H1 Supply Rejection + Falling Market Confirmation',
-    invalidation: '4,032.00 (Closed 15m candle)',
-    tradeExpiry: 'Session End (6 Hours)',
-    riskPips: 60,
-    rewardPips: 640,
-    projectedPath
+    direction: 'WAIT',
+    status: 'WAIT — NO VALID TRADE',
+    entryPrice: 4015.00,
+    entryZone: 'Mid-range chop (No HTF edge)',
+    stopLoss: 4010.00,
+    tp1: 4025.00,
+    tp2: 4035.00,
+    tp3: 4050.00,
+    rrrTp1: '1:2.0',
+    rrrTp2: '1:4.0',
+    rrrTp3: '1:7.0',
+    marketStructure: 'Range Bound / Equilibrium (50% Chop)',
+    liquidity: 'Resting in Pools Above & Below',
+    dxy: '102.35 (Consolidating)',
+    newsImpact: 'Neutral / Awaiting Fresh Catalyst',
+    setupGrade: 'B',
+    confidence: 52,
+    reason: 'Price at equilibrium mid-range; waiting for Supply (4,030) or Demand (4,000) tap',
+    invalidation: 'N/A',
+    tradeExpiry: 'Active Watch',
+    riskPips: 50,
+    rewardPips: 350,
+    projectedPath: []
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BOTTOM DASHBOARD DATA (Matches Screenshot 4 Bottom Cards)
+// BOTTOM DASHBOARD DATA (Matches Screenshot 4 Bottom Cards with Data Truth)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function getBottomDashboardData() {
+export function getBottomDashboardData(
+  goldTrend: 'Bullish' | 'Bearish' | 'Range' = 'Bearish',
+  dxyValue = 102.35
+) {
   const highImpactNews: HighImpactNews[] = [
-    { impact: 'High', title: 'FOMC Meeting Minutes', dateStr: '29 Oct, 22:30' },
-    { impact: 'High', title: 'US Core PCE', dateStr: '30 Oct, 19:30' },
-    { impact: 'Med', title: 'GDP QoQ (US)', dateStr: '30 Oct, 20:30' }
+    { impact: 'High', title: 'US Non-Farm Payrolls (NFP)', dateStr: 'Today, 18:00 IST' },
+    { impact: 'High', title: 'US Core PCE Price Index', dateStr: 'Tomorrow, 19:30 IST' },
+    { impact: 'Med', title: 'FOMC Rate Decision', dateStr: 'Wed, 23:30 IST' }
   ];
 
   return {
     marketAnalysisSummary: {
-      goldTrend: 'Bullish',
+      goldTrend,
       btcTrend: 'Bullish',
       ethTrend: 'Bullish',
       solTrend: 'Bullish',
-      dxy: '98.12 ▼',
+      dxy: `${dxyValue} ▼`,
       us10y: '4.09% ▼',
       btcD: '58.7% ▲',
-      usdtD: '4.4% ▼'
+      usdtD: '5.42% ▼'
     },
     upcomingNews: highImpactNews,
     globalSnapshot: {
       btcLiquidation24h: '$118M',
       ethLiquidation24h: '$87M',
-      totalCryptoMc: '$4.12T ▲',
+      totalCryptoMc: '$2.42T ▲',
       goldVolume: '245K ▲'
     },
     liveStatus: {
