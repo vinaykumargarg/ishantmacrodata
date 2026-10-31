@@ -21,11 +21,15 @@ import {
 } from '../services/goldInstitutionalEngine';
 import { sharedQuoteStore } from '../services/sharedQuoteStore';
 import { soundEffects } from '../services/soundEffectsService';
+import TradingViewWidget from './TradingViewWidget';
 
 export default function GoldSmcAutoTradeLabView() {
   const [activeAsset, setActiveAsset] = useState<'GOLD' | 'BTC' | 'ETH' | 'SOL'>('GOLD');
   const [timeframe, setTimeframe] = useState<TimeframeOption>('15m');
   const [isThemeDark, setIsThemeDark] = useState<boolean>(true);
+
+  // Chart View Mode: TRADINGVIEW (Professional Live Chart) or SMC_AUTO (Institutional SMC Overlay)
+  const [chartDisplayMode, setChartDisplayMode] = useState<'TRADINGVIEW' | 'SMC_AUTO'>('TRADINGVIEW');
 
   // Direction / Regime Selection: AUTO_LIVE (detects trend) | BEARISH (Short) | BULLISH (Long) | WAIT
   const [marketRegime, setMarketRegime] = useState<MarketRegime>('BEARISH');
@@ -123,6 +127,24 @@ export default function GoldSmcAutoTradeLabView() {
   const tradePlan: ExactTradePlan = useMemo(() => {
     return getExactInstitutionalTradePlan(effectiveRegime, candles);
   }, [effectiveRegime, candles]);
+
+  // TradingView Symbols & Intervals for Official Live Chart
+  const tvSymbol = useMemo(() => {
+    if (activeAsset === 'GOLD') return 'OANDA:XAUUSD';
+    if (activeAsset === 'BTC') return 'BINANCE:BTCUSDT';
+    if (activeAsset === 'ETH') return 'BINANCE:ETHUSDT';
+    if (activeAsset === 'SOL') return 'BINANCE:SOLUSDT';
+    return 'OANDA:XAUUSD';
+  }, [activeAsset]);
+
+  const tvInterval = useMemo(() => {
+    if (timeframe === '1D') return 'D';
+    if (timeframe === '4H') return '240';
+    if (timeframe === '1H') return '60';
+    if (timeframe === '30m') return '30';
+    if (timeframe === '5m') return '5';
+    return '15';
+  }, [timeframe]);
 
   const topAssets: AssetTelemetry[] = useMemo(() => {
     return getTopAssetTelemetry(
@@ -521,6 +543,38 @@ export default function GoldSmcAutoTradeLabView() {
                 </button>
               </div>
 
+              {/* Chart Mode Switcher: TradingView Pro vs SMC Auto */}
+              <div className="flex items-center rounded-lg border border-[#1e293b] bg-[#0b1322] p-0.5 text-[11px]">
+                <button
+                  onClick={() => {
+                    soundEffects.playBlip();
+                    setChartDisplayMode('TRADINGVIEW');
+                  }}
+                  className={`px-2.5 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                    chartDisplayMode === 'TRADINGVIEW'
+                      ? 'bg-[#2563eb] text-white shadow-sm'
+                      : 'text-[#94a3b8] hover:text-white'
+                  }`}
+                  title="Official TradingView live candlestick chart with real indicators"
+                >
+                  📊 TradingView Live Pro
+                </button>
+                <button
+                  onClick={() => {
+                    soundEffects.playBlip();
+                    setChartDisplayMode('SMC_AUTO');
+                  }}
+                  className={`px-2.5 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                    chartDisplayMode === 'SMC_AUTO'
+                      ? 'bg-[#2563eb] text-white shadow-sm'
+                      : 'text-[#94a3b8] hover:text-white'
+                  }`}
+                  title="SMC Auto Analysis with zones, sweeps, BOS, MSS"
+                >
+                  🧠 SMC Auto-Structure
+                </button>
+              </div>
+
               {/* Timeframe Selector */}
               <div className="flex items-center gap-1 bg-[#0b1322] border border-[#1e293b] rounded-lg p-0.5 text-xs">
                 {(['1D', '4H', '1H', '30m', '15m', '5m'] as TimeframeOption[]).map((tf) => (
@@ -575,406 +629,468 @@ export default function GoldSmcAutoTradeLabView() {
             </div>
           </div>
 
-          {/* SVG Canvas Area with Interactive Drag to Move */}
-          <div
-            className={`relative w-full overflow-hidden select-none mt-1.5 rounded-lg border border-[#162032] ${
-              isDragging ? 'cursor-grabbing' : 'cursor-grab'
-            }`}
-            style={{ height: `${chartHeight}px` }}
-          >
-            {/* Live Chart Navigation Helper */}
-            <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-[#0b1322]/90 backdrop-blur-md border border-[#1e293b] rounded px-2 py-0.5 text-[10px] text-[#94a3b8] pointer-events-none">
-              <span className="text-[#f59e0b] font-bold">Zoom: {(zoomLevel * 100).toFixed(0)}%</span>
-              <span>•</span>
-              <span className="text-slate-300">Left-click & drag to move chart</span>
-              {crosshair && (
-                <>
-                  <span>•</span>
-                  <span className="text-[#38bdf8] font-bold">${crosshair.price}</span>
-                </>
-              )}
+          {/* ── CHART VIEWPORT: TRADINGVIEW LIVE PRO vs SMC AUTO CANVAS ── */}
+          {chartDisplayMode === 'TRADINGVIEW' ? (
+            <div className="w-full mt-1.5 rounded-xl overflow-hidden border border-[#162032] shadow-2xl bg-[#070b14] flex flex-col">
+              {/* Institutional Strategy Ribbon */}
+              <div className="px-3 py-2 bg-[#0b1322] border-b border-[#162032] flex flex-wrap items-center justify-between text-xs gap-2 font-mono">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                      tradePlan.direction === 'SHORT'
+                        ? 'bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40'
+                        : tradePlan.direction === 'LONG'
+                        ? 'bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/40'
+                        : 'bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/40'
+                    }`}
+                  >
+                    {tradePlan.status}
+                  </span>
+                  <span className="text-[#94a3b8] text-[11px]">
+                    Live Feed: <strong className="text-white">{tvSymbol}</strong> • TF: <strong className="text-[#38bdf8]">{timeframe}</strong>
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                  <div>
+                    <span className="text-[#94a3b8]">Entry: </span>
+                    <strong className="text-white">{tradePlan.entryPrice.toFixed(2)}</strong>
+                  </div>
+                  <span className="text-slate-700">•</span>
+                  <div>
+                    <span className="text-[#94a3b8]">SL: </span>
+                    <strong className="text-[#ef4444]">{tradePlan.stopLoss.toFixed(2)}</strong>
+                  </div>
+                  <span className="text-slate-700">•</span>
+                  <div>
+                    <span className="text-[#94a3b8]">TP1: </span>
+                    <strong className="text-[#38bdf8]">{tradePlan.tp1.toFixed(2)} ({tradePlan.rrrTp1})</strong>
+                  </div>
+                  <span className="text-slate-700">•</span>
+                  <div>
+                    <span className="text-[#94a3b8]">TP2: </span>
+                    <strong className="text-[#38bdf8]">{tradePlan.tp2.toFixed(2)} ({tradePlan.rrrTp2})</strong>
+                  </div>
+                  <span className="text-slate-700">•</span>
+                  <div>
+                    <span className="text-[#94a3b8]">TP3: </span>
+                    <strong className="text-[#22c55e] font-black">{tradePlan.tp3.toFixed(2)} ({tradePlan.rrrTp3})</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Official Live TradingView Chart */}
+              <div className="w-full relative" style={{ height: '480px', minHeight: '480px' }}>
+                <TradingViewWidget
+                  symbol={tvSymbol}
+                  interval={tvInterval}
+                  height={480}
+                  theme={isThemeDark ? 'dark' : 'light'}
+                />
+              </div>
             </div>
-
-            <svg
-              ref={svgRef}
-              viewBox={dynamicViewBox}
-              className="w-full h-full text-xs font-mono"
-              style={{ background: '#090e18' }}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
-              onWheel={handleWheel}
+          ) : (
+            /* SVG Canvas Area with Interactive Drag to Move */
+            <div
+              className={`relative w-full overflow-hidden select-none mt-1.5 rounded-lg border border-[#162032] ${
+                isDragging ? 'cursor-grabbing' : 'cursor-grab'
+              }`}
+              style={{ height: `${chartHeight}px` }}
             >
-              {/* Horizontal Price Grid Lines & Axis Ticks */}
-              {gridPrices.map((pVal) => {
-                const y = scaleY(pVal);
-                return (
-                  <g key={pVal}>
-                    <line x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} stroke="#131c2e" strokeDasharray="3 3" opacity="0.65" />
-                    <text x={chartWidth - padding.right + 6} y={y + 4} fill="#64748b" fontSize="10">
-                      {pVal.toFixed(2)}
-                    </text>
-                  </g>
-                );
-              })}
+              {/* Live Chart Navigation Helper */}
+              <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-[#0b1322]/90 backdrop-blur-md border border-[#1e293b] rounded px-2 py-0.5 text-[10px] text-[#94a3b8] pointer-events-none">
+                <span className="text-[#f59e0b] font-bold">Zoom: {(zoomLevel * 100).toFixed(0)}%</span>
+                <span>•</span>
+                <span className="text-slate-300">Left-click & drag to move chart</span>
+                {crosshair && (
+                  <>
+                    <span>•</span>
+                    <span className="text-[#38bdf8] font-bold">${crosshair.price}</span>
+                  </>
+                )}
+              </div>
 
-              {/* Time Axis Labels on Bottom */}
-              {[
-                { i: 4, label: '18:00' },
-                { i: 12, label: '21:00' },
-                { i: 20, label: '30 Oct' },
-                { i: 28, label: '03:00' },
-                { i: 36, label: '06:00' },
-                { i: 44, label: '09:00' },
-                { i: 52, label: '12:00' },
-                { i: 60, label: '18:00' },
-                { i: 68, label: '21:00' }
-              ].map((t) => (
-                <text key={t.label} x={scaleX(t.i)} y={chartHeight - 12} textAnchor="middle" fill="#64748b" fontSize="9.5">
-                  {t.label}
-                </text>
-              ))}
+              <svg
+                ref={svgRef}
+                viewBox={dynamicViewBox}
+                className="w-full h-full text-xs font-mono"
+                style={{ background: '#090e18' }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+                onWheel={handleWheel}
+              >
+                {/* Horizontal Price Grid Lines & Axis Ticks */}
+                {gridPrices.map((pVal) => {
+                  const y = scaleY(pVal);
+                  return (
+                    <g key={pVal}>
+                      <line x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} stroke="#131c2e" strokeDasharray="3 3" opacity="0.65" />
+                      <text x={chartWidth - padding.right + 6} y={y + 4} fill="#64748b" fontSize="10">
+                        {pVal.toFixed(2)}
+                      </text>
+                    </g>
+                  );
+                })}
 
-              {/* ── SMC ZONES: DEMAND (GREEN), SUPPLY (RED), FVG (BLUE) ── */}
-              {smcStructures.zones.map((zone) => {
-                const yTop = scaleY(zone.top);
-                const yBottom = scaleY(zone.bottom);
-                const h = Math.abs(yBottom - yTop);
-                const isDemand = zone.type === 'DEMAND';
-                const isSupply = zone.type === 'SUPPLY';
+                {/* Time Axis Labels on Bottom */}
+                {[
+                  { i: 4, label: '18:00' },
+                  { i: 12, label: '21:00' },
+                  { i: 20, label: '30 Oct' },
+                  { i: 28, label: '03:00' },
+                  { i: 36, label: '06:00' },
+                  { i: 44, label: '09:00' },
+                  { i: 52, label: '12:00' },
+                  { i: 60, label: '18:00' },
+                  { i: 68, label: '21:00' }
+                ].map((t) => (
+                  <text key={t.label} x={scaleX(t.i)} y={chartHeight - 12} textAnchor="middle" fill="#64748b" fontSize="9.5">
+                    {t.label}
+                  </text>
+                ))}
 
-                const fillColor = isDemand ? '#059669' : isSupply ? '#dc2626' : '#0284c7';
-                const strokeColor = isDemand ? '#10b981' : isSupply ? '#ef4444' : '#38bdf8';
+                {/* ── SMC ZONES: DEMAND (GREEN), SUPPLY (RED), FVG (BLUE) ── */}
+                {smcStructures.zones.map((zone) => {
+                  const yTop = scaleY(zone.top);
+                  const yBottom = scaleY(zone.bottom);
+                  const h = Math.abs(yBottom - yTop);
+                  const isDemand = zone.type === 'DEMAND';
+                  const isSupply = zone.type === 'SUPPLY';
 
-                const startIdx = zone.id.includes('SUPPLY-B1') ? 34
-                  : zone.id.includes('FVG-B1') ? 38
-                  : zone.id.includes('DEMAND-TARGET') ? 44
-                  : zone.id === 'DEMAND-1' ? 8
-                  : zone.id === 'SUPPLY-1' ? 36
-                  : zone.id === 'FVG-1' ? 44
-                  : 50;
+                  const fillColor = isDemand ? '#059669' : isSupply ? '#dc2626' : '#0284c7';
+                  const strokeColor = isDemand ? '#10b981' : isSupply ? '#ef4444' : '#38bdf8';
 
-                return (
-                  <g key={zone.id}>
-                    <rect
-                      x={scaleX(startIdx)}
-                      y={yTop}
-                      width={chartWidth - padding.right - scaleX(startIdx)}
-                      height={Math.max(12, h)}
-                      fill={fillColor}
-                      fillOpacity={isDemand ? '0.32' : isSupply ? '0.35' : '0.28'}
-                      stroke={strokeColor}
-                      strokeWidth="1"
-                      rx="3"
-                    />
-                    <text
-                      x={scaleX(startIdx + 4)}
-                      y={yTop + 13}
-                      fill="#ffffff"
-                      fontSize="9.5"
-                      fontWeight="bold"
-                    >
-                      {zone.label}
-                    </text>
-                    {zone.slPrice && (
+                  const startIdx = zone.id.includes('SUPPLY-B1') ? 34
+                    : zone.id.includes('FVG-B1') ? 38
+                    : zone.id.includes('DEMAND-TARGET') ? 44
+                    : zone.id === 'DEMAND-1' ? 8
+                    : zone.id === 'SUPPLY-1' ? 36
+                    : zone.id === 'FVG-1' ? 44
+                    : 50;
+
+                  return (
+                    <g key={zone.id}>
+                      <rect
+                        x={scaleX(startIdx)}
+                        y={yTop}
+                        width={chartWidth - padding.right - scaleX(startIdx)}
+                        height={Math.max(12, h)}
+                        fill={fillColor}
+                        fillOpacity={isDemand ? '0.32' : isSupply ? '0.35' : '0.28'}
+                        stroke={strokeColor}
+                        strokeWidth="1"
+                        rx="3"
+                      />
                       <text
-                        x={chartWidth - padding.right - 10}
-                        y={scaleY(zone.slPrice) - 4}
-                        textAnchor="end"
-                        fill="#ef4444"
+                        x={scaleX(startIdx + 4)}
+                        y={yTop + 13}
+                        fill="#ffffff"
                         fontSize="9.5"
                         fontWeight="bold"
                       >
-                        SL: {zone.slPrice.toFixed(2)}
+                        {zone.label}
                       </text>
-                    )}
-                  </g>
-                );
-              })}
-
-              {/* ── BOS & CHOCH LINES ── */}
-              {smcStructures.bosList.map((bos) => {
-                const startIdx = effectiveRegime === 'BEARISH' ? 32 : (bos.id === 'BOS-1' ? 8 : 54);
-                const endIdx = effectiveRegime === 'BEARISH' ? 48 : (bos.id === 'BOS-1' ? 14 : 64);
-                return (
-                  <g key={bos.id}>
-                    <line
-                      x1={scaleX(startIdx)}
-                      y1={scaleY(bos.price)}
-                      x2={scaleX(endIdx)}
-                      y2={scaleY(bos.price)}
-                      stroke="#ffffff"
-                      strokeWidth="1.2"
-                      strokeDasharray="3 2"
-                    />
-                    <text
-                      x={scaleX(startIdx + 2)}
-                      y={scaleY(bos.price) - 4}
-                      fill="#ffffff"
-                      fontSize="9.5"
-                      fontWeight="bold"
-                    >
-                      BOS
-                    </text>
-                  </g>
-                );
-              })}
-
-              {smcStructures.mssList.map((choch) => {
-                const startIdx = effectiveRegime === 'BEARISH' ? 24 : 18;
-                const endIdx = effectiveRegime === 'BEARISH' ? 38 : 30;
-                return (
-                  <g key={choch.id}>
-                    <line
-                      x1={scaleX(startIdx)}
-                      y1={scaleY(choch.price)}
-                      x2={scaleX(endIdx)}
-                      y2={scaleY(choch.price)}
-                      stroke="#ffffff"
-                      strokeWidth="1.2"
-                      strokeDasharray="3 2"
-                    />
-                    <text
-                      x={scaleX(startIdx + 2)}
-                      y={scaleY(choch.price) - 4}
-                      fill="#ffffff"
-                      fontSize="9.5"
-                      fontWeight="bold"
-                    >
-                      {choch.label}
-                    </text>
-                  </g>
-                );
-              })}
-
-              {/* ── LIQUIDITY SWEEP & LIQUIDITY GRAB CALLOUTS ── */}
-              {smcStructures.markers.map((m) => {
-                const candleIdx = effectiveRegime === 'BEARISH' ? 24 : (m.type === 'SWEEP' ? 16 : 38);
-                const x = scaleX(candleIdx);
-                const y = scaleY(m.price);
-
-                return (
-                  <g key={m.id}>
-                    {m.type === 'SWEEP' ? (
-                      <>
-                        <line x1={x} y1={y + 18} x2={x} y2={y + 3} stroke="#ffffff" strokeWidth="1.5" markerEnd="url(#arrow-white-up)" />
-                        <text x={x + 6} y={y + 14} fill="#ffffff" fontSize="9" fontWeight="bold">
-                          {m.label}
+                      {zone.slPrice && (
+                        <text
+                          x={chartWidth - padding.right - 10}
+                          y={scaleY(zone.slPrice) - 4}
+                          textAnchor="end"
+                          fill="#ef4444"
+                          fontSize="9.5"
+                          fontWeight="bold"
+                        >
+                          SL: {zone.slPrice.toFixed(2)}
                         </text>
-                      </>
-                    ) : (
-                      <>
-                        <line x1={x} y1={y - 18} x2={x} y2={y - 3} stroke="#ffffff" strokeWidth="1.5" markerEnd="url(#arrow-white-down)" />
-                        <text x={x - 6} y={y - 20} textAnchor="end" fill="#ffffff" fontSize="9" fontWeight="bold">
-                          {m.label}
-                        </text>
-                      </>
-                    )}
-                  </g>
-                );
-              })}
+                      )}
+                    </g>
+                  );
+                })}
 
-              {/* ── TRADE EXECUTION PLAN OVERLAYS (ENTRY, SL, TP1, TP2, TP3) ── */}
-              {tradePlan.direction !== 'WAIT' && (
-                <g>
-                  {/* Risk Box */}
-                  <rect
-                    x={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
-                    y={scaleY(Math.max(tradePlan.stopLoss, tradePlan.entryPrice))}
-                    width={chartWidth - padding.right - scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
-                    height={Math.max(6, Math.abs(scaleY(tradePlan.stopLoss) - scaleY(tradePlan.entryPrice)))}
-                    fill="#dc2626"
-                    fillOpacity="0.22"
-                    stroke="#ef4444"
-                    strokeWidth="1"
-                    strokeDasharray="2 2"
-                  />
-
-                  {/* Reward Box */}
-                  <rect
-                    x={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
-                    y={scaleY(Math.max(tradePlan.entryPrice, tradePlan.tp3))}
-                    width={chartWidth - padding.right - scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
-                    height={Math.max(12, Math.abs(scaleY(tradePlan.tp3) - scaleY(tradePlan.entryPrice)))}
-                    fill={effectiveRegime === 'BEARISH' ? '#059669' : '#0284c7'}
-                    fillOpacity="0.18"
-                    stroke={effectiveRegime === 'BEARISH' ? '#10b981' : '#38bdf8'}
-                    strokeWidth="1"
-                    strokeDasharray="2 2"
-                  />
-
-                  {/* Solid Entry Line & Price Pill */}
-                  <line
-                    x1={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
-                    y1={scaleY(tradePlan.entryPrice)}
-                    x2={chartWidth - padding.right}
-                    y2={scaleY(tradePlan.entryPrice)}
-                    stroke={effectiveRegime === 'BEARISH' ? '#f8fafc' : '#10b981'}
-                    strokeWidth="2"
-                  />
-                  <text
-                    x={scaleX(effectiveRegime === 'BEARISH' ? 48 : 64)}
-                    y={scaleY(tradePlan.entryPrice) - 5}
-                    fill={effectiveRegime === 'BEARISH' ? '#ffffff' : '#10b981'}
-                    fontSize="9.5"
-                    fontWeight="bold"
-                  >
-                    Entry: {tradePlan.entryPrice.toFixed(2)}
-                  </text>
-                  <rect
-                    x={chartWidth - padding.right + 2}
-                    y={scaleY(tradePlan.entryPrice) - 8}
-                    width="78"
-                    height="16"
-                    fill={effectiveRegime === 'BEARISH' ? '#dc2626' : '#059669'}
-                    rx="3"
-                  />
-                  <text
-                    x={chartWidth - padding.right + 6}
-                    y={scaleY(tradePlan.entryPrice) + 4}
-                    fill="#ffffff"
-                    fontSize="9.5"
-                    fontWeight="900"
-                  >
-                    {tradePlan.entryPrice.toFixed(2)}
-                  </text>
-
-                  {/* Red SL Line & Tag */}
-                  <line
-                    x1={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
-                    y1={scaleY(tradePlan.stopLoss)}
-                    x2={chartWidth - padding.right}
-                    y2={scaleY(tradePlan.stopLoss)}
-                    stroke="#ef4444"
-                    strokeWidth="1.5"
-                    strokeDasharray="3 2"
-                  />
-                  <text
-                    x={scaleX(effectiveRegime === 'BEARISH' ? 48 : 64)}
-                    y={scaleY(tradePlan.stopLoss) + (effectiveRegime === 'BEARISH' ? -5 : 12)}
-                    fill="#ef4444"
-                    fontSize="9.5"
-                    fontWeight="bold"
-                  >
-                    SL: {tradePlan.stopLoss.toFixed(2)}
-                  </text>
-
-                  {/* Blue / Cyan TP1, TP2, TP3 Lines */}
-                  {[
-                    { label: `TP1: ${tradePlan.tp1.toFixed(2)} (${tradePlan.rrrTp1})`, p: tradePlan.tp1 },
-                    { label: `TP2: ${tradePlan.tp2.toFixed(2)} (${tradePlan.rrrTp2})`, p: tradePlan.tp2 },
-                    { label: `TP3: ${tradePlan.tp3.toFixed(2)} (${tradePlan.rrrTp3})`, p: tradePlan.tp3 }
-                  ].map((tp) => (
-                    <g key={tp.label}>
+                {/* ── BOS & CHOCH LINES ── */}
+                {smcStructures.bosList.map((bos) => {
+                  const startIdx = effectiveRegime === 'BEARISH' ? 32 : (bos.id === 'BOS-1' ? 8 : 54);
+                  const endIdx = effectiveRegime === 'BEARISH' ? 48 : (bos.id === 'BOS-1' ? 14 : 64);
+                  return (
+                    <g key={bos.id}>
                       <line
-                        x1={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
-                        y1={scaleY(tp.p)}
-                        x2={chartWidth - padding.right}
-                        y2={scaleY(tp.p)}
-                        stroke="#38bdf8"
+                        x1={scaleX(startIdx)}
+                        y1={scaleY(bos.price)}
+                        x2={scaleX(endIdx)}
+                        y2={scaleY(bos.price)}
+                        stroke="#ffffff"
                         strokeWidth="1.2"
                         strokeDasharray="3 2"
                       />
                       <text
-                        x={chartWidth - padding.right - 10}
-                        y={scaleY(tp.p) - 4}
-                        textAnchor="end"
-                        fill="#38bdf8"
+                        x={scaleX(startIdx + 2)}
+                        y={scaleY(bos.price) - 4}
+                        fill="#ffffff"
                         fontSize="9.5"
                         fontWeight="bold"
                       >
-                        {tp.label}
+                        BOS
                       </text>
                     </g>
-                  ))}
+                  );
+                })}
 
-                  {/* Dotted hypothetical path into TP3 */}
-                  {tradePlan.projectedPath.length > 0 && (
-                    <g>
-                      <polyline
-                        points={tradePlan.projectedPath.map((pt, idx) => {
-                          const x = scaleX((effectiveRegime === 'BEARISH' ? 44 : 52) + idx * 3.4);
-                          const y = scaleY(pt.price);
-                          return `${x},${y}`;
-                        }).join(' ')}
-                        fill="none"
-                        stroke="#f8fafc"
-                        strokeDasharray="3 3"
-                        strokeWidth="1.5"
-                        opacity="0.85"
+                {smcStructures.mssList.map((choch) => {
+                  const startIdx = effectiveRegime === 'BEARISH' ? 24 : 18;
+                  const endIdx = effectiveRegime === 'BEARISH' ? 38 : 30;
+                  return (
+                    <g key={choch.id}>
+                      <line
+                        x1={scaleX(startIdx)}
+                        y1={scaleY(choch.price)}
+                        x2={scaleX(endIdx)}
+                        y2={scaleY(choch.price)}
+                        stroke="#ffffff"
+                        strokeWidth="1.2"
+                        strokeDasharray="3 2"
                       />
                       <text
-                        x={scaleX((effectiveRegime === 'BEARISH' ? 44 : 52) + (tradePlan.projectedPath.length - 1) * 3.4) - 10}
-                        y={scaleY(tradePlan.projectedPath[tradePlan.projectedPath.length - 1].price) + 14}
-                        textAnchor="end"
-                        fill="#94a3b8"
-                        fontSize="8.5"
-                        fontStyle="italic"
+                        x={scaleX(startIdx + 2)}
+                        y={scaleY(choch.price) - 4}
+                        fill="#ffffff"
+                        fontSize="9.5"
+                        fontWeight="bold"
                       >
-                        ghost path (HYPOTHESIS)
+                        {choch.label}
                       </text>
                     </g>
-                  )}
-                </g>
-              )}
+                  );
+                })}
 
-              {/* ── CANDLESTICKS RENDERING ── */}
-              {candles.map((c, i) => {
-                const x = scaleX(i);
-                const isUp = c.close >= c.open;
-                const candleColor = isUp ? '#26a69a' : '#ef5350';
-                const bodyTop = scaleY(Math.max(c.open, c.close));
-                const bodyBottom = scaleY(Math.min(c.open, c.close));
-                const bodyHeight = Math.max(1.8, bodyBottom - bodyTop);
+                {/* ── LIQUIDITY SWEEP & LIQUIDITY GRAB CALLOUTS ── */}
+                {smcStructures.markers.map((m) => {
+                  const candleIdx = effectiveRegime === 'BEARISH' ? 24 : (m.type === 'SWEEP' ? 16 : 38);
+                  const x = scaleX(candleIdx);
+                  const y = scaleY(m.price);
 
-                return (
-                  <g key={i}>
-                    {/* Wick */}
-                    <line
-                      x1={x}
-                      y1={scaleY(c.high)}
-                      x2={x}
-                      y2={scaleY(c.low)}
-                      stroke={candleColor}
-                      strokeWidth="1.2"
-                    />
-                    {/* Body */}
+                  return (
+                    <g key={m.id}>
+                      {m.type === 'SWEEP' ? (
+                        <>
+                          <line x1={x} y1={y + 18} x2={x} y2={y + 3} stroke="#ffffff" strokeWidth="1.5" markerEnd="url(#arrow-white-up)" />
+                          <text x={x + 6} y={y + 14} fill="#ffffff" fontSize="9" fontWeight="bold">
+                            {m.label}
+                          </text>
+                        </>
+                      ) : (
+                        <>
+                          <line x1={x} y1={y - 18} x2={x} y2={y - 3} stroke="#ffffff" strokeWidth="1.5" markerEnd="url(#arrow-white-down)" />
+                          <text x={x - 6} y={y - 20} textAnchor="end" fill="#ffffff" fontSize="9" fontWeight="bold">
+                            {m.label}
+                          </text>
+                        </>
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* ── TRADE EXECUTION PLAN OVERLAYS (ENTRY, SL, TP1, TP2, TP3) ── */}
+                {tradePlan.direction !== 'WAIT' && (
+                  <g>
+                    {/* Risk Box */}
                     <rect
-                      x={x - 3.2}
-                      y={bodyTop}
-                      width={6.4}
-                      height={bodyHeight}
-                      fill={candleColor}
-                      rx="0.5"
+                      x={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
+                      y={scaleY(Math.max(tradePlan.stopLoss, tradePlan.entryPrice))}
+                      width={chartWidth - padding.right - scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
+                      height={Math.max(6, Math.abs(scaleY(tradePlan.stopLoss) - scaleY(tradePlan.entryPrice)))}
+                      fill="#dc2626"
+                      fillOpacity="0.22"
+                      stroke="#ef4444"
+                      strokeWidth="1"
+                      strokeDasharray="2 2"
                     />
+
+                    {/* Reward Box */}
+                    <rect
+                      x={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
+                      y={scaleY(Math.max(tradePlan.entryPrice, tradePlan.tp3))}
+                      width={chartWidth - padding.right - scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
+                      height={Math.max(12, Math.abs(scaleY(tradePlan.tp3) - scaleY(tradePlan.entryPrice)))}
+                      fill={effectiveRegime === 'BEARISH' ? '#059669' : '#0284c7'}
+                      fillOpacity="0.18"
+                      stroke={effectiveRegime === 'BEARISH' ? '#10b981' : '#38bdf8'}
+                      strokeWidth="1"
+                      strokeDasharray="2 2"
+                    />
+
+                    {/* Solid Entry Line & Price Pill */}
+                    <line
+                      x1={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
+                      y1={scaleY(tradePlan.entryPrice)}
+                      x2={chartWidth - padding.right}
+                      y2={scaleY(tradePlan.entryPrice)}
+                      stroke={effectiveRegime === 'BEARISH' ? '#f8fafc' : '#10b981'}
+                      strokeWidth="2"
+                    />
+                    <text
+                      x={scaleX(effectiveRegime === 'BEARISH' ? 48 : 64)}
+                      y={scaleY(tradePlan.entryPrice) - 5}
+                      fill={effectiveRegime === 'BEARISH' ? '#ffffff' : '#10b981'}
+                      fontSize="9.5"
+                      fontWeight="bold"
+                    >
+                      Entry: {tradePlan.entryPrice.toFixed(2)}
+                    </text>
+                    <rect
+                      x={chartWidth - padding.right + 2}
+                      y={scaleY(tradePlan.entryPrice) - 8}
+                      width="78"
+                      height="16"
+                      fill={effectiveRegime === 'BEARISH' ? '#dc2626' : '#059669'}
+                      rx="3"
+                    />
+                    <text
+                      x={chartWidth - padding.right + 6}
+                      y={scaleY(tradePlan.entryPrice) + 4}
+                      fill="#ffffff"
+                      fontSize="9.5"
+                      fontWeight="900"
+                    >
+                      {tradePlan.entryPrice.toFixed(2)}
+                    </text>
+
+                    {/* Red SL Line & Tag */}
+                    <line
+                      x1={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
+                      y1={scaleY(tradePlan.stopLoss)}
+                      x2={chartWidth - padding.right}
+                      y2={scaleY(tradePlan.stopLoss)}
+                      stroke="#ef4444"
+                      strokeWidth="1.5"
+                      strokeDasharray="3 2"
+                    />
+                    <text
+                      x={scaleX(effectiveRegime === 'BEARISH' ? 48 : 64)}
+                      y={scaleY(tradePlan.stopLoss) + (effectiveRegime === 'BEARISH' ? -5 : 12)}
+                      fill="#ef4444"
+                      fontSize="9.5"
+                      fontWeight="bold"
+                    >
+                      SL: {tradePlan.stopLoss.toFixed(2)}
+                    </text>
+
+                    {/* Blue / Cyan TP1, TP2, TP3 Lines */}
+                    {[
+                      { label: `TP1: ${tradePlan.tp1.toFixed(2)} (${tradePlan.rrrTp1})`, p: tradePlan.tp1 },
+                      { label: `TP2: ${tradePlan.tp2.toFixed(2)} (${tradePlan.rrrTp2})`, p: tradePlan.tp2 },
+                      { label: `TP3: ${tradePlan.tp3.toFixed(2)} (${tradePlan.rrrTp3})`, p: tradePlan.tp3 }
+                    ].map((tp) => (
+                      <g key={tp.label}>
+                        <line
+                          x1={scaleX(effectiveRegime === 'BEARISH' ? 44 : 52)}
+                          y1={scaleY(tp.p)}
+                          x2={chartWidth - padding.right}
+                          y2={scaleY(tp.p)}
+                          stroke="#38bdf8"
+                          strokeWidth="1.2"
+                          strokeDasharray="3 2"
+                        />
+                        <text
+                          x={chartWidth - padding.right - 10}
+                          y={scaleY(tp.p) - 4}
+                          textAnchor="end"
+                          fill="#38bdf8"
+                          fontSize="9.5"
+                          fontWeight="bold"
+                        >
+                          {tp.label}
+                        </text>
+                      </g>
+                    ))}
+
+                    {/* Dotted hypothetical path into TP3 */}
+                    {tradePlan.projectedPath.length > 0 && (
+                      <g>
+                        <polyline
+                          points={tradePlan.projectedPath.map((pt, idx) => {
+                            const x = scaleX((effectiveRegime === 'BEARISH' ? 44 : 52) + idx * 3.4);
+                            const y = scaleY(pt.price);
+                            return `${x},${y}`;
+                          }).join(' ')}
+                          fill="none"
+                          stroke="#f8fafc"
+                          strokeDasharray="3 3"
+                          strokeWidth="1.5"
+                          opacity="0.85"
+                        />
+                        <text
+                          x={scaleX((effectiveRegime === 'BEARISH' ? 44 : 52) + (tradePlan.projectedPath.length - 1) * 3.4) - 10}
+                          y={scaleY(tradePlan.projectedPath[tradePlan.projectedPath.length - 1].price) + 14}
+                          textAnchor="end"
+                          fill="#94a3b8"
+                          fontSize="8.5"
+                          fontStyle="italic"
+                        >
+                          ghost path (HYPOTHESIS)
+                        </text>
+                      </g>
+                    )}
                   </g>
-                );
-              })}
+                )}
 
-              {/* Crosshair Overlay */}
-              {crosshair && (
-                <g pointerEvents="none">
-                  <line x1={crosshair.x} y1={padding.top} x2={crosshair.x} y2={chartHeight - padding.bottom} stroke="#38bdf8" strokeDasharray="2 2" strokeWidth="1" opacity="0.8" />
-                  <line x1={padding.left} y1={crosshair.y} x2={chartWidth - padding.right} y2={crosshair.y} stroke="#38bdf8" strokeDasharray="2 2" strokeWidth="1" opacity="0.8" />
-                  <rect x={chartWidth - padding.right + 2} y={crosshair.y - 9} width="68" height="18" fill="#0284c7" rx="3" />
-                  <text x={chartWidth - padding.right + 6} y={crosshair.y + 4} fill="#ffffff" fontSize="10" fontWeight="900">
-                    ${crosshair.price}
-                  </text>
-                </g>
-              )}
+                {/* ── CANDLESTICKS RENDERING ── */}
+                {candles.map((c, i) => {
+                  const x = scaleX(i);
+                  const isUp = c.close >= c.open;
+                  const candleColor = isUp ? '#26a69a' : '#ef5350';
+                  const bodyTop = scaleY(Math.max(c.open, c.close));
+                  const bodyBottom = scaleY(Math.min(c.open, c.close));
+                  const bodyHeight = Math.max(1.8, bodyBottom - bodyTop);
 
-              {/* SVG Markers */}
-              <defs>
-                <marker id="arrow-white-up" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 10 L 5 0 L 10 10 z" fill="#ffffff" />
-                </marker>
-                <marker id="arrow-white-down" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 0 L 10 0 L 5 10 z" fill="#ffffff" />
-                </marker>
-              </defs>
-            </svg>
-          </div>
+                  return (
+                    <g key={i}>
+                      {/* Wick */}
+                      <line
+                        x1={x}
+                        y1={scaleY(c.high)}
+                        x2={x}
+                        y2={scaleY(c.low)}
+                        stroke={candleColor}
+                        strokeWidth="1.2"
+                      />
+                      {/* Body */}
+                      <rect
+                        x={x - 3.2}
+                        y={bodyTop}
+                        width={6.4}
+                        height={bodyHeight}
+                        fill={candleColor}
+                        rx="0.5"
+                      />
+                    </g>
+                  );
+                })}
+
+                {/* Crosshair Overlay */}
+                {crosshair && (
+                  <g pointerEvents="none">
+                    <line x1={crosshair.x} y1={padding.top} x2={crosshair.x} y2={chartHeight - padding.bottom} stroke="#38bdf8" strokeDasharray="2 2" strokeWidth="1" opacity="0.8" />
+                    <line x1={padding.left} y1={crosshair.y} x2={chartWidth - padding.right} y2={crosshair.y} stroke="#38bdf8" strokeDasharray="2 2" strokeWidth="1" opacity="0.8" />
+                    <rect x={chartWidth - padding.right + 2} y={crosshair.y - 9} width="68" height="18" fill="#0284c7" rx="3" />
+                    <text x={chartWidth - padding.right + 6} y={crosshair.y + 4} fill="#ffffff" fontSize="10" fontWeight="900">
+                      ${crosshair.price}
+                    </text>
+                  </g>
+                )}
+
+                {/* SVG Markers */}
+                <defs>
+                  <marker id="arrow-white-up" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 10 L 5 0 L 10 10 z" fill="#ffffff" />
+                  </marker>
+                  <marker id="arrow-white-down" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 0 L 5 10 z" fill="#ffffff" />
+                  </marker>
+                </defs>
+              </svg>
+            </div>
+          )}
         </div>
 
         {/* RIGHT 32%: GOLD AI — TRADE PLAN CARD (1:1 with Screenshot) */}
