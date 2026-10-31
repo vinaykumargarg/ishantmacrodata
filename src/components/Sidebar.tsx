@@ -81,6 +81,7 @@ export const SECTIONS: SidebarSection[] = [
     color: '#f5c451', // Gold
     icon: '🥇',
     items: [
+      { emoji: '⚡', name: 'Gold SMC Auto Trade Lab', route: 'gold-smc-lab' },
       { emoji: '🥇', name: 'Gold Macro Overview', route: 'gold' },
       { emoji: '🪙', name: 'DEEEPR Gold Entry & Reason', route: 'deeepr-gold-entry-engine' },
       { emoji: '🏆', name: 'Institutional XAUUSD Terminal', route: 'xauusd-institutional' },
@@ -223,7 +224,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   isDarkMode = true,
   isMobile = false,
-  width = 205,
+  width = 192,
 }) => {
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -237,6 +238,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     } catch {}
     return false;
   });
+
+  const sidebarRef = React.useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -261,29 +264,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
+      ref={sidebarRef}
       aria-label="Terminal navigation"
       style={isMobile ? undefined : { width: `${width}px`, minWidth: `${width}px` }}
       className={`sidebar iitian-sidebar-root iitian-scroll select-none ${
         isMobile
           ? 'block w-full h-full border-none'
           : 'hidden shrink-0 sticky top-[46px] h-[calc(100vh-46px)] lg:block'
-      } overflow-y-scroll pb-12 z-20 transition-[width] duration-75`}
+      } overflow-y-scroll pb-16 z-20 transition-[width] duration-75`}
     >
-      {/* Brand Header block matching ishantmircodata.lovable.app */}
-      <div className="px-3 py-3 mb-1.5 flex items-center gap-2.5 border-b border-[var(--border)] bg-[var(--surface-1)]/40 shrink-0">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 via-indigo-600 to-sky-500 text-sm font-bold text-white shadow-md shadow-blue-500/25">
-          ⚡
-        </div>
-        <div className="flex flex-col min-w-0 leading-tight">
-          <span className="font-['IBM_Plex_Sans'] text-[13.5px] font-semibold text-[var(--text)] tracking-tight truncate">
-            Ishant Jakhenia
-          </span>
-          <span className="font-['JetBrains_Mono'] text-[8px] font-medium tracking-wider text-[var(--text-3)] uppercase truncate">
-            GLOBAL MACRO COMMAND CENTRE
-          </span>
-        </div>
-      </div>
-
       <div className="py-2 px-1.5 space-y-3">
         {SECTIONS.map((section) => (
           <div key={section.title} className="space-y-1">
@@ -342,6 +331,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Floating Bottom Navigation / Scroll To Top Affordance */}
+      <div className="sticky bottom-0 left-0 right-0 py-1.5 px-2 bg-[var(--surface-1)]/95 backdrop-blur-md border-t border-[var(--border)] flex items-center justify-between text-[10px] text-[var(--text-3)] font-mono z-10">
+        <span className="truncate max-w-[110px] text-[var(--text-2)] font-semibold uppercase">{activeTab}</span>
+        <button
+          type="button"
+          onClick={() => sidebarRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="text-blue-500 hover:text-blue-400 font-bold px-1.5 py-0.5 rounded hover:bg-blue-500/10 transition-colors cursor-pointer"
+          title="Scroll up to top"
+        >
+          ↑ TOP
+        </button>
       </div>
     </aside>
   );

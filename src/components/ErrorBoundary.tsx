@@ -23,6 +23,21 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    // Auto-heal dynamically imported module failures seamlessly without user disruption
+    const isChunkError =
+      error?.message?.includes('Failed to fetch dynamically imported module') ||
+      error?.message?.includes('Importing a module script failed') ||
+      error?.message?.includes('dynamically imported');
+
+    if (isChunkError && typeof window !== 'undefined') {
+      const reloadKey = 'chunk_reload_attempts';
+      const attempts = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
+      if (attempts < 2) {
+        sessionStorage.setItem(reloadKey, String(attempts + 1));
+        window.location.reload();
+      }
+    }
   }
 
   private handleReload = () => {

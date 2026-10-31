@@ -2,6 +2,30 @@
 <html lang="en" class="light">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <script>
+      // Auto-heal Vite chunk load errors when fresh builds are deployed
+      window.addEventListener('vite:preloadError', function (event) {
+        event.preventDefault();
+        window.location.reload();
+      });
+      window.addEventListener('error', function (e) {
+        if (e && e.message && (
+          e.message.includes('Failed to fetch dynamically imported module') ||
+          e.message.includes('Importing a module script failed') ||
+          e.message.includes('error loading dynamically imported module')
+        )) {
+          var key = 'vite_chunk_err_reload';
+          var count = parseInt(sessionStorage.getItem(key) || '0', 10);
+          if (count < 2) {
+            sessionStorage.setItem(key, String(count + 1));
+            window.location.reload();
+          }
+        }
+      });
+    </script>
     <link rel="icon" type="image/jpeg" href="./brand-logo.jpg" />
     <link rel="apple-touch-icon" href="./brand-logo.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

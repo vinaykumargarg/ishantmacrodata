@@ -27,10 +27,19 @@ import {
   DeltaUniverseSummary,
   runDeltaAllCoinsScanner,
   getOrBuildDossierForSymbol,
-  DELTA_ALL_COINS_SEEDS
+  DELTA_ALL_COINS_SEEDS,
+  PreTradeScorecard,
+  TradeJournalEntry,
+  ExpectancyAnalytics,
+  getTradeJournal,
+  saveTradeJournalEntry,
+  updateTradeJournalStatus,
+  deleteTradeJournalEntry,
+  computeExpectancyAnalytics
 } from '../services/deltaAllCoinsEngine';
 import { deltaSwingService } from '../services/deltaSwingEngine';
 import { voiceService } from '../services/voiceSynthesisService';
+import { soundEffects } from '../services/soundEffectsService';
 import TradingViewWidget from './TradingViewWidget';
 
 interface Props {
@@ -49,6 +58,7 @@ type FilterTab =
   | 'AVOID_RISK';
 
 type DossierSectionTab =
+  | 'SCORECARD_EXPECTANCY'
   | 'MEMO'
   | 'MONEY_FLOW'
   | 'ENTRY_PLAN'
@@ -129,6 +139,36 @@ export default function DeltaSwingScannerView({ onNavigate: _onNavigate }: Props
     }
   ]);
   const [tradeSuccessToast, setTradeSuccessToast] = useState<string | null>(null);
+
+  // Trade Journal & Expectancy State (Addendum to v2)
+  const [journalEntries, setJournalEntries] = useState<TradeJournalEntry[]>(() => getTradeJournal());
+  const expectancyAnalytics = useMemo(() => computeExpectancyAnalytics(journalEntries), [journalEntries]);
+
+  const handleLogActiveToJournal = () => {
+    const activeScorecard = activeDossier.preTradeScorecard;
+    const newEntry: TradeJournalEntry = {
+      id: `TJ-${Date.now().toString().slice(-4)}`,
+      date: new Date().toISOString().slice(0, 10),
+      symbol: activeDossier.s1_identity.symbol,
+      horizon: horizon,
+      direction: activeDossier.s13_plan.direction === 'SHORT' ? 'SHORT' : 'LONG',
+      grade: activeScorecard.grade,
+      entryPrice: activeDossier.s13_plan.entryTranches.tranche1Price,
+      stopLoss: activeDossier.s13_plan.stopLoss.price,
+      tp1: activeDossier.s13_plan.targets.tp1.price,
+      tp2: activeDossier.s13_plan.targets.tp2.price,
+      contracts: activeDossier.s13_plan.sizingTable.contractsToExecute,
+      notionalUsd: activeDossier.s13_plan.sizingTable.totalNotionalUsd,
+      marginUsd: activeDossier.s13_plan.sizingTable.requiredMarginUsd,
+      status: 'OPEN',
+      scorecardSnapshot: activeScorecard
+    };
+    const updated = saveTradeJournalEntry(newEntry);
+    setJournalEntries(updated);
+    soundEffects.playSignalChime();
+    setTradeSuccessToast(`Logged ${newEntry.symbol} (Grade ${newEntry.grade}) to Institutional Trade Journal!`);
+    setTimeout(() => setTradeSuccessToast(null), 4000);
+  };
 
   // Chart Container Refs
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -660,6 +700,144 @@ export default function DeltaSwingScannerView({ onNavigate: _onNavigate }: Props
           </div>
         </div>
 
+        {/* ── 8-CHECK PRE-TRADE SCORECARD & ACCURACY FILTER (ADDENDUM TO V2) ── */}
+        <div className="mt-4 rounded-xl border border-cyan-500/40 bg-slate-950/95 p-4 sm:p-5 space-y-4 shadow-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-cyan-500/20">
+            <div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-cyan-400" />
+                <h3 className="text-sm sm:text-base font-black tracking-wide text-white font-sans uppercase">
+                  8-CHECK PRE-TRADE SCORECARD & ACCURACY FILTER
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Institutional gating checklist (C1 to C8) • Hard Vetoes on Liquidity & Risk • Strict Accuracy Grade
+              </p>
+            </div>
+
+            {/* Glowing Grade Badge */}
+            <div className="flex items-center gap-3">
+              <span
+                className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase font-mono tracking-wider border flex items-center gap-1.5 shadow-lg ${
+                  activeDossier.preTradeScorecard.grade === 'A+'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                    : activeDossier.preTradeScorecard.grade === 'A'
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/60 shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                    : activeDossier.preTradeScorecard.grade === 'B'
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/60'
+                    : 'bg-rose-950 text-rose-300 border-rose-600 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+                }`}
+              >
+                <span>SETUP GRADE: {activeDossier.preTradeScorecard.grade}</span>
+                <span className="text-[11px] font-bold">
+                  ({activeDossier.preTradeScorecard.passedCount}/8 PASS)
+                </span>
+              </span>
+
+              <button
+                onClick={handleLogActiveToJournal}
+                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-3 py-1.5 text-xs transition-all shadow-md cursor-pointer"
+                title="Log this setup to trade journal"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                <span>Log Setup</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 8-Row Scorecard Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-sans">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 font-mono text-[10px] uppercase">
+                  <th className="py-2 px-2.5">Check</th>
+                  <th className="py-2 px-2.5">Check Name</th>
+                  <th className="py-2 px-2.5">Status</th>
+                  <th className="py-2 px-2.5">Score</th>
+                  <th className="py-2 px-2.5">Evidence & Rationale</th>
+                  <th className="py-2 px-2.5">Source & asOf</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono">
+                {activeDossier.preTradeScorecard.checks.map((chk) => (
+                  <tr key={chk.id} className="hover:bg-slate-900/60 transition-colors">
+                    <td className="py-2.5 px-2.5 font-bold text-cyan-300">
+                      {chk.id}
+                      {chk.hardVeto && (
+                        <span className="ml-1 text-[9px] px-1 py-0.2 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                          VETO
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-2.5 text-white font-bold font-sans">
+                      {chk.name}
+                    </td>
+                    <td className="py-2.5 px-2.5">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                        chk.status === 'PASS'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : chk.status === 'WARN'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                      }`}>
+                        {chk.status}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-2.5 font-bold text-amber-400">
+                      {chk.score}/100
+                    </td>
+                    <td className="py-2.5 px-2.5 text-slate-300 font-sans text-xs max-w-md">
+                      {chk.evidence}
+                    </td>
+                    <td className="py-2.5 px-2.5 text-slate-400 text-[10px]">
+                      {chk.source} ({chk.asOf})
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Top 3 Kyun Trade Lena Chahiye vs Top 3 Kyun Nahi */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
+            <div className="rounded-xl border border-emerald-500/30 bg-slate-900/80 p-3.5 space-y-2">
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 uppercase">
+                <TrendingUp className="h-4 w-4 text-emerald-400" />
+                Top 3 Reasons to Trade ({activeDossier.s1_identity.symbol}):
+              </span>
+              <div className="space-y-1 text-xs text-slate-300">
+                {activeDossier.preTradeScorecard.reasonsToTrade.map((r, i) => (
+                  <div key={i} className="flex items-start gap-1.5">
+                    <span className="text-emerald-400 font-bold shrink-0">✓</span>
+                    <span>{r}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-rose-500/30 bg-slate-900/80 p-3.5 space-y-2">
+              <span className="text-xs font-bold text-rose-400 flex items-center gap-1.5 uppercase">
+                <AlertTriangle className="h-4 w-4 text-rose-400" />
+                Top 3 Downside Defense / Invalidation Risks:
+              </span>
+              <div className="space-y-1 text-xs text-slate-300">
+                {activeDossier.preTradeScorecard.reasonsToAvoid.map((r, i) => (
+                  <div key={i} className="flex items-start gap-1.5">
+                    <span className="text-rose-400 font-bold shrink-0">✕</span>
+                    <span>{r}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Overall Recommendation */}
+          <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3 text-xs leading-relaxed">
+            <strong className="text-cyan-400 uppercase font-mono mr-1.5">Overall Arbiter Guidance:</strong>
+            <span className="text-slate-200">{activeDossier.preTradeScorecard.overallRecommendation}</span>
+          </div>
+        </div>
+
         {/* ── 5-LINE SIMPLE HINGLISH SUMMARY MEMO (Section 2) ── */}
         <div className="mt-4 rounded-xl border border-cyan-500/30 bg-slate-950/90 p-4 space-y-2">
           <div className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
@@ -923,6 +1101,7 @@ export default function DeltaSwingScannerView({ onNavigate: _onNavigate }: Props
         {/* Tab Selection */}
         <div className="flex flex-wrap items-center gap-1.5 border-b border-border/60 pb-3">
           {[
+            { id: 'SCORECARD_EXPECTANCY', label: '🎯 Scorecard & Expectancy Journal' },
             { id: 'MEMO', label: '1-Page Memo' },
             { id: 'MONEY_FLOW', label: '🌊 Money Flow' },
             { id: 'ENTRY_PLAN', label: '🎯 Entry & SL Plan' },
@@ -955,6 +1134,193 @@ export default function DeltaSwingScannerView({ onNavigate: _onNavigate }: Props
 
         {/* Tab Content Display */}
         <div className="pt-2">
+          {/* TAB 0: SCORECARD & EXPECTANCY JOURNAL (ADDENDUM TO V2) */}
+          {dossierTab === 'SCORECARD_EXPECTANCY' && (
+            <div className="space-y-4">
+              {/* Top 4 KPI Metrics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3">
+                  <div className="text-[10px] text-slate-400 uppercase font-bold">Mathematical Expectancy</div>
+                  <div className={`text-lg font-mono font-black mt-1 ${expectancyAnalytics.expectancyR >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {expectancyAnalytics.expectancyR >= 0 ? '+' : ''}{expectancyAnalytics.expectancyR}R / trade
+                  </div>
+                  <div className="text-[9px] text-slate-500 mt-0.5">(Win% × AvgWin) - (Loss% × AvgLoss)</div>
+                </div>
+
+                <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3">
+                  <div className="text-[10px] text-slate-400 uppercase font-bold">Realized Win Rate</div>
+                  <div className="text-lg font-mono font-black text-cyan-300 mt-1">
+                    {expectancyAnalytics.winRatePct}%
+                  </div>
+                  <div className="text-[9px] text-slate-500 mt-0.5">Avg Win +{expectancyAnalytics.avgWinR}R • Avg Loss -{expectancyAnalytics.avgLossR}R</div>
+                </div>
+
+                <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3">
+                  <div className="text-[10px] text-slate-400 uppercase font-bold">Break-Even Win Rate</div>
+                  <div className="text-lg font-mono font-black text-amber-400 mt-1">
+                    {expectancyAnalytics.breakevenWinRatePct}%
+                  </div>
+                  <div className="text-[9px] text-slate-500 mt-0.5">Edge over break-even: +{(expectancyAnalytics.winRatePct - expectancyAnalytics.breakevenWinRatePct).toFixed(1)}%</div>
+                </div>
+
+                <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3">
+                  <div className="text-[10px] text-slate-400 uppercase font-bold">Profit Factor</div>
+                  <div className="text-lg font-mono font-black text-purple-300 mt-1">
+                    {expectancyAnalytics.profitFactor}x
+                  </div>
+                  <div className="text-[9px] text-slate-500 mt-0.5">Total Wins / Total Losses</div>
+                </div>
+              </div>
+
+              {/* Sample Size Warning / Calibration Status */}
+              <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-xs flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-amber-400 shrink-0" />
+                  <span className="text-slate-200">
+                    <strong>Sample Status:</strong> <span className="font-mono text-amber-300 font-bold">{expectancyAnalytics.sampleStatus}</span> — Rule R30 requires n &gt;= 30 closed trades for calibrated Wilson confidence bounds. Currently displaying raw empirical metrics.
+                  </span>
+                </div>
+                <span className="font-mono text-[11px] text-slate-400 shrink-0">{expectancyAnalytics.closedTrades} closed / {expectancyAnalytics.totalTrades} logged</span>
+              </div>
+
+              {/* Grade-wise Win Rates */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                {(['A+', 'A', 'B'] as const).map((g) => {
+                  const s = expectancyAnalytics.gradeStats[g];
+                  return (
+                    <div key={g} className="rounded-xl bg-slate-900/80 border border-slate-800 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white uppercase">Grade {g} Setups</span>
+                        <span className="text-[10px] font-mono text-slate-400">{s.total} trades</span>
+                      </div>
+                      <div className="text-base font-black font-mono text-emerald-400 mt-1">
+                        {s.winRatePct}% Win Rate
+                      </div>
+                      <div className="text-[10px] text-slate-400">Avg Result: {s.avgR >= 0 ? '+' : ''}{s.avgR}R</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Trade Journal Table */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <FileText className="h-4 w-4 text-cyan-400" />
+                    Institutional Trade Journal & Outcomes
+                  </h4>
+                  <button
+                    onClick={handleLogActiveToJournal}
+                    className="px-3 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold text-[11px] hover:bg-cyan-400 transition-all cursor-pointer"
+                  >
+                    + Log Current {activeDossier.s1_identity.symbol} Setup
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-sans">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 font-mono text-[10px] uppercase">
+                        <th className="py-2 px-2.5">ID & Date</th>
+                        <th className="py-2 px-2.5">Symbol</th>
+                        <th className="py-2 px-2.5">Grade</th>
+                        <th className="py-2 px-2.5">Side</th>
+                        <th className="py-2 px-2.5">Entry / SL</th>
+                        <th className="py-2 px-2.5">TP1 / TP2</th>
+                        <th className="py-2 px-2.5">Status</th>
+                        <th className="py-2 px-2.5">Realized R</th>
+                        <th className="py-2 px-2.5">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                      {journalEntries.map((e) => (
+                        <tr key={e.id} className="hover:bg-slate-900/60 transition-colors">
+                          <td className="py-2.5 px-2.5 text-slate-300">
+                            <div>{e.id}</div>
+                            <div className="text-[10px] text-slate-500">{e.date}</div>
+                          </td>
+                          <td className="py-2.5 px-2.5 font-bold text-white">
+                            {e.symbol}
+                          </td>
+                          <td className="py-2.5 px-2.5">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/40">
+                              {e.grade}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                              e.direction === 'LONG' ? 'text-emerald-400' : 'text-rose-400'
+                            }`}>
+                              {e.direction}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2.5 text-slate-300">
+                            ${e.entryPrice} / <span className="text-rose-400">${e.stopLoss}</span>
+                          </td>
+                          <td className="py-2.5 px-2.5 text-slate-300">
+                            ${e.tp1} / <span className="text-emerald-400">${e.tp2}</span>
+                          </td>
+                          <td className="py-2.5 px-2.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                              e.status === 'WON'
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : e.status === 'LOST'
+                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                                : e.status === 'BREAKEVEN'
+                                ? 'bg-slate-700 text-slate-300'
+                                : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                            }`}>
+                              {e.status}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2.5 font-bold text-emerald-400">
+                            {e.realizedR !== undefined ? `${e.realizedR >= 0 ? '+' : ''}${e.realizedR}R` : '—'}
+                          </td>
+                          <td className="py-2.5 px-2.5">
+                            <div className="flex items-center gap-1.5">
+                              {e.status === 'OPEN' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      const updated = updateTradeJournalStatus(e.id, 'WON', 2.5);
+                                      setJournalEntries(updated);
+                                    }}
+                                    className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/40 text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Won
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const updated = updateTradeJournalStatus(e.id, 'LOST', -1.0);
+                                      setJournalEntries(updated);
+                                    }}
+                                    className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 hover:bg-rose-500/40 text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Lost
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => {
+                                  const updated = deleteTradeJournalEntry(e.id);
+                                  setJournalEntries(updated);
+                                }}
+                                className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                                title="Delete entry"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: 1-PAGE MEMO */}
           {dossierTab === 'MEMO' && (
             <div className="space-y-4">

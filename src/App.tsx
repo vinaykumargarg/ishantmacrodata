@@ -16,6 +16,7 @@ const TrendAnalysisView = React.lazy(() => import('./components/TrendAnalysisVie
 const GoldDashboardView = React.lazy(() => import('./components/GoldDashboardView'));
 const GoldTradingAiView = React.lazy(() => import('./components/GoldTradingAiView'));
 const GoldAiMarketIntelligenceView = React.lazy(() => import('./components/GoldAiMarketIntelligenceView'));
+const GoldSmcAutoTradeLabView = React.lazy(() => import('./components/GoldSmcAutoTradeLabView'));
 const CryptoTradingAiView = React.lazy(() => import('./components/CryptoTradingAiView'));
 const IndianStockAiView = React.lazy(() => import('./components/IndianStockAiView'));
 const UsaTop1000AiView = React.lazy(() => import('./components/UsaTop1000AiView'));
@@ -188,6 +189,8 @@ function getFeatureTitle(tab: string): string {
     'trend': 'Multi-Timeframe Trend Analysis Engine (Multi-Asset)',
     'xauusd-institutional': 'Institutional XAUUSD Intelligence Terminal (Gold Pro Max v2)',
     'xauusd-terminal': 'Institutional XAUUSD Intelligence Terminal (Gold Pro Max v2)',
+    'gold-smc-lab': 'Gold (XAUUSD) SMC Auto Trade Lab — Auto-Marked SMC Chart & Auto Playbook',
+    'gold-entry-models': 'Gold (XAUUSD) SMC Auto Trade Lab — Auto-Marked SMC Chart & Auto Playbook',
     'gold-pro': 'Institutional XAUUSD Intelligence Terminal (Gold Pro Max v2)',
     'gold-ai': 'Gold Trading AI Terminal',
     'gold-signal-panel': 'Gold Signal Panel — Institutional Long / Short (TP & SL)',
@@ -358,20 +361,20 @@ function TerminalApp() {
   const [liveTickers, setLiveTickers] = useState<MarketTicker[]>(BASE_TICKERS);
   const [isLiveWs, setIsLiveWs] = useState<boolean>(false);
 
-  // ── Resizable Sidebar Width (Default: 205px, Min: 150px, Max: 380px) ──
+  // ── Resizable Sidebar Width (Default: 192px compact Lovable style, Min: 150px, Max: 360px) ──
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('ishant_sidebar_width');
         if (saved) {
           const parsed = parseInt(saved, 10);
-          // If previous default was 230 or 240, normalize to new compact 205px
-          if (parsed === 230 || parsed === 240) return 205;
-          if (!isNaN(parsed) && parsed >= 150 && parsed <= 380) return parsed;
+          // If previous default was 205, 230 or 240, normalize to new compact 192px
+          if (parsed === 205 || parsed === 230 || parsed === 240) return 192;
+          if (!isNaN(parsed) && parsed >= 150 && parsed <= 360) return parsed;
         }
       } catch {}
     }
-    return 205;
+    return 192;
   });
   const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
 
@@ -580,9 +583,9 @@ function TerminalApp() {
             setIsResizingSidebar(true);
           }}
           onDoubleClick={() => {
-            setSidebarWidth(205);
+            setSidebarWidth(192);
             try {
-              localStorage.setItem('ishant_sidebar_width', '205');
+              localStorage.setItem('ishant_sidebar_width', '192');
             } catch {}
           }}
           className={`hidden lg:flex items-center justify-center relative cursor-col-resize select-none shrink-0 z-30 transition-colors ${
@@ -591,7 +594,7 @@ function TerminalApp() {
               : 'w-2 hover:bg-blue-500/15'
           }`}
           style={{ touchAction: 'none' }}
-          title="Drag left/right to resize sidebar (Double click to reset to 205px)"
+          title="Drag left/right to resize sidebar (Double click to reset to 192px)"
         >
           {/* Visible thin line */}
           <div
@@ -661,6 +664,7 @@ function TerminalApp() {
               {(activeTab === 'indian-stock-ai' || activeTab === 'indian-stocks' || activeTab === 'nifty-500') && <IndianStockAiView onNavigate={setActiveTab} />}
               {(activeTab === 'usa-stock-ai' || activeTab === 'usa-stocks' || activeTab === 'russell-1000' || activeTab === 'indmoney-us') && <UsaTop1000AiView onNavigate={setActiveTab} />}
               {(activeTab === 'volume-profile-ai' || activeTab === 'volume-profile' || activeTab === 'volume-profile-pro' || activeTab === 'volume-profile-setup' || activeTab === 'vp-terminal' || activeTab === 'volume-profile-confluence' || activeTab === 'vp-confluence') && <VolumeProfileTerminalView />}
+              {(activeTab === 'gold-smc-lab' || activeTab === 'gold-entry-models' || activeTab === 'gold-smc-auto-lab') && <GoldSmcAutoTradeLabView />}
               {(activeTab === 'xauusd-institutional' || activeTab === 'xauusd-terminal' || activeTab === 'gold-pro' || activeTab === 'xauusd' || activeTab === 'gold-pro-max') && <InstitutionalXauusdTerminalView onNavigate={setActiveTab} />}
               {(activeTab === 'trend-analysis' || activeTab === 'trend' || activeTab === 'trend-engine' || activeTab === 'mtf-trend') && <TrendAnalysisView onNavigate={setActiveTab} />}
               {(activeTab === 'gold-ai' || activeTab === 'gold-trading-ai' || activeTab === 'gold-macro' || activeTab === 'gold-intelligence' || activeTab === 'gold-dashboard') && <GoldAiMarketIntelligenceView onNavigate={setActiveTab} />}

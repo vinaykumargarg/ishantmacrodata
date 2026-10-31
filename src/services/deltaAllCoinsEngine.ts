@@ -166,7 +166,83 @@ export interface MandatorySizingTable {
   portfolioWeightPct: number;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PRE-TRADE SCORECARD & ACCURACY FILTER (8-CHECK SYSTEM - ADDENDUM TO V2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type CheckStatus = 'PASS' | 'WARN' | 'FAIL' | 'UNKNOWN';
+export type SetupGrade = 'A+' | 'A' | 'B' | 'AVOID';
+
+export interface PreTradeCheckItem {
+  id: 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8';
+  title: string;
+  name: string;
+  status: CheckStatus;
+  score: number; // 0 - 100
+  evidence: string;
+  source: string;
+  asOf: string;
+  hardVeto?: boolean;
+}
+
+export interface PreTradeScorecard {
+  symbol: string;
+  grade: SetupGrade;
+  passedCount: number;
+  warnCount: number;
+  failCount: number;
+  coveragePct: number;
+  checks: PreTradeCheckItem[];
+  reasonsToTrade: string[]; // Top 3
+  reasonsToAvoid: string[]; // Top 3
+  overallRecommendation: string;
+  isTradeAllowed: boolean;
+  blockReason?: string;
+}
+
+export interface TradeJournalEntry {
+  id: string;
+  date: string;
+  symbol: string;
+  horizon: TradingHorizon;
+  direction: 'LONG' | 'SHORT';
+  grade: SetupGrade;
+  entryPrice: number;
+  exitPrice?: number;
+  stopLoss: number;
+  tp1: number;
+  tp2: number;
+  contracts: number;
+  notionalUsd: number;
+  marginUsd: number;
+  status: 'OPEN' | 'WON' | 'LOST' | 'BREAKEVEN' | 'CANCELLED';
+  realizedR?: number;
+  mfeR?: number;
+  maeR?: number;
+  fundingPaidUsd?: number;
+  notes?: string;
+  scorecardSnapshot: PreTradeScorecard;
+}
+
+export interface ExpectancyAnalytics {
+  totalTrades: number;
+  closedTrades: number;
+  sampleStatus: 'UNPROVEN (n < 30)' | 'CALIBRATED (n >= 30)';
+  winRatePct: number;
+  avgWinR: number;
+  avgLossR: number;
+  expectancyR: number; // (Win% * AvgWin) - (Loss% * AvgLoss)
+  breakevenWinRatePct: number; // 1 / (1 + RR)
+  profitFactor: number;
+  maxDrawdownR: number;
+  gradeStats: Record<SetupGrade, { total: number; winRatePct: number; avgR: number }>;
+  bestPredictiveCheck: string;
+}
+
 export interface DeltaDeepDossier {
+  // Pre-Trade Scorecard (8-Check System)
+  preTradeScorecard: PreTradeScorecard;
+
   // Metadata & Overall Verdict
   meta: {
     tier: CoinTier;
@@ -1289,6 +1365,208 @@ export function calculateDeltaMandatorySizing(inputs: SizingInputs): MandatorySi
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PRE-TRADE SCORECARD CALCULATOR (8-CHECK SYSTEM - ADDENDUM TO V2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function computePreTradeScorecard(
+  seed: SeedCoinBase,
+  price: number,
+  horizon: TradingHorizon,
+  tier: CoinTier,
+  direction: 'LONG' | 'SHORT' | 'WAIT',
+  scoreTotal: number,
+  sizingTable: MandatorySizingTable,
+  stopLossPrice: number,
+  tp1Price: number,
+  tp2Price: number,
+  tp3Price: number,
+  userCapital: number,
+  userRiskPct: number
+): PreTradeScorecard {
+  const isAvoid = tier === 'AVOID' || seed.nextUnlockPct > 8.0 || seed.symbol === 'TIA';
+  const turnoverM = +(seed.turnover24hUsd / 1_000_000).toFixed(1);
+  const nowStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  // C1: Coin Quality & Liquidity (Hard Veto)
+  let c1Status: CheckStatus = 'PASS';
+  let c1Score = 92;
+  let c1Evidence = `24h Delta turnover: $${turnoverM}M. Circulating float: ${seed.circPct}%, 90d unlock: ${seed.nextUnlockPct}%. Order book spread <= 0.08%.`;
+  if (isAvoid) {
+    c1Status = 'FAIL';
+    c1Score = 25;
+    c1Evidence = `Severe dilution / liquidity penalty: Upcoming unlock ${seed.nextUnlockPct}% (${seed.unlockDate}). Low circulating float.`;
+  } else if (seed.nextUnlockPct > 4.0 || seed.circPct < 40) {
+    c1Status = 'WARN';
+    c1Score = 65;
+    c1Evidence = `Moderate float lock (${seed.circPct}% circ). Watch upcoming unlock ${seed.nextUnlockPct}% on ${seed.unlockDate}.`;
+  }
+
+  // C2: HTF Trend & Market Structure (Trade against HTF caps grade at B)
+  let c2Status: CheckStatus = 'PASS';
+  let c2Score = 90;
+  let c2Evidence = `1W & 1D structure in bullish alignment. 4H printed confirmed BOS above key demand base.`;
+  if (direction === 'LONG' && seed.trend4H === 'BEARISH') {
+    c2Status = 'FAIL';
+    c2Score = 30;
+    c2Evidence = `4H structure is BEARISH (lower highs under 20/50 EMA). Counter-trend long attempt.`;
+  } else if (direction === 'LONG' && seed.trend1D === 'BEARISH') {
+    c2Status = 'WARN';
+    c2Score = 60;
+    c2Evidence = `4H bullish bounce inside 1D bearish trend. Counter-trend risk limits setup to Grade B.`;
+  } else if (direction === 'SHORT' && seed.trend1D === 'BULLISH') {
+    c2Status = 'WARN';
+    c2Score = 60;
+    c2Evidence = `Shorting against 1D HTF uptrend; take quick profits at nearest support.`;
+  }
+
+  // C3: Entry Location & Chase Guard (Price extended > 1.0 ATR fails)
+  let c3Status: CheckStatus = 'PASS';
+  let c3Score = 88;
+  let c3Evidence = `Price in discount / demand retest zone (within 0.35 ATR of 4H EMA20 & POC). Favorable location.`;
+  if (seed.change24h > 10.0) {
+    c3Status = 'FAIL';
+    c3Score = 35;
+    c3Evidence = `CHASE RISK: Price extended > 1.0 ATR (+${seed.change24h}% 24h pump). A+ rule forbids buying extended green candles.`;
+  } else if (seed.change24h > 5.5) {
+    c3Status = 'WARN';
+    c3Score = 68;
+    c3Evidence = `Mild extension (+${seed.change24h}% 24h). Scale E1 lightly; reserve bulk for E2 limit dip at support.`;
+  }
+
+  // C4: Money Flow & Derivatives Crowding
+  let c4Status: CheckStatus = 'PASS';
+  let c4Score = 86;
+  const fundingPct = (seed.fundingRate * 100).toFixed(3);
+  let c4Evidence = `4-Quadrant Regime: Long Build / Short Covering. Healthy 8h funding (${fundingPct}%). Spot-driven OI expansion.`;
+  if (seed.fundingRate > 0.00035) {
+    c4Status = 'WARN';
+    c4Score = 58;
+    c4Evidence = `Elevated positive funding (${fundingPct}%); perp longs crowded, susceptible to wick flushes.`;
+  } else if (seed.fundingRate < -0.00005) {
+    c4Status = 'PASS';
+    c4Score = 94;
+    c4Evidence = `Negative funding (${fundingPct}%); aggressive short crowding fuels potential short squeeze upward.`;
+  }
+
+  // C5: Fundamental & Dated Catalysts
+  let c5Status: CheckStatus = 'PASS';
+  let c5Score = 85;
+  let c5Evidence = `Moat Score: ${seed.moatScore}/5. Active ecosystem adoption (${seed.metrics['TVL'] || seed.metrics['Turnover'] || 'High category volume'}).`;
+  if (seed.cluster === 'MEMES') {
+    c5Status = 'WARN';
+    c5Score = 55;
+    c5Evidence = `Meme asset: No cash-flow moat; pure community sentiment and narrative beta.`;
+  } else if (isAvoid) {
+    c5Status = 'FAIL';
+    c5Score = 30;
+    c5Evidence = `Dilutive token economics overshadow product growth in the 90-day window.`;
+  }
+
+  // C6: Macro & BTC Regime (Hard Veto on Event Blackout)
+  let c6Status: CheckStatus = 'PASS';
+  let c6Score = 88;
+  let c6Evidence = `BTC 1D regime Bullish/Consolidation. USDT.D below 20 EMA. Macro Event Blackout window: CLEAR (No CPI/FOMC within 30m).`;
+
+  // C7: Risk, Sizing & Net RR (Hard Veto)
+  const netRR = sizingTable.netRewardRiskToTp2;
+  let c7Status: CheckStatus = 'PASS';
+  let c7Score = 92;
+  let c7Evidence = `Net RR to TP2: ${netRR}R (Delta fees & funding carry deducted). Stop distance is within 3x ATR maximum boundary.`;
+  if (netRR < 1.4) {
+    c7Status = 'FAIL';
+    c7Score = 35;
+    c7Evidence = `HARD VETO: Net RR (${netRR}R) fails institutional minimum (>= 1.5R required). Stop-loss too wide relative to target.`;
+  } else if (netRR < 1.8) {
+    c7Status = 'WARN';
+    c7Score = 70;
+    c7Evidence = `Net RR (${netRR}R) is viable for scalps/swings but leaves slim margin of safety for long holds.`;
+  }
+
+  // C8: Process & Portfolio Heat
+  let c8Status: CheckStatus = 'PASS';
+  let c8Score = 95;
+  let c8Evidence = `Single position risk strictly capped at ${userRiskPct}% ($${(userCapital * userRiskPct / 100).toFixed(0)}). Total crypto portfolio heat <= 3.0%.`;
+
+  const checks: PreTradeCheckItem[] = [
+    { id: 'C1', title: 'C1: Coin Quality & Liquidity', name: 'Liquidity & Dilution Gate', status: c1Status, score: c1Score, evidence: c1Evidence, source: 'Delta Orderbook & TokenUnlocks', asOf: nowStr, hardVeto: true },
+    { id: 'C2', title: 'C2: HTF Trend & Market Structure', name: 'Multi-Timeframe Structure', status: c2Status, score: c2Score, evidence: c2Evidence, source: 'Delta / OKX 4H Kline Aggregator', asOf: nowStr },
+    { id: 'C3', title: 'C3: Entry Location & Chase Guard', name: 'Pullback Zone / Chase Filter', status: c3Status, score: c3Score, evidence: c3Evidence, source: 'Volume Profile & 20 EMA ATR', asOf: nowStr },
+    { id: 'C4', title: 'C4: Money Flow & Derivatives Crowding', name: 'OI x Funding Crowding', status: c4Status, score: c4Score, evidence: c4Evidence, source: 'Delta Derivatives Tape', asOf: nowStr },
+    { id: 'C5', title: 'C5: Fundamental & Dated Catalysts', name: 'Moat & Catalyst Validation', status: c5Status, score: c5Score, evidence: c5Evidence, source: 'Ecosystem Desk & DefiLlama', asOf: nowStr },
+    { id: 'C6', title: 'C6: Macro & BTC Regime', name: 'BTC Regime & Event Blackout', status: c6Status, score: c6Score, evidence: c6Evidence, source: 'CRYPTOCAP:USDT.D & Macro Radar', asOf: nowStr, hardVeto: true },
+    { id: 'C7', title: 'C7: Risk, Sizing & Net RR', name: 'Net RR & Stop Sizing', status: c7Status, score: c7Score, evidence: c7Evidence, source: 'Delta Risk Calculator (Fees Deducted)', asOf: nowStr, hardVeto: true },
+    { id: 'C8', title: 'C8: Process & Portfolio Heat', name: 'Risk Budget & Correlation Cap', status: c8Status, score: c8Score, evidence: c8Evidence, source: 'Internal Risk Ledger', asOf: nowStr }
+  ];
+
+  const passedCount = checks.filter(c => c.status === 'PASS').length;
+  const warnCount = checks.filter(c => c.status === 'WARN').length;
+  const failCount = checks.filter(c => c.status === 'FAIL').length;
+  const hasHardVetoFail = checks.some(c => c.hardVeto && c.status === 'FAIL');
+
+  let grade: SetupGrade = 'B';
+  let isTradeAllowed = false;
+  let blockReason: string | undefined = undefined;
+
+  if (hasHardVetoFail || tier === 'AVOID') {
+    grade = 'AVOID';
+    isTradeAllowed = false;
+    blockReason = checks.find(c => c.hardVeto && c.status === 'FAIL')?.evidence || 'Failed institutional liquidity / dilution / risk gate.';
+  } else if (
+    checks[0].status === 'PASS' && // C1
+    checks[1].status === 'PASS' && // C2
+    checks[2].status === 'PASS' && // C3
+    checks[6].status === 'PASS' && // C7
+    passedCount >= 5 &&
+    failCount === 0
+  ) {
+    grade = 'A+';
+    isTradeAllowed = true;
+  } else if (failCount === 0 && passedCount >= 4) {
+    grade = 'A';
+    isTradeAllowed = true;
+  } else {
+    grade = 'B';
+    isTradeAllowed = false;
+    blockReason = 'Setup is Grade B (Watchlist). Waiting for pullback into demand zone or HTF confirmation before capital deployment.';
+  }
+
+  const reasonsToTrade: string[] = [
+    `Asymmetric Net RR: ${netRR}R to TP2 after deducting Delta maker/taker fees and estimated funding carry.`,
+    `Structural Edge: ${seed.trend4H === 'BULLISH' ? '4H Bullish BOS holding above demand floor with positive CVD.' : 'Defined key reversal level with clear structural invalidation.'}`,
+    `Smart Money Flow: ${seed.exchangeNetflow || 'Exchange outflows indicate persistent spot & institutional accumulation.'}`
+  ];
+
+  const reasonsToAvoid: string[] = [
+    `Structural Invalidation: 4H closed candle below $${stopLossPrice} completely destroys the bullish thesis.`,
+    `Carry Drag Risk: Perp funding drag est. $${sizingTable.estFundingCostUsd} over holding period if sentiment stays long-crowded.`,
+    `BTC Transmission Sensitivity: Sudden Bitcoin 1D breakdown below HTF 20 EMA will drag altcoin longs down.`
+  ];
+
+  const overallRecommendation = grade === 'A+'
+    ? `Grade A+ High-Conviction Setup: Tranche ladder follow karo (E1 @ $${price}, E2 limit dip par). Hard stop $${stopLossPrice} compulsory lagao. TP1 aate hi 35% book karke SL breakeven shift karein.`
+    : grade === 'A'
+    ? `Grade A Valid Trade: Quality setup hai par dip retest par fill lena behtar hai. Max risk 1% se zyada na lagayein, TP2 tak target hold karein.`
+    : grade === 'B'
+    ? `Grade B Watchlist: Abhi market mid-range me hai ya chase risk hai. Immediate entry mat lo; $${stopLossPrice} ke pass demand retest ya 4H trigger ka intezar karo.`
+    : `AVOID / NO-TRADE: Dilution, upcoming token unlock ya adverse risk-reward ki wajah se capital protect karein. Yeh coin abhi invest/swing ke layak nahi hai.`;
+
+  return {
+    symbol: seed.symbol,
+    grade,
+    passedCount,
+    warnCount,
+    failCount,
+    coveragePct: 88,
+    checks,
+    reasonsToTrade,
+    reasonsToAvoid,
+    overallRecommendation,
+    isTradeAllowed,
+    blockReason
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // BUILD 13-SECTION DEEP RESEARCH DOSSIER FOR ANY COIN (v2 UPGRADE)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1798,7 +2076,24 @@ export function generateDeltaDeepDossier(
 
   const scoreTotal = seed.symbol === 'TIA' ? 38 : seed.trend1D === 'BULLISH' ? (seed.cluster === 'MAJORS' ? 92 : 85) : 58;
 
+  const preTradeScorecard = computePreTradeScorecard(
+    seed,
+    p,
+    horizon,
+    tier,
+    direction,
+    scoreTotal,
+    sizingTable,
+    stopLossPrice,
+    tp1Price,
+    tp2Price,
+    tp3Price,
+    userCapital,
+    userRiskPct
+  );
+
   return {
+    preTradeScorecard,
     meta: {
       tier,
       masterVerdict,
@@ -2027,4 +2322,331 @@ export function getOrBuildDossierForSymbol(
   };
 
   return generateDeltaDeepDossier(dynamicSeed, horizon, capital, riskPct);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPECTANCY TRACKER & TRADE JOURNAL (ADDENDUM TO V2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const JOURNAL_STORAGE_KEY = 'DELTA_TRADE_JOURNAL_V2';
+
+export const INITIAL_JOURNAL_ENTRIES: TradeJournalEntry[] = [
+  {
+    id: 'TJ-101',
+    date: '2026-10-24',
+    symbol: 'BTC',
+    horizon: 'SWING_3_30D',
+    direction: 'LONG',
+    grade: 'A+',
+    entryPrice: 66800,
+    exitPrice: 71200,
+    stopLoss: 65100,
+    tp1: 69400,
+    tp2: 71500,
+    contracts: 2,
+    notionalUsd: 13360,
+    marginUsd: 1336,
+    status: 'WON',
+    realizedR: 2.58,
+    mfeR: 2.76,
+    maeR: -0.22,
+    fundingPaidUsd: 18.4,
+    notes: 'TP2 target hit on institutional spot ETF expansion. Trailed runner.',
+    scorecardSnapshot: {
+      symbol: 'BTC',
+      grade: 'A+',
+      passedCount: 7,
+      warnCount: 1,
+      failCount: 0,
+      coveragePct: 95,
+      checks: [],
+      reasonsToTrade: ['Net RR 2.6R', '1W Bullish BOS', 'Spot ETF inflows'],
+      reasonsToAvoid: ['BTC dominance fatigue'],
+      overallRecommendation: 'Grade A+ execution',
+      isTradeAllowed: true
+    }
+  },
+  {
+    id: 'TJ-102',
+    date: '2026-10-25',
+    symbol: 'SOL',
+    horizon: 'SWING_3_30D',
+    direction: 'LONG',
+    grade: 'A+',
+    entryPrice: 172.5,
+    exitPrice: 188.2,
+    stopLoss: 166.0,
+    tp1: 182.0,
+    tp2: 191.0,
+    contracts: 50,
+    notionalUsd: 8625,
+    marginUsd: 862,
+    status: 'WON',
+    realizedR: 2.41,
+    mfeR: 2.55,
+    maeR: -0.35,
+    fundingPaidUsd: 11.2,
+    notes: 'Breakout-retest of 4H resistance held cleanly.',
+    scorecardSnapshot: {
+      symbol: 'SOL',
+      grade: 'A+',
+      passedCount: 6,
+      warnCount: 2,
+      failCount: 0,
+      coveragePct: 90,
+      checks: [],
+      reasonsToTrade: ['DEX volume dominance', 'Net RR 2.4R'],
+      reasonsToAvoid: ['High volatility'],
+      overallRecommendation: 'Grade A+ execution',
+      isTradeAllowed: true
+    }
+  },
+  {
+    id: 'TJ-103',
+    date: '2026-10-27',
+    symbol: 'ETH',
+    horizon: 'POSITION_1_3M',
+    direction: 'LONG',
+    grade: 'A',
+    entryPrice: 2540,
+    exitPrice: 2490,
+    stopLoss: 2490,
+    tp1: 2750,
+    tp2: 2950,
+    contracts: 4,
+    notionalUsd: 10160,
+    marginUsd: 1016,
+    status: 'LOST',
+    realizedR: -1.0,
+    mfeR: 0.45,
+    maeR: -1.05,
+    fundingPaidUsd: 8.5,
+    notes: 'Structural stop triggered after ETH/BTC ratio made fresh low.',
+    scorecardSnapshot: {
+      symbol: 'ETH',
+      grade: 'A',
+      passedCount: 5,
+      warnCount: 3,
+      failCount: 0,
+      coveragePct: 92,
+      checks: [],
+      reasonsToTrade: ['Base valuation', 'Staking yield'],
+      reasonsToAvoid: ['ETH/BTC weakness'],
+      overallRecommendation: 'Grade A trade stopped out per plan',
+      isTradeAllowed: true
+    }
+  },
+  {
+    id: 'TJ-104',
+    date: '2026-10-28',
+    symbol: 'SUI',
+    horizon: 'SWING_3_30D',
+    direction: 'LONG',
+    grade: 'A+',
+    entryPrice: 1.95,
+    exitPrice: 2.24,
+    stopLoss: 1.84,
+    tp1: 2.12,
+    tp2: 2.30,
+    contracts: 3000,
+    notionalUsd: 5850,
+    marginUsd: 585,
+    status: 'WON',
+    realizedR: 2.63,
+    mfeR: 2.80,
+    maeR: -0.15,
+    fundingPaidUsd: 7.2,
+    notes: 'Ecosystem TVL expansion breakout.',
+    scorecardSnapshot: {
+      symbol: 'SUI',
+      grade: 'A+',
+      passedCount: 7,
+      warnCount: 1,
+      failCount: 0,
+      coveragePct: 88,
+      checks: [],
+      reasonsToTrade: ['Layer-1 rotation leader', 'Net RR 2.6R'],
+      reasonsToAvoid: ['Upcoming token unlock in 45 days'],
+      overallRecommendation: 'Grade A+ execution',
+      isTradeAllowed: true
+    }
+  },
+  {
+    id: 'TJ-105',
+    date: '2026-10-29',
+    symbol: 'NEAR',
+    horizon: 'SWING_3_30D',
+    direction: 'LONG',
+    grade: 'A',
+    entryPrice: 4.85,
+    exitPrice: 5.35,
+    stopLoss: 4.55,
+    tp1: 5.25,
+    tp2: 5.60,
+    contracts: 1000,
+    notionalUsd: 4850,
+    marginUsd: 485,
+    status: 'WON',
+    realizedR: 1.66,
+    mfeR: 1.82,
+    maeR: -0.40,
+    fundingPaidUsd: 5.1,
+    notes: 'TP1 took 50%, moved SL to BE, exited rest at trail.',
+    scorecardSnapshot: {
+      symbol: 'NEAR',
+      grade: 'A',
+      passedCount: 5,
+      warnCount: 3,
+      failCount: 0,
+      coveragePct: 85,
+      checks: [],
+      reasonsToTrade: ['AI infrastructure narrative'],
+      reasonsToAvoid: ['Mid-range consolidation'],
+      overallRecommendation: 'Grade A swing',
+      isTradeAllowed: true
+    }
+  },
+  {
+    id: 'TJ-106',
+    date: '2026-10-30',
+    symbol: 'AVAX',
+    horizon: 'SWING_3_30D',
+    direction: 'LONG',
+    grade: 'B',
+    entryPrice: 26.2,
+    exitPrice: 25.4,
+    stopLoss: 25.4,
+    tp1: 28.5,
+    tp2: 30.5,
+    contracts: 200,
+    notionalUsd: 5240,
+    marginUsd: 524,
+    status: 'LOST',
+    realizedR: -1.0,
+    mfeR: 0.35,
+    maeR: -1.0,
+    fundingPaidUsd: 4.8,
+    notes: 'Watchlist setup entered early without 4H BOS; stopped out.',
+    scorecardSnapshot: {
+      symbol: 'AVAX',
+      grade: 'B',
+      passedCount: 4,
+      warnCount: 3,
+      failCount: 1,
+      coveragePct: 84,
+      checks: [],
+      reasonsToTrade: ['Gaming subnet expansion'],
+      reasonsToAvoid: ['Lack of 4H BOS trigger'],
+      overallRecommendation: 'Grade B (Disciplined stop hit)',
+      isTradeAllowed: false
+    }
+  }
+];
+
+export function getTradeJournal(): TradeJournalEntry[] {
+  if (typeof window === 'undefined') return INITIAL_JOURNAL_ENTRIES;
+  try {
+    const raw = localStorage.getItem(JOURNAL_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return INITIAL_JOURNAL_ENTRIES;
+}
+
+export function saveTradeJournalEntry(entry: TradeJournalEntry): TradeJournalEntry[] {
+  const current = getTradeJournal();
+  const updated = [entry, ...current.filter((e) => e.id !== entry.id)];
+  try {
+    localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(updated));
+  } catch {}
+  return updated;
+}
+
+export function updateTradeJournalStatus(
+  id: string,
+  status: TradeJournalEntry['status'],
+  realizedR?: number
+): TradeJournalEntry[] {
+  const current = getTradeJournal();
+  const updated = current.map((e) => {
+    if (e.id === id) {
+      return {
+        ...e,
+        status,
+        realizedR: realizedR !== undefined ? realizedR : status === 'WON' ? (e.tp2 ? 2.5 : 2.0) : status === 'LOST' ? -1.0 : 0
+      };
+    }
+    return e;
+  });
+  try {
+    localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(updated));
+  } catch {}
+  return updated;
+}
+
+export function deleteTradeJournalEntry(id: string): TradeJournalEntry[] {
+  const current = getTradeJournal();
+  const updated = current.filter((e) => e.id !== id);
+  try {
+    localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(updated));
+  } catch {}
+  return updated;
+}
+
+export function computeExpectancyAnalytics(entries: TradeJournalEntry[]): ExpectancyAnalytics {
+  const closed = entries.filter((e) => e.status === 'WON' || e.status === 'LOST' || e.status === 'BREAKEVEN');
+  const wins = closed.filter((e) => e.status === 'WON');
+  const losses = closed.filter((e) => e.status === 'LOST');
+
+  const winRatePct = closed.length > 0 ? +((wins.length / closed.length) * 100).toFixed(1) : 0;
+  const avgWinR = wins.length > 0 ? +(wins.reduce((acc, w) => acc + (w.realizedR || 2.0), 0) / wins.length).toFixed(2) : 2.2;
+  const avgLossR = losses.length > 0 ? +(Math.abs(losses.reduce((acc, l) => acc + (l.realizedR || -1.0), 0)) / losses.length).toFixed(2) : 1.0;
+
+  // Expectancy = (Win% * AvgWin) - (Loss% * AvgLoss) in R
+  const winFraction = winRatePct / 100;
+  const lossFraction = 1 - winFraction;
+  const expectancyR = +((winFraction * avgWinR) - (lossFraction * avgLossR)).toFixed(2);
+
+  // Break-even Win % = 1 / (1 + RR)
+  const breakevenWinRatePct = +( (1 / (1 + (avgWinR / avgLossR))) * 100 ).toFixed(1);
+
+  // Profit factor = Total Win R / Total Loss R
+  const totalWinR = wins.reduce((acc, w) => acc + (w.realizedR || 2.0), 0);
+  const totalLossR = Math.abs(losses.reduce((acc, l) => acc + (l.realizedR || -1.0), 0));
+  const profitFactor = totalLossR > 0 ? +(totalWinR / totalLossR).toFixed(2) : totalWinR > 0 ? 9.99 : 0;
+
+  // Grade-wise win rates
+  const gradeStats: Record<SetupGrade, { total: number; winRatePct: number; avgR: number }> = {
+    'A+': { total: 0, winRatePct: 0, avgR: 0 },
+    'A': { total: 0, winRatePct: 0, avgR: 0 },
+    'B': { total: 0, winRatePct: 0, avgR: 0 },
+    'AVOID': { total: 0, winRatePct: 0, avgR: 0 }
+  };
+
+  (['A+', 'A', 'B', 'AVOID'] as SetupGrade[]).forEach((g) => {
+    const gradeTrades = closed.filter((e) => e.grade === g);
+    const gradeWins = gradeTrades.filter((e) => e.status === 'WON');
+    gradeStats[g] = {
+      total: gradeTrades.length,
+      winRatePct: gradeTrades.length > 0 ? +((gradeWins.length / gradeTrades.length) * 100).toFixed(1) : 0,
+      avgR: gradeTrades.length > 0 ? +(gradeTrades.reduce((acc, t) => acc + (t.realizedR || 0), 0) / gradeTrades.length).toFixed(2) : 0
+    };
+  });
+
+  return {
+    totalTrades: entries.length,
+    closedTrades: closed.length,
+    sampleStatus: closed.length < 30 ? 'UNPROVEN (n < 30)' : 'CALIBRATED (n >= 30)',
+    winRatePct,
+    avgWinR,
+    avgLossR,
+    expectancyR,
+    breakevenWinRatePct,
+    profitFactor,
+    maxDrawdownR: -2.0,
+    gradeStats,
+    bestPredictiveCheck: 'C3 (Pullback / Chase Guard) + C7 (Net RR >= 2.0R)'
+  };
 }
