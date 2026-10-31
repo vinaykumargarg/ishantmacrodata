@@ -51,6 +51,29 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      const isChunkError =
+        this.state.error?.message?.includes('Failed to fetch dynamically imported module') ||
+        this.state.error?.message?.includes('Importing a module script failed') ||
+        this.state.error?.message?.includes('dynamically imported');
+
+      if (isChunkError) {
+        return (
+          <div className="min-h-[420px] w-full flex flex-col items-center justify-center p-6 bg-[#070d1e] border border-blue-500/30 rounded-2xl text-center space-y-4 shadow-2xl my-4">
+            <div className="h-12 w-12 rounded-2xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-xl animate-spin text-blue-400">
+              ⚡
+            </div>
+            <div className="space-y-1.5 max-w-lg">
+              <h3 className="text-sm font-bold text-white">
+                Syncing Latest Terminal Assets...
+              </h3>
+              <p className="text-xs text-slate-400">
+                Fresh platform updates deployed. Automatically updating workspace view...
+              </p>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="min-h-[420px] w-full flex flex-col items-center justify-center p-6 bg-[#070d1e] border border-rose-500/30 rounded-2xl text-center space-y-4 shadow-2xl my-4">
           <div className="h-16 w-16 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-3xl animate-pulse">
