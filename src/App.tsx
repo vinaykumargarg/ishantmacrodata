@@ -57,6 +57,7 @@ const OrderBookHeatmapView = React.lazy(() => import('./components/OrderBookHeat
 const RetailCrowdSentimentView = React.lazy(() => import('./components/RetailCrowdSentimentView'));
 const DeeeprNewsEventsView = React.lazy(() => import('./components/DeeeprNewsEventsView'));
 const UsaEconomicCalendarView = React.lazy(() => import('./components/UsaEconomicCalendarView'));
+const PreTradeAnalysisView = React.lazy(() => import('./components/PreTradeAnalysisView'));
 const DeeeprUsEventsView = React.lazy(() => import('./components/DeeeprUsEventsView'));
 const SubscriptionPricingView = React.lazy(() => import('./components/SubscriptionPricingView'));
 const BtcUsdtRelationshipEngine = React.lazy(() => import('./components/BtcUsdtRelationshipEngine'));
@@ -696,6 +697,9 @@ function TerminalApp() {
               )}
               {(activeTab === 'deeepr-news-events' || activeTab === 'news-events' || activeTab === 'economic-events' || activeTab === 'macro-news' || activeTab === 'news-engine' || activeTab === 'calendar' || activeTab === 'usa-calendar') && (
                 <UsaEconomicCalendarView onNavigate={setActiveTab} />
+              )}
+              {(activeTab === 'pre-trade' || activeTab === 'pre-trade-analysis' || activeTab === 'checklist' || activeTab === 'pre-trade-checklist' || activeTab === 'ai-checklist') && (
+                <PreTradeAnalysisView onNavigate={setActiveTab} />
               )}
               {activeTab === 'confluence' && <ConfluenceEngineView />}
               {activeTab === 'scanner' && <BullBearScannerView />}

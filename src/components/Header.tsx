@@ -63,6 +63,7 @@ const SEARCH_DATABASE: SearchItem[] = [
   { id: 'cross-asset-confirmation', name: 'US Dollar Index (DXY)', category: 'Assets', badge: 'Forex', keywords: ['dxy', 'dollar', 'fx'] },
 
   // AI & Trading Charts
+  { id: 'pre-trade', name: 'AI Pre-Trade Analysis & Checklist (Gold & BTC)', category: 'AI & Trading Charts', badge: 'Checklist', keywords: ['checklist', 'pre-trade', 'validation', 'gold checklist', 'btc checklist'] },
   { id: 'ai-chart', name: 'AI Sniper Chart (Long / Short / Wait)', category: 'AI & Trading Charts', badge: 'AI', keywords: ['chart', 'sniper', 'signal'] },
   { id: 'deeepr-ai', name: 'DEEEPR.AI Copilot & Institutional Chart', category: 'AI & Trading Charts', badge: 'AI', keywords: ['copilot', 'chart', 'smc'] },
   { id: 'institutional-chart', name: 'Institutional All-in-One Chart (SMC/ICT)', category: 'AI & Trading Charts', badge: 'Pro', keywords: ['smc', 'ict', 'fvg', 'order block'] },
