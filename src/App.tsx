@@ -56,6 +56,7 @@ const BookmapLiquidationTerminalView = React.lazy(() => import('./components/Boo
 const OrderBookHeatmapView = React.lazy(() => import('./components/OrderBookHeatmapView'));
 const RetailCrowdSentimentView = React.lazy(() => import('./components/RetailCrowdSentimentView'));
 const DeeeprNewsEventsView = React.lazy(() => import('./components/DeeeprNewsEventsView'));
+const UsaEconomicCalendarView = React.lazy(() => import('./components/UsaEconomicCalendarView'));
 const DeeeprUsEventsView = React.lazy(() => import('./components/DeeeprUsEventsView'));
 const SubscriptionPricingView = React.lazy(() => import('./components/SubscriptionPricingView'));
 const BtcUsdtRelationshipEngine = React.lazy(() => import('./components/BtcUsdtRelationshipEngine'));
@@ -693,8 +694,8 @@ function TerminalApp() {
               {(activeTab === 'usa-events' || activeTab === 'us-events' || activeTab === 'us-news' || activeTab === 'us-events-engine' || activeTab === 'deeepr-us-events' || activeTab === 'fomc-cpi-engine') && (
                 <DeeeprUsEventsView onNavigate={setActiveTab} />
               )}
-              {(activeTab === 'deeepr-news-events' || activeTab === 'news-events' || activeTab === 'economic-events' || activeTab === 'macro-news' || activeTab === 'news-engine' || activeTab === 'calendar') && (
-                <DeeeprNewsEventsView onNavigate={setActiveTab} />
+              {(activeTab === 'deeepr-news-events' || activeTab === 'news-events' || activeTab === 'economic-events' || activeTab === 'macro-news' || activeTab === 'news-engine' || activeTab === 'calendar' || activeTab === 'usa-calendar') && (
+                <UsaEconomicCalendarView onNavigate={setActiveTab} />
               )}
               {activeTab === 'confluence' && <ConfluenceEngineView />}
               {activeTab === 'scanner' && <BullBearScannerView />}

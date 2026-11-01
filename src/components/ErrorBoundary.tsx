@@ -9,19 +9,22 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
-    error: null
+    error: null,
+    errorInfo: null
   };
 
-  public static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    this.setState({ errorInfo });
     console.error('ErrorBoundary caught an error:', error, errorInfo);
 
     // Auto-heal dynamically imported module failures seamlessly without user disruption
@@ -84,12 +87,18 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.props.fallbackTitle || 'Component Temporary Loading Anomaly'}
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Yeh section render hone mein temporary issue aaya hai. Data safely preserved hai aur koi capital ya trade impact nahi hua hai.
+              Is section me rendering error aaya hai. Kripya reload karein ya thodi der baad koshish karein.
             </p>
             {this.state.error?.message && (
-              <p className="text-[11px] font-mono text-rose-300 bg-rose-950/40 border border-rose-500/20 p-2 rounded-lg break-all">
-                {this.state.error.message}
+              <p className="text-[11px] font-mono text-rose-300 bg-rose-950/40 border border-rose-500/20 p-2 rounded-lg break-all text-left">
+                <strong>Error:</strong> {this.state.error.message}
               </p>
+            )}
+            {import.meta.env.DEV && this.state.errorInfo?.componentStack && (
+              <details className="text-left text-[10px] font-mono text-slate-400 bg-slate-900/60 p-2 rounded border border-slate-800">
+                <summary className="cursor-pointer text-amber-400 font-bold mb-1">Component Stack Trace (Dev Mode)</summary>
+                <pre className="whitespace-pre-wrap max-h-40 overflow-y-auto">{this.state.errorInfo.componentStack}</pre>
+              </details>
             )}
           </div>
           <div className="flex items-center gap-3 pt-2">
