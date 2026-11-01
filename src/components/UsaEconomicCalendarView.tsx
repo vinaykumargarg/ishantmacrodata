@@ -811,3 +811,4 @@ export const UsaEconomicCalendarView: React.FC<UsaEconomicCalendarViewProps> = (
 };
 
 export default UsaEconomicCalendarView;
+

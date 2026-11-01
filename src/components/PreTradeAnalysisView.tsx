@@ -744,3 +744,4 @@ export const PreTradeAnalysisView: React.FC<PreTradeAnalysisViewProps> = ({ onNa
 };
 
 export default PreTradeAnalysisView;
+

@@ -94,7 +94,10 @@ interface PaperTradePosition {
 }
 
 const POPULAR_COINS = [
-  'BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'SUI', 'AVAX', 'NEAR', 'LINK', 'BNB', 'ADA', 'TAO', 'AAVE', 'INJ', 'PEPE', 'TIA', 'RENDER', 'PENDLE'
+  'BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'SUI', 'AVAX', 'NEAR', 'LINK', 'BNB',
+  'ADA', 'TAO', 'AAVE', 'INJ', 'APT', 'OP', 'ARB', 'FTM', 'KAS', 'STX',
+  'FET', 'WIF', 'SHIB', 'BONK', 'ENA', 'JUP', 'WLD', 'ONDO', 'PEPE', 'TIA',
+  'RENDER', 'PENDLE'
 ];
 
 export default function DeltaSwingScannerView({ onNavigate: _onNavigate }: Props) {
