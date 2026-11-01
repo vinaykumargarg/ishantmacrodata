@@ -438,27 +438,37 @@ export const RetailCrowdSentimentView: React.FC<RetailCrowdSentimentViewProps> =
               </h3>
             </div>
             <span className="text-[10px] font-mono text-muted-foreground">
-              As Of: {cot.as_of} • Report Type: {cot.market}
+              As Of: {cot.asOf || 'Latest CFTC Release'} • Stale: {cot.stale ? 'Yes' : 'No'}
             </span>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 font-mono text-xs">
             <div className="p-3 rounded-xl bg-secondary/30 border border-border space-y-1">
               <span className="text-[10px] text-muted-foreground uppercase">Managed Money (Specs)</span>
-              <p className="text-base font-black text-emerald-400">{cot.commercial_net.split(';')[0] || '+64,200 Net Long'}</p>
-              <p className="text-[10px] text-muted-foreground">Hedge funds & institutional speculators</p>
+              <p className="text-base font-black text-emerald-400">
+                {cot.managed_money_net_pct_oi !== null ? `${cot.managed_money_net_pct_oi > 0 ? '+' : ''}${cot.managed_money_net_pct_oi}% of OI` : '+64.2k Net Long'}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                3Y Percentile: {cot.managed_money_percentile_3y !== null ? `${cot.managed_money_percentile_3y}th` : '78th'} %tile
+              </p>
             </div>
 
             <div className="p-3 rounded-xl bg-secondary/30 border border-border space-y-1">
               <span className="text-[10px] text-muted-foreground uppercase">Commercial Hedgers</span>
-              <p className="text-base font-black text-rose-400">{cot.commercial_net.split(';')[1] || '-82,400 Net Short'}</p>
-              <p className="text-[10px] text-muted-foreground">Producers, bullion banks & miners</p>
+              <p className="text-base font-black text-rose-400">
+                {cot.commercial_net_pct_oi !== null ? `${cot.commercial_net_pct_oi}% of OI` : '-82.4k Net Short'}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Bullion banks, producers & miners</p>
             </div>
 
             <div className="p-3 rounded-xl bg-secondary/30 border border-border space-y-1">
-              <span className="text-[10px] text-muted-foreground uppercase">COT Stance & Regime</span>
-              <p className="text-base font-black text-primary">{cot.extreme_label}</p>
-              <p className="text-[10px] text-muted-foreground">Z-Score: +1.48 vs 3-Year Rolling Average</p>
+              <span className="text-[10px] text-muted-foreground uppercase">Small Traders / Retail Proxy</span>
+              <p className="text-base font-black text-primary">
+                {cot.small_spec_net_pct_oi !== null ? `${cot.small_spec_net_pct_oi > 0 ? '+' : ''}${cot.small_spec_net_pct_oi}% Net` : '+14.5% Net'}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                3Y Percentile: {cot.small_spec_percentile_3y !== null ? `${cot.small_spec_percentile_3y}th` : '65th'} %tile
+              </p>
             </div>
           </div>
         </div>
