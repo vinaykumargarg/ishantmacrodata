@@ -59,6 +59,7 @@ const DeeeprNewsEventsView = React.lazy(() => import('./components/DeeeprNewsEve
 const UsaEconomicCalendarView = React.lazy(() => import('./components/UsaEconomicCalendarView'));
 const PreTradeAnalysisView = React.lazy(() => import('./components/PreTradeAnalysisView'));
 const PumpDumpRadarView = React.lazy(() => import('./components/PumpDumpRadarView'));
+const InstitutionalLiveTradingView = React.lazy(() => import('./components/InstitutionalLiveTradingView'));
 const DeeeprUsEventsView = React.lazy(() => import('./components/DeeeprUsEventsView'));
 const SubscriptionPricingView = React.lazy(() => import('./components/SubscriptionPricingView'));
 const BtcUsdtRelationshipEngine = React.lazy(() => import('./components/BtcUsdtRelationshipEngine'));
@@ -704,6 +705,9 @@ function TerminalApp() {
               )}
               {(activeTab === 'pump-dump-radar' || activeTab === 'why-pump' || activeTab === 'why-dump' || activeTab === 'move-attribution' || activeTab === 'radar') && (
                 <PumpDumpRadarView onNavigate={setActiveTab} />
+              )}
+              {(activeTab === 'institutional-live' || activeTab === 'iit-trading' || activeTab === 'live-analysis' || activeTab === 'iitian-analysis' || activeTab === 'orderflow-action') && (
+                <InstitutionalLiveTradingView onNavigate={setActiveTab} />
               )}
               {activeTab === 'confluence' && <ConfluenceEngineView />}
               {activeTab === 'scanner' && <BullBearScannerView />}

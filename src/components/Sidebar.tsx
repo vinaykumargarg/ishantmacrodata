@@ -37,6 +37,7 @@ export const SECTIONS: SidebarSection[] = [
     items: [
       { emoji: '📋', name: 'AI Pre-Trade Analysis & Checklist', route: 'pre-trade' },
       { emoji: '⚡', name: 'Pump / Dump Radar (Kyun Aaya?)', route: 'pump-dump-radar' },
+      { emoji: '🏛️', name: 'Institutional Live Trading Analysis', route: 'institutional-live' },
       { emoji: '🎯', name: 'Global Market Score', route: 'global-score' },
       { emoji: '🏛️', name: 'Institutional AI Terminal', route: 'institutional-terminal' },
       { emoji: '🎯', name: 'AI Sniper Chart', route: 'ai-chart' },
