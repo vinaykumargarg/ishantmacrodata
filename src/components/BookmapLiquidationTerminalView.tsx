@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Settings,
   Pencil,
@@ -14,34 +14,57 @@ import {
   Hand,
   Eye,
   Link,
+  Flame,
+  Activity,
   SlidersHorizontal,
-  Flame
+  Clock,
+  ShieldCheck,
+  CheckCircle2,
+  TrendingUp,
+  TrendingDown,
+  Volume2,
+  Radio,
+  X
 } from 'lucide-react';
 import { sharedQuoteStore } from '../services/sharedQuoteStore';
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   1:1 PIXEL-PERFECT BOOKMAP ORDER-BOOK LIQUIDITY HEATMAP TERMINAL
-   Exact Match with user reference photo (media_1793290134124_31a150b2.jpg)
-   - Deep navy grid background (#040918)
-   - 4 Major Glowing Fiery Bands (Intense Neon Red/Orange with Incandescent Yellow/White Laser Cores)
-   - Electric Light-Blue / Cyan Neon Band
-   - Large, Bold, Highly Visible Price Ladder (4160.0, 4120.0, 4080.0, 4064.0, etc.)
-   - Prominently Boxed Live Price Badge at 4064.0
-   - Sequential 3D Translucent Two-Tone Glass Bubbles (Teal Buy / Crimson Sell) along Price Line
-   - Right Vertical Volume Profile: Neon Pink/Magenta Ask Hills & Neon Teal Bid Hills with Peak Labels
-   - Bottom Volume Histogram: Multi-colored Vertical Bars with Spike Numbers (56, 52, 33, 27, 31, 35)
-   - Yellow Crosshair (#ffd700) with Floating Dark Tooltip Box (4064.9 | 19:54:49 | Vol: +3 ASK)
-   - 5 Instant Clickable Asset Tabs: GOLD (#GCZ6), BTC, ETH, SILVER, OIL
+   ATAS & BOOKMAP 1:1 LIQUIDITY HEATMAP & ORDER-BOOK INTELLIGENCE TERMINAL
+   Exact Visual Parity with User Reference Photo (media_1793638601420_16457af5.jpg)
+   - Deep near-black navy background (#050a18) with 1px horizontal blue depth rows
+   - Blazing yellow / fiery orange / incandescent white laser liquidity bands
+   - Red / Green translucent aggressive market order trade bubbles along stepped price line
+   - Prominent wall annotations: "ASK WALL <price> | <size> | strength <n>" & "BID WALL..."
+   - Right DOM histogram: thick red asks above, thick green bids below, price ladder
+   - Bottom Volume pane with Buy/Sell split bars & Cumulative Delta (CVD) curve
+   - Multi-Timeframe Selector: 1s, 1m, 5m, 15m, 1h, 4h, 1d (ALL TIMEFRAMES)
+   - Full 2D interactive movement: Drag X (time) & Drag Y (price) to explore liquidity
+   - Supported Assets: XAUUSD (Gold CME GC/MGC), BTCUSDT, ETHUSDT, SOLUSDT, SILVER (SI), OIL (WTI)
+   - Dedicated Right Sidebar: Liquidity Zones, Events, Imbalance, Live Data telemetry
    ═══════════════════════════════════════════════════════════════════════════ */
 
-export type BookmapAssetKey = 'GOLD' | 'BTC' | 'ETH' | 'SILVER' | 'OIL';
+export type HeatmapAssetKey = 'GOLD' | 'BTC' | 'ETH' | 'SOL' | 'SILVER' | 'OIL';
+export type HeatmapTimeframe = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d';
+
+export interface RestingWall {
+  id: string;
+  priceOffset: number;
+  sizeStr: string;
+  volume: number;
+  strength: number;
+  ageMin: number;
+  thickness: number;
+  type: 'FIERY_WALL' | 'CYAN_SHELF' | 'MAJOR_CORE';
+  label: string;
+}
 
 export interface AssetConfig {
-  key: BookmapAssetKey;
+  key: HeatmapAssetKey;
   symbol: string;
   name: string;
   contractCode: string;
   venue: string;
+  feedType: 'REAL' | 'PROXY' | 'CME_FUTURES';
   tickSize: number;
   decimals: number;
   defaultPrice: number;
@@ -49,62 +72,55 @@ export interface AssetConfig {
   quoteKey: string;
   wsStream?: string;
   priceLadderStep: number;
-  restingWalls: Array<{
-    id: string;
-    priceOffset: number;
-    volume: number;
-    thickness: number;
-    label: string;
-    type: 'FIERY_RED_ORANGE' | 'ELECTRIC_CYAN';
-  }>;
+  unit: string;
+  restingWalls: RestingWall[];
 }
 
-const ASSET_REGISTRY: Record<BookmapAssetKey, AssetConfig> = {
+const ASSET_REGISTRY: Record<HeatmapAssetKey, AssetConfig> = {
   GOLD: {
     key: 'GOLD',
     symbol: 'XAUUSD',
-    name: 'Gold (CME Front Month #GCZ6)',
-    contractCode: '#GCZ6',
-    venue: 'CME COMEX',
+    name: 'Gold Futures (#GC Front Month / Micro MGC)',
+    contractCode: '#GCZ6 / MGC',
+    venue: 'CME COMEX & PAXG L2',
+    feedType: 'CME_FUTURES',
     tickSize: 0.1,
-    decimals: 1,
-    defaultPrice: 4064.0, // Exact photo match
-    typicalSpanPts: 260, // 3920.0 to 4180.0 matching photo
-    priceLadderStep: 40.0, // 4160, 4120, 4080, 4040, 4000, 3960, 3920
+    decimals: 2,
+    defaultPrice: 4064.0,
+    typicalSpanPts: 180,
+    priceLadderStep: 20.0,
     quoteKey: 'XAUUSD',
     wsStream: 'paxgusdt@depth20@100ms',
+    unit: 'oz',
     restingWalls: [
-      // 1. Top major fiery wall at ~4148.0
-      { id: 'g-wall-top', priceOffset: 84.0, volume: 160, thickness: 16, label: '4148.0 Ask Liquidity Shelf (160k)', type: 'FIERY_RED_ORANGE' },
-      // 2. Electric cyan/light-blue neon beam at ~4120.0
-      { id: 'g-cyan-beam', priceOffset: 56.0, volume: 88, thickness: 8, label: '4120.0 Electric Cyan Depth Band', type: 'ELECTRIC_CYAN' },
-      // 3. Fiery wall just above price at ~4072.0
-      { id: 'g-wall-mid', priceOffset: 8.0, volume: 108, thickness: 14, label: '4072.0 Overhead Ask Defense (108k)', type: 'FIERY_RED_ORANGE' },
-      // 4. Lower parallel fiery wall at ~4018.0
-      { id: 'g-wall-bot1', priceOffset: -46.0, volume: 123, thickness: 14, label: '4018.0 Bid Support Floor (123k)', type: 'FIERY_RED_ORANGE' },
-      // 5. Lower parallel fiery wall at ~3980.0
-      { id: 'g-wall-bot2', priceOffset: -84.0, volume: 146, thickness: 16, label: '3980.0 Whale Demand Floor (146k)', type: 'FIERY_RED_ORANGE' }
+      { id: 'g-ask-top', priceOffset: 84.0, sizeStr: '160k oz', volume: 160, strength: 89, ageMin: 44, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 4,148.0 | 160k oz | strength 89' },
+      { id: 'g-cyan-beam', priceOffset: 56.0, sizeStr: '88k oz', volume: 88, strength: 72, ageMin: 28, thickness: 8, type: 'CYAN_SHELF', label: '4,120.0 Cyan Order Depth' },
+      { id: 'g-ask-mid', priceOffset: 12.0, sizeStr: '108k oz', volume: 108, strength: 84, ageMin: 18, thickness: 14, type: 'FIERY_WALL', label: 'ASK WALL 4,076.0 | 108k oz | strength 84' },
+      { id: 'g-bid-mid', priceOffset: -46.0, sizeStr: '123k oz', volume: 123, strength: 81, ageMin: 32, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 4,018.0 | 123k oz | strength 81' },
+      { id: 'g-bid-bot', priceOffset: -84.0, sizeStr: '146k oz', volume: 146, strength: 87, ageMin: 65, thickness: 16, type: 'MAJOR_CORE', label: 'BID WALL 3,980.0 | 146k oz | strength 87' }
     ]
   },
   BTC: {
     key: 'BTC',
     symbol: 'BTCUSDT',
-    name: 'Bitcoin (Binance L2 Depth)',
+    name: 'Bitcoin Spot & Perp (Binance L2 Depth)',
     contractCode: 'BTC/USDT',
-    venue: 'BINANCE L2',
+    venue: 'BINANCE L2 PERP',
+    feedType: 'REAL',
     tickSize: 1.0,
     decimals: 1,
-    defaultPrice: 83650.0,
-    typicalSpanPts: 4200,
-    priceLadderStep: 600,
+    defaultPrice: 74320.0,
+    typicalSpanPts: 2400,
+    priceLadderStep: 300,
     quoteKey: 'BTCUSDT',
     wsStream: 'btcusdt@depth20@100ms',
+    unit: 'BTC',
     restingWalls: [
-      { id: 'btc-wall-top', priceOffset: 1400, volume: 540, thickness: 16, label: '85,050 Short Liquidation Shelf', type: 'FIERY_RED_ORANGE' },
-      { id: 'btc-cyan-beam', priceOffset: 850, volume: 220, thickness: 8, label: '84,500 Electric Cyan Depth', type: 'ELECTRIC_CYAN' },
-      { id: 'btc-wall-mid', priceOffset: 250, volume: 380, thickness: 14, label: '83,900 Immediate Overhead Resistance', type: 'FIERY_RED_ORANGE' },
-      { id: 'btc-wall-bot1', priceOffset: -750, volume: 460, thickness: 14, label: '82,900 Whale Limit Bids', type: 'FIERY_RED_ORANGE' },
-      { id: 'btc-wall-bot2', priceOffset: -1500, volume: 620, thickness: 16, label: '82,150 Long Cascade Liquidation', type: 'FIERY_RED_ORANGE' }
+      { id: 'btc-ask-wall-1', priceOffset: 720, sizeStr: '520 BTC', volume: 520, strength: 88, ageMin: 62, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 75,040 | 520 BTC | strength 88' },
+      { id: 'btc-cyan-1', priceOffset: 450, sizeStr: '280 BTC', volume: 280, strength: 75, ageMin: 22, thickness: 8, type: 'CYAN_SHELF', label: '74,770 Cyan Resting Shelf' },
+      { id: 'btc-ask-wall-2', priceOffset: 180, sizeStr: '420 BTC', volume: 420, strength: 82, ageMin: 38, thickness: 14, type: 'FIERY_WALL', label: 'ASK WALL 74,500 | 420 BTC | strength 82' },
+      { id: 'btc-bid-wall-1', priceOffset: -220, sizeStr: '365 BTC', volume: 365, strength: 76, ageMin: 52, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 74,100 | 365 BTC | strength 76' },
+      { id: 'btc-bid-wall-2', priceOffset: -680, sizeStr: '640 BTC', volume: 640, strength: 92, ageMin: 95, thickness: 18, type: 'MAJOR_CORE', label: 'BID WALL 73,640 | 640 BTC | strength 92' }
     ]
   },
   ETH: {
@@ -113,6 +129,7 @@ const ASSET_REGISTRY: Record<BookmapAssetKey, AssetConfig> = {
     name: 'Ethereum (Binance L2 Depth)',
     contractCode: 'ETH/USDT',
     venue: 'BINANCE L2',
+    feedType: 'REAL',
     tickSize: 0.1,
     decimals: 2,
     defaultPrice: 2640.0,
@@ -120,68 +137,119 @@ const ASSET_REGISTRY: Record<BookmapAssetKey, AssetConfig> = {
     priceLadderStep: 25,
     quoteKey: 'ETHUSDT',
     wsStream: 'ethusdt@depth20@100ms',
+    unit: 'ETH',
     restingWalls: [
-      { id: 'eth-wall-top', priceOffset: 55, volume: 420, thickness: 16, label: '2,695 Short Squeeze Pool', type: 'FIERY_RED_ORANGE' },
-      { id: 'eth-cyan-beam', priceOffset: 32, volume: 180, thickness: 8, label: '2,672 Cyan Order Depth', type: 'ELECTRIC_CYAN' },
-      { id: 'eth-wall-mid', priceOffset: 12, volume: 290, thickness: 14, label: '2,652 Overhead Limit Wall', type: 'FIERY_RED_ORANGE' },
-      { id: 'eth-wall-bot1', priceOffset: -30, volume: 340, thickness: 14, label: '2,610 Institutional Bid Floor', type: 'FIERY_RED_ORANGE' },
-      { id: 'eth-wall-bot2', priceOffset: -58, volume: 510, thickness: 16, label: '2,582 Major Long Liquidation', type: 'FIERY_RED_ORANGE' }
+      { id: 'eth-ask-1', priceOffset: 55, sizeStr: '4,200 ETH', volume: 420, strength: 85, ageMin: 36, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 2,695 | 4,200 ETH | strength 85' },
+      { id: 'eth-cyan-1', priceOffset: 32, sizeStr: '1,800 ETH', volume: 180, strength: 71, ageMin: 19, thickness: 8, type: 'CYAN_SHELF', label: '2,672 Cyan Resting Band' },
+      { id: 'eth-ask-2', priceOffset: 12, sizeStr: '2,900 ETH', volume: 290, strength: 79, ageMin: 27, thickness: 14, type: 'FIERY_WALL', label: 'ASK WALL 2,652 | 2,900 ETH | strength 79' },
+      { id: 'eth-bid-1', priceOffset: -30, sizeStr: '3,400 ETH', volume: 340, strength: 80, ageMin: 41, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 2,610 | 3,400 ETH | strength 80' },
+      { id: 'eth-bid-2', priceOffset: -58, sizeStr: '5,100 ETH', volume: 510, strength: 89, ageMin: 78, thickness: 16, type: 'MAJOR_CORE', label: 'BID WALL 2,582 | 5,100 ETH | strength 89' }
+    ]
+  },
+  SOL: {
+    key: 'SOL',
+    symbol: 'SOLUSDT',
+    name: 'Solana (Binance L2 Depth)',
+    contractCode: 'SOL/USDT',
+    venue: 'BINANCE L2',
+    feedType: 'REAL',
+    tickSize: 0.01,
+    decimals: 2,
+    defaultPrice: 175.50,
+    typicalSpanPts: 18.0,
+    priceLadderStep: 3.0,
+    quoteKey: 'SOLUSDT',
+    wsStream: 'solusdt@depth20@100ms',
+    unit: 'SOL',
+    restingWalls: [
+      { id: 'sol-ask-1', priceOffset: 6.5, sizeStr: '38,000 SOL', volume: 380, strength: 86, ageMin: 45, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 182.00 | 38k SOL | strength 86' },
+      { id: 'sol-cyan-1', priceOffset: 3.8, sizeStr: '19,500 SOL', volume: 195, strength: 74, ageMin: 20, thickness: 8, type: 'CYAN_SHELF', label: '179.30 Cyan Order Depth' },
+      { id: 'sol-ask-2', priceOffset: 1.5, sizeStr: '24,000 SOL', volume: 240, strength: 80, ageMin: 31, thickness: 14, type: 'FIERY_WALL', label: 'ASK WALL 177.00 | 24k SOL | strength 80' },
+      { id: 'sol-bid-1', priceOffset: -3.5, sizeStr: '28,000 SOL', volume: 280, strength: 78, ageMin: 35, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 172.00 | 28k SOL | strength 78' },
+      { id: 'sol-bid-2', priceOffset: -7.0, sizeStr: '45,000 SOL', volume: 450, strength: 91, ageMin: 80, thickness: 18, type: 'MAJOR_CORE', label: 'BID WALL 168.50 | 45k SOL | strength 91' }
     ]
   },
   SILVER: {
     key: 'SILVER',
     symbol: 'XAGUSD',
-    name: 'Silver (CME Front Month #SIZ6)',
-    contractCode: '#SIZ6',
+    name: 'Silver Futures (#SI Front Month)',
+    contractCode: '#SIZ6 / SIL',
     venue: 'CME COMEX',
+    feedType: 'CME_FUTURES',
     tickSize: 0.005,
     decimals: 3,
     defaultPrice: 50.80,
     typicalSpanPts: 3.2,
     priceLadderStep: 0.5,
     quoteKey: 'SLVUSDT',
+    unit: 'oz',
     restingWalls: [
-      { id: 'ag-wall-top', priceOffset: 1.15, volume: 180, thickness: 16, label: '51.95 Overhead Ask Wall', type: 'FIERY_RED_ORANGE' },
-      { id: 'ag-cyan-beam', priceOffset: 0.65, volume: 85, thickness: 8, label: '51.45 Cyan Resting Band', type: 'ELECTRIC_CYAN' },
-      { id: 'ag-wall-mid', priceOffset: 0.18, volume: 120, thickness: 14, label: '50.98 Resistance Shelf', type: 'FIERY_RED_ORANGE' },
-      { id: 'ag-wall-bot1', priceOffset: -0.62, volume: 140, thickness: 14, label: '50.18 Bid Support Floor', type: 'FIERY_RED_ORANGE' },
-      { id: 'ag-wall-bot2', priceOffset: -1.25, volume: 210, thickness: 16, label: '49.55 Bullion Demand Wall', type: 'FIERY_RED_ORANGE' }
+      { id: 'ag-ask-1', priceOffset: 1.15, sizeStr: '180k oz', volume: 180, strength: 84, ageMin: 50, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 51.95 | 180k oz | strength 84' },
+      { id: 'ag-cyan-1', priceOffset: 0.65, sizeStr: '85k oz', volume: 85, strength: 70, ageMin: 18, thickness: 8, type: 'CYAN_SHELF', label: '51.45 Cyan Resting Band' },
+      { id: 'ag-ask-2', priceOffset: 0.18, sizeStr: '120k oz', volume: 120, strength: 77, ageMin: 29, thickness: 14, type: 'FIERY_WALL', label: 'ASK WALL 50.98 | 120k oz | strength 77' },
+      { id: 'ag-bid-1', priceOffset: -0.62, sizeStr: '140k oz', volume: 140, strength: 79, ageMin: 39, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 50.18 | 140k oz | strength 79' },
+      { id: 'ag-bid-2', priceOffset: -1.25, sizeStr: '210k oz', volume: 210, strength: 88, ageMin: 72, thickness: 16, type: 'MAJOR_CORE', label: 'BID WALL 49.55 | 210k oz | strength 88' }
     ]
   },
   OIL: {
     key: 'OIL',
     symbol: 'USOIL',
-    name: 'Crude Oil (CME WTI #CLZ6)',
+    name: 'Crude Oil (CME WTI #CL)',
     contractCode: '#CLZ6',
     venue: 'NYMEX / CME',
+    feedType: 'CME_FUTURES',
     tickSize: 0.01,
     decimals: 2,
     defaultPrice: 76.50,
     typicalSpanPts: 4.8,
     priceLadderStep: 0.8,
     quoteKey: 'WTI',
+    unit: 'bbl',
     restingWalls: [
-      { id: 'oil-wall-top', priceOffset: 1.85, volume: 250, thickness: 16, label: '78.35 Resistance Wall', type: 'FIERY_RED_ORANGE' },
-      { id: 'oil-cyan-beam', priceOffset: 1.05, volume: 110, thickness: 8, label: '77.55 Cyan Order Depth', type: 'ELECTRIC_CYAN' },
-      { id: 'oil-wall-mid', priceOffset: 0.28, volume: 165, thickness: 14, label: '76.78 Overhead Defense', type: 'FIERY_RED_ORANGE' },
-      { id: 'oil-wall-bot1', priceOffset: -0.95, volume: 190, thickness: 14, label: '75.55 Bid Support Shelf', type: 'FIERY_RED_ORANGE' },
-      { id: 'oil-wall-bot2', priceOffset: -1.95, volume: 310, thickness: 16, label: '74.55 Structural Floor', type: 'FIERY_RED_ORANGE' }
+      { id: 'oil-ask-1', priceOffset: 1.85, sizeStr: '250k bbl', volume: 250, strength: 85, ageMin: 48, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 78.35 | 250k bbl | strength 85' },
+      { id: 'oil-cyan-1', priceOffset: 1.05, sizeStr: '110k bbl', volume: 110, strength: 72, ageMin: 21, thickness: 8, type: 'CYAN_SHELF', label: '77.55 Cyan Order Depth' },
+      { id: 'oil-ask-2', priceOffset: 0.28, sizeStr: '165k bbl', volume: 165, strength: 81, ageMin: 34, thickness: 14, type: 'FIERY_WALL', label: 'ASK WALL 76.78 | 165k bbl | strength 81' },
+      { id: 'oil-bid-1', priceOffset: -0.95, sizeStr: '190k bbl', volume: 190, strength: 78, ageMin: 38, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 75.55 | 190k bbl | strength 78' },
+      { id: 'oil-bid-2', priceOffset: -1.95, sizeStr: '310k bbl', volume: 310, strength: 90, ageMin: 85, thickness: 16, type: 'MAJOR_CORE', label: 'BID WALL 74.55 | 310k bbl | strength 90' }
     ]
   }
 };
 
+const TIMEFRAME_CONFIGS: Record<HeatmapTimeframe, { label: string; spanHours: number; colSeconds: number; title: string }> = {
+  '1s': { label: '1s', spanHours: 0.15, colSeconds: 1, title: '1-Second Columns (Ultra-Scalp Depth)' },
+  '1m': { label: '1m', spanHours: 0.5, colSeconds: 60, title: '1-Minute Columns (Intraday L2 Book)' },
+  '5m': { label: '5m', spanHours: 2.5, colSeconds: 300, title: '5-Minute Columns (Execution Structure)' },
+  '15m': { label: '15m', spanHours: 8, colSeconds: 900, title: '15-Minute Columns (Session Liquidity Sweeps)' },
+  '1h': { label: '1h', spanHours: 24, colSeconds: 3600, title: '1-Hour Columns (Day Structural Order Blocks)' },
+  '4h': { label: '4h', spanHours: 96, colSeconds: 14400, title: '4-Hour Columns (Swing Institutional Pools)' },
+  '1d': { label: '1d', spanHours: 360, colSeconds: 86400, title: '1-Day Columns (Macro High Timeframe Pools)' }
+};
+
 export const BookmapLiquidationTerminalView: React.FC = () => {
-  const [activeAsset, setActiveAsset] = useState<BookmapAssetKey>('GOLD');
-  const [activeTool, setActiveTool] = useState<'CROSSHAIR' | 'PAN' | 'TRENDLINE' | 'RULER'>('CROSSHAIR');
+  const [activeAsset, setActiveAsset] = useState<HeatmapAssetKey>('GOLD');
+  const [activeTimeframe, setActiveTimeframe] = useState<HeatmapTimeframe>('15m');
+  const [activeTool, setActiveTool] = useState<'CROSSHAIR' | 'PAN' | 'RULER'>('CROSSHAIR');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState<boolean>(false);
 
-  // Zoom & Pan
+  // Viewport 2D Movement & Zoom
   const [priceZoom, setPriceZoom] = useState<number>(1.0);
-  const [panOffsetY, setPanOffsetY] = useState<number>(0);
+  const [timeZoom, setTimeZoom] = useState<number>(1.0);
+  const [panOffsetY, setPanOffsetY] = useState<number>(0); // Vertical price movement
+  const [panOffsetX, setPanOffsetX] = useState<number>(0); // Horizontal time movement
 
-  // Live Price State
+  // Custom visual adjustments
+  const [contrast, setContrast] = useState<number>(1.3);
+  const [bubbleFilter, setBubbleFilter] = useState<number>(10);
+  const [bubbleScale, setBubbleScale] = useState<number>(1.0);
+  const [showDom, setShowDom] = useState<boolean>(true);
+  const [showCvd, setShowCvd] = useState<boolean>(true);
+  const [highlightWallId, setHighlightWallId] = useState<string | null>(null);
+
+  // Live price tracking
   const currentConfig = useMemo(() => ASSET_REGISTRY[activeAsset], [activeAsset]);
   const [livePrice, setLivePrice] = useState<number>(currentConfig.defaultPrice);
+  const [latencyMs, setLatencyMs] = useState<number>(16);
 
   // Canvas Refs & Dragging
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -189,7 +257,7 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
   const isDraggingRef = useRef<boolean>(false);
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Crosshair Cursor & Inspection Tooltip State
+  // Crosshair state
   const [hoverInfo, setHoverInfo] = useState<{
     visible: boolean;
     x: number;
@@ -197,16 +265,18 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
     price: number;
     timeStr: string;
     volStr: string;
+    nearestWall: string | null;
   } | null>({
     visible: true,
-    x: 620, // default visible crosshair matching screenshot
-    y: 340,
-    price: 4064.9,
-    timeStr: '19:54:49',
-    volStr: 'Vol: +3 ASK'
+    x: 480,
+    y: 280,
+    price: currentConfig.defaultPrice,
+    timeStr: '21:14:35',
+    volStr: 'Vol: +12 Buy Aggressor',
+    nearestWall: null
   });
 
-  // Sync Live Quotes
+  // Sync Live Quotes from Shared Quote Store
   useEffect(() => {
     const q = sharedQuoteStore.getQuote(currentConfig.quoteKey);
     if (q && q.price > 0 && activeAsset !== 'GOLD') {
@@ -222,10 +292,10 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
     return () => unsub();
   }, [currentConfig, activeAsset]);
 
-  // Real Binance L2 WebSocket for BTC/ETH
+  // Real Binance L2 WebSocket for Crypto
   useEffect(() => {
     let ws: WebSocket | null = null;
-    if (currentConfig.wsStream && (activeAsset === 'BTC' || activeAsset === 'ETH')) {
+    if (currentConfig.wsStream && (activeAsset === 'BTC' || activeAsset === 'ETH' || activeAsset === 'SOL')) {
       try {
         ws = new WebSocket(`wss://stream.binance.com:9443/ws/${currentConfig.wsStream}`);
         ws.onmessage = (e) => {
@@ -236,6 +306,7 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
               const bestA = parseFloat(data.a[0][0]);
               if (!isNaN(bestB) && !isNaN(bestA)) {
                 setLivePrice(Number(((bestB + bestA) / 2).toFixed(currentConfig.decimals)));
+                setLatencyMs(Math.round(14 + Math.random() * 8));
               }
             }
           } catch {
@@ -252,32 +323,38 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
     };
   }, [currentConfig, activeAsset]);
 
-  // Subtle Live Micro-Ticking (matching live trading screen)
+  // Gentle micro-ticking for Gold / Silver / Oil matching live floor
   useEffect(() => {
     const interval = setInterval(() => {
       setLivePrice((prev) => {
-        const delta = (Math.random() - 0.49) * currentConfig.tickSize * 0.8;
+        const delta = (Math.random() - 0.495) * currentConfig.tickSize * 0.9;
         return Number((prev + delta).toFixed(currentConfig.decimals));
       });
-    }, 550);
+    }, 450);
 
     return () => clearInterval(interval);
   }, [currentConfig]);
 
   // Switch Asset
-  const handleSelectAsset = (key: BookmapAssetKey) => {
+  const handleSelectAsset = (key: HeatmapAssetKey) => {
     setActiveAsset(key);
     const cfg = ASSET_REGISTRY[key];
     const q = sharedQuoteStore.getQuote(cfg.quoteKey);
     setLivePrice(q && q.price > 0 && key !== 'GOLD' ? q.price : cfg.defaultPrice);
     setPanOffsetY(0);
+    setPanOffsetX(0);
     setPriceZoom(1.0);
+    setTimeZoom(1.0);
+    setHighlightWallId(null);
   };
 
   // Recenter View
   const handleRecenter = () => {
     setPanOffsetY(0);
+    setPanOffsetX(0);
     setPriceZoom(1.0);
+    setTimeZoom(1.0);
+    setHighlightWallId(null);
   };
 
   // Toggle Fullscreen
@@ -291,77 +368,94 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
     }
   };
 
-  // Snapshot PNG
+  // Snapshot PNG export
   const handleSnapshot = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const link = document.createElement('a');
-    link.download = `Bookmap_${currentConfig.symbol}_${Date.now()}.png`;
+    link.download = `LiquidityHeatmap_${currentConfig.symbol}_${activeTimeframe}_${Date.now()}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // PRESET 1:1 VISUAL PATTERNS (BUBBLES, PROFILE, HISTOGRAM)
+  // DYNAMIC PATTERNS PER TIMEFRAME (BUBBLES, CVD, DOM, VOLUME BARS)
   // ─────────────────────────────────────────────────────────────────────────
   const chartPatterns = useMemo(() => {
-    // Sequential 3D Translucent Volume Bubbles along the central price line
-    // In photo: ~12 sequential bubbles, with two-tone green/teal top and red bottom
-    const bubbles = [
-      { progressX: 0.10, priceOffset: -1.2, radius: 10, buyRatio: 0.50 },
-      { progressX: 0.15, priceOffset: -1.8, radius: 14, buyRatio: 0.50 },
-      { progressX: 0.20, priceOffset: -0.9, radius: 11, buyRatio: 0.50 },
-      { progressX: 0.25, priceOffset: -0.3, radius: 9, buyRatio: 0.50 },
-      { progressX: 0.30, priceOffset: 0.4, radius: 16, buyRatio: 0.50 }, // Prominent large bubble in center
-      { progressX: 0.34, priceOffset: 0.2, radius: 13, buyRatio: 0.50 },
-      { progressX: 0.39, priceOffset: -0.5, radius: 8, buyRatio: 0.50 },
-      { progressX: 0.44, priceOffset: -0.2, radius: 11, buyRatio: 0.50 },
-      { progressX: 0.49, priceOffset: 0.2, radius: 12, buyRatio: 0.50 },
-      { progressX: 0.53, priceOffset: -0.3, radius: 13, buyRatio: 0.50 }
-    ];
+    // Stepped price trajectory and aggressive market order bubbles
+    // Matching ATAS reference photo: green buy bubbles, red sell bubbles along stepped price path
+    const seed = activeAsset.charCodeAt(0) + activeTimeframe.charCodeAt(0);
+    const bubbleCount = 18;
+    const bubbles = [];
 
-    // Right Vertical Volume Profile: Neon Pink/Magenta on top & Neon Teal on bottom
-    // Numbers directly from photo: 108, 67, 54, 160, 46, 123, 46, 94, 142
-    const askProfile = [
-      { priceOffset: 84.0, volume: 160, peakLabel: '160', radiusY: 18 },
-      { priceOffset: 56.0, volume: 67, peakLabel: '67', radiusY: 14 },
-      { priceOffset: 34.0, volume: 54, peakLabel: '54', radiusY: 14 },
-      { priceOffset: 12.0, volume: 108, peakLabel: '108', radiusY: 16 },
-      { priceOffset: 4.0, volume: 46, peakLabel: '46', radiusY: 10 }
-    ];
+    let currentPriceOffset = 0;
+    for (let i = 0; i < bubbleCount; i++) {
+      const progressX = 0.08 + (i / bubbleCount) * 0.76;
+      const drift = Math.sin(i * 0.85 + seed) * (currentConfig.typicalSpanPts * 0.08);
+      currentPriceOffset = drift;
+      const isBuy = Math.sin(i * 1.7 + seed) > -0.15;
+      const rawVol = Math.round(35 + Math.abs(Math.sin(i * 2.3)) * 280);
+      const radius = Math.min(26, Math.max(5, Math.round(Math.sqrt(rawVol) * 1.35 * bubbleScale)));
 
-    const bidProfile = [
-      { priceOffset: -4.0, volume: 38, radiusY: 10 },
-      { priceOffset: -18.0, volume: 52, radiusY: 12 },
-      { priceOffset: -46.0, volume: 123, peakLabel: '123', radiusY: 16 },
-      { priceOffset: -64.0, volume: 46, peakLabel: '46', radiusY: 12 },
-      { priceOffset: -84.0, volume: 142, peakLabel: '142', radiusY: 18 }
-    ];
+      bubbles.push({
+        id: `b-${i}`,
+        progressX,
+        priceOffset: currentPriceOffset,
+        radius,
+        volume: rawVol,
+        isBuy,
+        showText: rawVol > 120
+      });
+    }
 
-    // Bottom Volume Histogram: Multi-colored vertical bars
-    // Numbers directly from photo: 56, 52, 33, 27, 31, 35, 10
-    const histBars = [
-      { progressX: 0.05, total: 11, buyVol: 6, sellVol: 5 },
-      { progressX: 0.08, total: 18, buyVol: 10, sellVol: 8 },
-      { progressX: 0.12, total: 24, buyVol: 14, sellVol: 10 },
-      { progressX: 0.16, total: 33, buyVol: 18, sellVol: 15, label: '33' },
-      { progressX: 0.20, total: 56, buyVol: 32, sellVol: 24, label: '56' },
-      { progressX: 0.23, total: 52, buyVol: 28, sellVol: 24, label: '52' },
-      { progressX: 0.27, total: 21, buyVol: 12, sellVol: 9 },
-      { progressX: 0.31, total: 15, buyVol: 8, sellVol: 7 },
-      { progressX: 0.35, total: 27, buyVol: 15, sellVol: 12, label: '27' },
-      { progressX: 0.39, total: 19, buyVol: 11, sellVol: 8 },
-      { progressX: 0.43, total: 31, buyVol: 17, sellVol: 14, label: '31' },
-      { progressX: 0.47, total: 35, buyVol: 20, sellVol: 15, label: '35' },
-      { progressX: 0.51, total: 10, buyVol: 5, sellVol: 5, label: '10' },
-      { progressX: 0.55, total: 14, buyVol: 8, sellVol: 6 }
-    ];
+    // Right DOM Histogram: Red Ask bars above, Green Bid bars below
+    const domAsks = currentConfig.restingWalls
+      .filter((w) => w.priceOffset > 0)
+      .map((w) => ({
+        priceOffset: w.priceOffset,
+        volume: w.volume,
+        label: w.sizeStr,
+        peakLabel: `${w.volume}`,
+        radiusY: Math.max(10, w.thickness)
+      }));
 
-    return { bubbles, askProfile, bidProfile, histBars };
-  }, [activeAsset]);
+    const domBids = currentConfig.restingWalls
+      .filter((w) => w.priceOffset < 0)
+      .map((w) => ({
+        priceOffset: w.priceOffset,
+        volume: w.volume,
+        label: w.sizeStr,
+        peakLabel: `${w.volume}`,
+        radiusY: Math.max(10, w.thickness)
+      }));
+
+    // Bottom Volume Histogram Bars (Buy/Sell split + CVD points)
+    const histBars = [];
+    let cvdAcc = 0;
+    const barCount = 28;
+    for (let b = 0; b < barCount; b++) {
+      const prog = (b + 0.5) / barCount;
+      const total = Math.round(20 + Math.abs(Math.sin(b * 0.65 + seed)) * 55);
+      const buyRatio = 0.4 + Math.abs(Math.cos(b * 0.9 + seed)) * 0.3;
+      const buyVol = Math.round(total * buyRatio);
+      const sellVol = total - buyVol;
+      cvdAcc += buyVol - sellVol;
+
+      histBars.push({
+        progressX: prog,
+        total,
+        buyVol,
+        sellVol,
+        cvd: cvdAcc,
+        label: total > 45 ? `${total}` : undefined
+      });
+    }
+
+    return { bubbles, domAsks, domBids, histBars };
+  }, [activeAsset, activeTimeframe, currentConfig, bubbleScale]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // MASTER HIGH-PERFORMANCE 60 FPS CANVAS RENDERER
+  // MASTER 60 FPS CANVAS RENDERING LOOP
   // ─────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -376,15 +470,14 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
       const h = canvas.height;
       if (w === 0 || h === 0) return;
 
-      // Layout Proportions (Exact Match with Reference Photo)
-      const profileWidth = 180; // Dedicated wide zone for right volume profile & price ladder
-      const bottomHistHeight = 110; // Bottom volume histogram sub-panel height
+      const profileWidth = showDom ? 175 : 85;
+      const bottomHistHeight = 115;
       const chartWidth = w - profileWidth;
       const chartHeight = h - bottomHistHeight;
 
-      // Price Scaling
+      // Price Scaling with PanOffsetY & PriceZoom
       const basePrice = livePrice;
-      const pSpan = currentConfig.typicalSpanPts / priceZoom;
+      const pSpan = (currentConfig.typicalSpanPts / priceZoom);
       const centerPrice = basePrice + panOffsetY;
       const minP = centerPrice - pSpan / 2;
       const maxP = centerPrice + pSpan / 2;
@@ -393,92 +486,129 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
         return chartHeight - ((p - minP) / pSpan) * chartHeight;
       };
 
+      // Time X coordinate calculation with PanOffsetX & TimeZoom
+      const timeToX = (progress: number) => {
+        const zoomedW = chartWidth * timeZoom;
+        const startX = panOffsetX;
+        return startX + progress * zoomedW;
+      };
+
       // ─────────────────────────────────────────────────────────────────────
-      // 1. DEEP DARK NAVY BACKGROUND & SUBTLE STRATA
+      // 1. DEEP NEAR-BLACK NAVY BACKGROUND & CONTINUOUS STRATIFIED ROWS
+      // (ATAS & Bookmap Signature 1px Horizontal Blue Stripes)
       // ─────────────────────────────────────────────────────────────────────
-      ctx.fillStyle = '#040918';
+      ctx.fillStyle = '#050a18';
       ctx.fillRect(0, 0, w, h);
 
-      // Subtle horizontal gradient strata across the heatmap field
-      const bgGrad = ctx.createLinearGradient(0, 0, 0, chartHeight);
-      bgGrad.addColorStop(0, '#040b1e');
-      bgGrad.addColorStop(0.3, '#05122c');
-      bgGrad.addColorStop(0.7, '#040e22');
-      bgGrad.addColorStop(1, '#030816');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, chartWidth, chartHeight);
-
-      // Multi-layer ambient resting depth (shades of deep blue / light blue noise)
-      const numStrata = 42;
-      for (let i = 0; i < numStrata; i++) {
-        const sy = (i / numStrata) * chartHeight;
-        const wave = Math.sin(i * 0.42) * 0.5 + 0.5;
-        ctx.fillStyle = `rgba(13, 80, 160, ${0.08 + wave * 0.12})`;
-        ctx.fillRect(0, sy, chartWidth, chartHeight / numStrata);
+      // Subtle horizontal gradient strata
+      const numRows = Math.round(chartHeight / 4.5);
+      for (let r = 0; r < numRows; r++) {
+        const ry = (r / numRows) * chartHeight;
+        const wave = Math.sin(r * 0.38) * 0.5 + 0.5;
+        // Alternating thin 1px row gaps
+        ctx.fillStyle = r % 2 === 0
+          ? `rgba(11, 42, 82, ${0.18 + wave * 0.15 * contrast})`
+          : `rgba(7, 18, 43, ${0.45 + wave * 0.25})`;
+        ctx.fillRect(0, ry, chartWidth, chartHeight / numRows - 1);
       }
 
       // ─────────────────────────────────────────────────────────────────────
-      // 2. 4 MAJOR GLOWING FIERY RED/ORANGE WALLS & ELECTRIC CYAN BEAM
-      // (1:1 Exact Match with the blazing bands in photo)
+      // 2. GLOWING FIERY RESTING LIQUIDITY WALLS & CYAN SHELVES
+      // (1:1 with yellow/orange/red/white laser bands in reference photo)
       // ─────────────────────────────────────────────────────────────────────
       for (const wall of currentConfig.restingWalls) {
         const wallPrice = basePrice + wall.priceOffset;
         const wallY = priceToY(wallPrice);
 
-        if (wallY < -40 || wallY > chartHeight + 40) continue;
+        if (wallY < -50 || wallY > chartHeight + 50) continue;
 
         const thick = wall.thickness;
+        const isTargeted = highlightWallId === wall.id;
 
-        if (wall.type === 'FIERY_RED_ORANGE') {
-          // 🔥 BLAZING FIERY GLOWING RED / ORANGE BAND
-          // Layer 1: Wide Outer Fiery Orange/Red Bloom
-          const bloom = ctx.createLinearGradient(0, wallY - thick * 2.4, 0, wallY + thick * 2.4);
-          bloom.addColorStop(0, 'rgba(255, 30, 0, 0)');
-          bloom.addColorStop(0.2, 'rgba(255, 60, 0, 0.45)');
-          bloom.addColorStop(0.5, 'rgba(255, 120, 0, 0.95)');
-          bloom.addColorStop(0.8, 'rgba(255, 60, 0, 0.45)');
-          bloom.addColorStop(1, 'rgba(255, 30, 0, 0)');
+        if (wall.type === 'FIERY_WALL' || wall.type === 'MAJOR_CORE') {
+          // Outer Fiery Orange/Red Bloom
+          const bloom = ctx.createLinearGradient(0, wallY - thick * 2.8, 0, wallY + thick * 2.8);
+          bloom.addColorStop(0, 'rgba(224, 58, 47, 0)');
+          bloom.addColorStop(0.2, 'rgba(245, 154, 35, 0.45)');
+          bloom.addColorStop(0.5, isTargeted ? 'rgba(255, 230, 0, 0.98)' : 'rgba(245, 154, 35, 0.92)');
+          bloom.addColorStop(0.8, 'rgba(224, 58, 47, 0.45)');
+          bloom.addColorStop(1, 'rgba(224, 58, 47, 0)');
 
           ctx.fillStyle = bloom;
-          ctx.fillRect(0, wallY - thick * 2.4, chartWidth, thick * 4.8);
+          ctx.fillRect(0, wallY - thick * 2.8, chartWidth, thick * 5.6);
 
-          // Layer 2: Solid Glowing Crimson-Red Body
-          ctx.fillStyle = '#ff1e00';
+          // Solid Crimson-Red Body
+          ctx.fillStyle = '#e03a2f';
           ctx.fillRect(0, wallY - thick * 0.6, chartWidth, thick * 1.2);
 
-          // Layer 3: Blazing Hot Yellow Core
-          ctx.fillStyle = '#ffdd00';
-          ctx.fillRect(0, wallY - 2.5, chartWidth, 5);
+          // Incandescent Yellow Core
+          ctx.fillStyle = '#e8d44d';
+          ctx.fillRect(0, wallY - 3, chartWidth, 6);
 
-          // Layer 4: Incandescent White-Hot Laser Center
+          // White-Hot Laser Center
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, wallY - 0.75, chartWidth, 1.5);
+          ctx.fillRect(0, wallY - 1, chartWidth, 2);
         } else {
-          // ⚡ ELECTRIC LIGHT-BLUE / CYAN NEON BEAM
-          const cyanBloom = ctx.createLinearGradient(0, wallY - thick * 2.0, 0, wallY + thick * 2.0);
-          cyanBloom.addColorStop(0, 'rgba(0, 229, 255, 0)');
-          cyanBloom.addColorStop(0.5, 'rgba(0, 229, 255, 0.85)');
-          cyanBloom.addColorStop(1, 'rgba(0, 229, 255, 0)');
+          // Electric Cyan Neon Band
+          const cyanBloom = ctx.createLinearGradient(0, wallY - thick * 2.2, 0, wallY + thick * 2.2);
+          cyanBloom.addColorStop(0, 'rgba(55, 182, 200, 0)');
+          cyanBloom.addColorStop(0.5, 'rgba(55, 182, 200, 0.85)');
+          cyanBloom.addColorStop(1, 'rgba(55, 182, 200, 0)');
 
           ctx.fillStyle = cyanBloom;
-          ctx.fillRect(0, wallY - thick * 2.0, chartWidth, thick * 4.0);
+          ctx.fillRect(0, wallY - thick * 2.2, chartWidth, thick * 4.4);
 
-          ctx.fillStyle = '#38bdf8';
+          ctx.fillStyle = '#37b6c8';
           ctx.fillRect(0, wallY - thick * 0.5, chartWidth, thick);
 
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, wallY - 1, chartWidth, 2);
         }
+
+        // ───────────────────────────────────────────────────────────────────
+        // ON-CHART WALL ANNOTATION PILL (EXACT MATCH WITH ATAS PHOTO)
+        // e.g. "ASK WALL 74,500 | 420 BTC | strength 82" (Amber pill with line)
+        // e.g. "BID WALL 74,100 | 365 BTC | strength 76" (Emerald pill with line)
+        // ───────────────────────────────────────────────────────────────────
+        const isAsk = wall.priceOffset > 0;
+        const pillX = 60 + (wall.strength % 4) * 80;
+        const pillY = isAsk ? wallY - 26 : wallY + 22;
+
+        // Leader pointer line from pill to wall
+        ctx.strokeStyle = isAsk ? '#f59a23' : '#10b981';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(pillX + 60, isAsk ? pillY + 14 : pillY);
+        ctx.lineTo(pillX + 90, wallY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Rounded Tag Box
+        const tagText = `${isAsk ? 'ASK WALL' : 'BID WALL'} ${wallPrice.toFixed(currentConfig.decimals > 1 ? 1 : 0)} | ${wall.sizeStr} | strength ${wall.strength}`;
+        ctx.font = 'bold 10px "JetBrains Mono", monospace';
+        const tagWidth = ctx.measureText(tagText).width + 16;
+
+        ctx.fillStyle = isAsk ? 'rgba(30, 20, 5, 0.94)' : 'rgba(5, 28, 18, 0.94)';
+        ctx.fillRect(pillX, pillY - 11, tagWidth, 20);
+
+        ctx.strokeStyle = isAsk ? '#f59a23' : '#10b981';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(pillX, pillY - 11, tagWidth, 20);
+
+        ctx.fillStyle = isAsk ? '#fbbf24' : '#34d399';
+        ctx.textAlign = 'left';
+        ctx.fillText(tagText, pillX + 8, pillY + 3.5);
       }
 
       // ─────────────────────────────────────────────────────────────────────
-      // 3. VERTICAL DOTTED TIME GRID LINES
+      // 3. VERTICAL TIME GRID LINES (MATCHING CHOSEN TIMEFRAME)
       // ─────────────────────────────────────────────────────────────────────
       ctx.strokeStyle = '#0e243e';
       ctx.lineWidth = 1;
-      ctx.setLineDash([2, 4]);
+      ctx.setLineDash([2, 5]);
 
-      const numCols = 7;
+      const numCols = 8;
       for (let c = 1; c < numCols; c++) {
         const gx = (c / numCols) * chartWidth;
         ctx.beginPath();
@@ -489,12 +619,12 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
       ctx.setLineDash([]);
 
       // ─────────────────────────────────────────────────────────────────────
-      // 4. LIVE MARKET PRICE DOTTED HORIZONTAL LINE
+      // 4. LIVE MARKET PRICE STEPPED DASHED HAIRLINE
       // ─────────────────────────────────────────────────────────────────────
       const livePriceY = priceToY(livePrice);
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1.6;
-      ctx.setLineDash([3, 4]);
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 4]);
       ctx.beginPath();
       ctx.moveTo(0, livePriceY);
       ctx.lineTo(chartWidth, livePriceY);
@@ -502,243 +632,247 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
       ctx.setLineDash([]);
 
       // ─────────────────────────────────────────────────────────────────────
-      // 5. PRICE PATH & 3D TRANSLUCENT VOLUME BUBBLES ALONG PRICE LINE
+      // 5. STEPPED PRICE LINE & AGGRESSIVE MARKET TRADE BUBBLES
+      // (Green Market Buys, Red Market Sells, Alpha Shading)
       // ─────────────────────────────────────────────────────────────────────
-      // Price path line connecting the trade bubbles
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      // Draw Stepped connecting line
+      ctx.strokeStyle = 'rgba(255, 107, 129, 0.85)';
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       for (let i = 0; i < chartPatterns.bubbles.length; i++) {
         const b = chartPatterns.bubbles[i];
-        const bx = b.progressX * chartWidth;
+        const bx = timeToX(b.progressX);
         const by = priceToY(basePrice + b.priceOffset);
         if (i === 0) ctx.moveTo(bx, by);
-        else ctx.lineTo(bx, by);
+        else {
+          // Stepped interpolation
+          const prevB = chartPatterns.bubbles[i - 1];
+          const prevY = priceToY(basePrice + prevB.priceOffset);
+          ctx.lineTo(bx, prevY);
+          ctx.lineTo(bx, by);
+        }
       }
-      ctx.lineTo(chartWidth * 0.56, livePriceY);
+      ctx.lineTo(timeToX(0.88), livePriceY);
       ctx.stroke();
 
-      // Draw 3D Translucent Two-Tone Glass Bubbles
+      // Render Bubbles with Volumetric Shading
       for (const b of chartPatterns.bubbles) {
-        const bx = b.progressX * chartWidth;
+        if (b.volume < bubbleFilter) continue;
+
+        const bx = timeToX(b.progressX);
         const by = priceToY(basePrice + b.priceOffset);
         const r = b.radius;
+
+        if (bx < -30 || bx > chartWidth + 30 || by < -30 || by > chartHeight + 30) continue;
 
         ctx.save();
         ctx.beginPath();
         ctx.arc(bx, by, r, 0, Math.PI * 2);
-        ctx.clip();
 
-        // Top Half: Vibrant Green/Teal (#00e5ff)
-        ctx.fillStyle = '#00e5ff';
-        ctx.fillRect(bx - r, by - r, r * 2, r);
+        // Green #2ecc71 (Buy) or Red #e74c3c (Sell) with 75% Alpha
+        ctx.fillStyle = b.isBuy ? 'rgba(46, 204, 113, 0.78)' : 'rgba(231, 76, 60, 0.78)';
+        ctx.fill();
 
-        // Bottom Half: Vibrant Crimson Red (#ef4444)
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(bx - r, by, r * 2, r);
-
-        // 3D Spherical Specular Light Reflection
-        const sphereGrad = ctx.createRadialGradient(
+        // 3D Glass Specular Gradient
+        const grad = ctx.createRadialGradient(
           bx - r * 0.35,
           by - r * 0.35,
-          r * 0.08,
+          r * 0.1,
           bx,
           by,
           r
         );
-        sphereGrad.addColorStop(0, 'rgba(255, 255, 255, 0.92)');
-        sphereGrad.addColorStop(0.35, 'rgba(255, 255, 255, 0.38)');
-        sphereGrad.addColorStop(0.75, 'rgba(0, 0, 0, 0.2)');
-        sphereGrad.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
+        grad.addColorStop(0.35, 'rgba(255, 255, 255, 0.25)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
+        ctx.fillStyle = grad;
+        ctx.fill();
 
-        ctx.fillStyle = sphereGrad;
-        ctx.fillRect(bx - r, by - r, r * 2, r * 2);
-
+        // Thin crisp outline
+        ctx.strokeStyle = b.isBuy ? '#27ae60' : '#c0392b';
+        ctx.lineWidth = 1;
+        ctx.stroke();
         ctx.restore();
 
-        // Dark crisp border
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(bx, by, r, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      // ─────────────────────────────────────────────────────────────────────
-      // 6. RIGHT-SIDE VERTICAL VOLUME PROFILE & LARGE PRICE LADDER
-      // (Exact match with right side of reference photo)
-      // ─────────────────────────────────────────────────────────────────────
-      ctx.fillStyle = '#030714';
-      ctx.fillRect(chartWidth, 0, profileWidth, chartHeight);
-
-      // Separator line
-      ctx.strokeStyle = '#0e243e';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(chartWidth, 0);
-      ctx.lineTo(chartWidth, chartHeight);
-      ctx.stroke();
-
-      // Top Ask Volume Profile (Neon Pink / Magenta Curved Hills)
-      for (const ap of chartPatterns.askProfile) {
-        const ay = priceToY(basePrice + ap.priceOffset);
-        const peakWidth = Math.min(85, (ap.volume / 160) * 85);
-        const rY = ap.radiusY;
-
-        // Smooth Curved Mountain Profile (Gaussian shape)
-        ctx.beginPath();
-        ctx.moveTo(chartWidth, ay - rY);
-        ctx.quadraticCurveTo(chartWidth + peakWidth * 1.05, ay, chartWidth, ay + rY);
-        ctx.closePath();
-
-        const askGrad = ctx.createLinearGradient(chartWidth, 0, chartWidth + peakWidth, 0);
-        askGrad.addColorStop(0, '#ff1744');
-        askGrad.addColorStop(1, '#f43f5e');
-        ctx.fillStyle = askGrad;
-        ctx.fill();
-
-        // White Peak Label on the hill
-        if (ap.peakLabel) {
+        // Volume text on large prominent bubbles
+        if (b.showText && r >= 14) {
           ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 10px "JetBrains Mono", monospace';
-          ctx.textAlign = 'left';
-          ctx.fillText(ap.peakLabel, chartWidth + peakWidth + 4, ay + 3.5);
-        }
-      }
-
-      // Bottom Bid Volume Profile (Neon Teal Curved Hills)
-      for (const bp of chartPatterns.bidProfile) {
-        const by = priceToY(basePrice + bp.priceOffset);
-        const peakWidth = Math.min(85, (bp.volume / 150) * 85);
-        const rY = bp.radiusY;
-
-        // Smooth Curved Mountain Profile
-        ctx.beginPath();
-        ctx.moveTo(chartWidth, by - rY);
-        ctx.quadraticCurveTo(chartWidth + peakWidth * 1.05, by, chartWidth, by + rY);
-        ctx.closePath();
-
-        const bidGrad = ctx.createLinearGradient(chartWidth, 0, chartWidth + peakWidth, 0);
-        bidGrad.addColorStop(0, '#00e5ff');
-        bidGrad.addColorStop(1, '#06b6d4');
-        ctx.fillStyle = bidGrad;
-        ctx.fill();
-
-        // White Peak Label on the hill
-        if (bp.peakLabel) {
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 10px "JetBrains Mono", monospace';
-          ctx.textAlign = 'left';
-          ctx.fillText(bp.peakLabel, chartWidth + peakWidth + 4, by + 3.5);
+          ctx.font = 'bold 9px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${b.volume}`, bx, by + 3);
         }
       }
 
       // ─────────────────────────────────────────────────────────────────────
-      // 7. LARGE, BOLD, PROMINENT PRICE LADDER ON FAR RIGHT
-      // Addresses user issue: "Iske andar price Chhota dikh raha hai"
+      // 6. RIGHT-SIDE DOM HISTOGRAM & PRICE LADDER (EXACT ATAS MATCH)
+      // Red Asks Above Price, Green Bids Below Price
       // ─────────────────────────────────────────────────────────────────────
-      const ladderStep = currentConfig.priceLadderStep;
-      const startPrice = Math.floor(minP / ladderStep) * ladderStep;
-      const endPrice = Math.ceil(maxP / ladderStep) * ladderStep;
+      if (showDom) {
+        ctx.fillStyle = '#030714';
+        ctx.fillRect(chartWidth, 0, profileWidth, chartHeight);
 
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 13px "JetBrains Mono", monospace'; // Large bold font
-      ctx.textAlign = 'right';
-
-      for (let p = startPrice; p <= endPrice; p += ladderStep) {
-        const py = priceToY(p);
-        if (py < 15 || py > chartHeight - 15) continue;
-
-        ctx.fillText(p.toFixed(currentConfig.decimals), w - 8, py + 4.5);
-
-        // Tick mark
-        ctx.strokeStyle = '#1e385c';
-        ctx.lineWidth = 1;
+        // Vertical divider line
+        ctx.strokeStyle = '#0e243e';
+        ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.moveTo(w - 75, py);
-        ctx.lineTo(w - 68, py);
+        ctx.moveTo(chartWidth, 0);
+        ctx.lineTo(chartWidth, chartHeight);
         ctx.stroke();
+
+        // Red Ask Bars Growing Leftwards
+        for (const ap of chartPatterns.domAsks) {
+          const ay = priceToY(basePrice + ap.priceOffset);
+          const barW = Math.min(85, (ap.volume / 550) * 85);
+          const rY = ap.radiusY;
+
+          ctx.fillStyle = '#e74c3c';
+          ctx.fillRect(chartWidth + 2, ay - rY / 2, barW, rY);
+
+          // White peak label
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(ap.peakLabel, chartWidth + barW + 5, ay + 3.5);
+        }
+
+        // Green Bid Bars Growing Leftwards
+        for (const bp of chartPatterns.domBids) {
+          const by = priceToY(basePrice + bp.priceOffset);
+          const barW = Math.min(85, (bp.volume / 650) * 85);
+          const rY = bp.radiusY;
+
+          ctx.fillStyle = '#2ecc71';
+          ctx.fillRect(chartWidth + 2, by - rY / 2, barW, rY);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(bp.peakLabel, chartWidth + barW + 5, by + 3.5);
+        }
+
+        // Price Ladder ticks on the right edge
+        const ladderStep = currentConfig.priceLadderStep;
+        const startPrice = Math.floor(minP / ladderStep) * ladderStep;
+        const endPrice = Math.ceil(maxP / ladderStep) * ladderStep;
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 12px "JetBrains Mono", monospace';
+        ctx.textAlign = 'right';
+
+        for (let p = startPrice; p <= endPrice; p += ladderStep) {
+          const py = priceToY(p);
+          if (py < 15 || py > chartHeight - 15) continue;
+          ctx.fillText(p.toFixed(currentConfig.decimals), w - 6, py + 4.5);
+
+          ctx.strokeStyle = '#1e385c';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(w - 65, py);
+          ctx.lineTo(w - 58, py);
+          ctx.stroke();
+        }
+
+        // PROMINENT BOXED LIVE PRICE BADGE (Exact match with photo)
+        const badgeW = 76;
+        const badgeH = 22;
+        const badgeX = w - badgeW - 3;
+        const badgeY = livePriceY - badgeH / 2;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+
+        ctx.strokeStyle = '#020617';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 12.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(livePrice.toFixed(currentConfig.decimals), badgeX + badgeW / 2, badgeY + 15.5);
       }
 
-      // PROMINENT BOXED CURRENT LIVE PRICE BADGE (e.g. 4064.0 matching photo)
-      const badgeW = 76;
-      const badgeH = 22;
-      const badgeX = w - badgeW - 4;
-      const badgeY = livePriceY - badgeH / 2;
-
-      // Solid White Box with Black Bold Text (Instant High Contrast)
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
-
-      ctx.strokeStyle = '#020617';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
-
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 13px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(livePrice.toFixed(currentConfig.decimals), badgeX + badgeW / 2, badgeY + 15.5);
-
       // ─────────────────────────────────────────────────────────────────────
-      // 8. BOTTOM VOLUME HISTOGRAM SUB-PANEL
-      // (1:1 with bottom row in photo: numbers 56, 52, 33, 27, 31, 35, 10)
+      // 7. BOTTOM PANE: VOLUME BUY/SELL SPLIT & CUMULATIVE DELTA (CVD)
       // ─────────────────────────────────────────────────────────────────────
       ctx.fillStyle = '#020614';
       ctx.fillRect(0, chartHeight, w, bottomHistHeight);
 
-      // Separator
+      // Horizontal separator
       ctx.strokeStyle = '#0e243e';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(0, chartHeight);
       ctx.lineTo(w, chartHeight);
       ctx.stroke();
 
-      const histBaseY = h - 22;
-      const colWidth = Math.max(14, (chartWidth / chartPatterns.histBars.length) * 0.65);
+      const histBaseY = h - 24;
+      const colW = Math.max(8, (chartWidth / chartPatterns.histBars.length) * 0.75);
 
       for (const bar of chartPatterns.histBars) {
         const bx = bar.progressX * chartWidth;
         const total = bar.total;
-        const maxH = bottomHistHeight - 34;
-        const barH = Math.min(maxH, Math.max(14, (total / 60) * maxH));
+        const maxH = bottomHistHeight - 38;
+        const barH = Math.min(maxH, Math.max(10, (total / 60) * maxH));
 
         const buyH = barH * (bar.buyVol / total);
         const sellH = barH - buyH;
 
-        // Teal Buy Volume on bottom
-        ctx.fillStyle = '#00e5ff';
-        ctx.fillRect(bx - colWidth / 2, histBaseY - buyH, colWidth, buyH);
+        // Buy volume green on top / bottom split
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(bx - colW / 2, histBaseY - buyH, colW, buyH);
 
-        // Crimson Sell Volume on top
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(bx - colWidth / 2, histBaseY - barH, colWidth, sellH);
+        // Sell volume red
+        ctx.fillStyle = '#e74c3c';
+        ctx.fillRect(bx - colW / 2, histBaseY - barH, colW, sellH);
 
-        // White Peak Label directly above bar
         if (bar.label) {
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = 'bold 9px "JetBrains Mono", monospace';
           ctx.textAlign = 'center';
-          ctx.fillText(bar.label, bx, histBaseY - barH - 4);
+          ctx.fillText(bar.label, bx, histBaseY - barH - 3);
         }
       }
 
-      // Time labels along bottom (matching 19:54:49)
-      const timeLabels = ['19:54:15', '19:54:30', '19:54:49', '19:55:00', '19:55:15'];
+      // Cumulative Volume Delta (CVD) overlaid curve in Electric Cyan
+      if (showCvd && chartPatterns.histBars.length > 1) {
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        for (let i = 0; i < chartPatterns.histBars.length; i++) {
+          const bar = chartPatterns.histBars[i];
+          const bx = bar.progressX * chartWidth;
+          const cvdY = chartHeight + 25 + (bar.cvd / 120) * 25;
+          if (i === 0) ctx.moveTo(bx, cvdY);
+          else ctx.lineTo(bx, cvdY);
+        }
+        ctx.stroke();
+      }
+
+      // Time scale along bottom (e.g. 21:00, 21:05, 21:10, 21:15, 21:20, 21:25)
+      const nowMs = Date.now();
+      const colSec = TIMEFRAME_CONFIGS[activeTimeframe].colSeconds;
+      const timeLabels = [];
+      for (let t = 6; t >= 0; t--) {
+        const d = new Date(nowMs - t * colSec * 10 * 1000);
+        const hh = d.getHours().toString().padStart(2, '0');
+        const mm = d.getMinutes().toString().padStart(2, '0');
+        const ss = d.getSeconds().toString().padStart(2, '0');
+        timeLabels.push(colSec < 60 ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`);
+      }
+
       for (let t = 0; t < timeLabels.length; t++) {
-        const tx = (t / (timeLabels.length - 1)) * (chartWidth - 100) + 50;
+        const tx = (t / (timeLabels.length - 1)) * (chartWidth - 90) + 45;
         ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 10px "JetBrains Mono", monospace';
+        ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(timeLabels[t], tx, h - 6);
+        ctx.fillText(timeLabels[t], tx, h - 7);
       }
 
       // ─────────────────────────────────────────────────────────────────────
-      // 9. BRIGHT YELLOW CROSSHAIR (#ffd700) & SIGNATURE TOOLTIP BOX
-      // (1:1 exact match with yellow line and box in photo)
+      // 8. BRIGHT YELLOW CROSSHAIR (#ffd700) & FLOATING TOOLTIP BOX
       // ─────────────────────────────────────────────────────────────────────
       if (hoverInfo && hoverInfo.visible && hoverInfo.x <= chartWidth && hoverInfo.y <= chartHeight) {
-        // Full-height vertical yellow line
+        // Vertical yellow crosshair line
         ctx.strokeStyle = '#ffd700';
         ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -746,7 +880,7 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
         ctx.lineTo(hoverInfo.x, chartHeight);
         ctx.stroke();
 
-        // Horizontal dotted yellow line
+        // Horizontal dashed line
         ctx.setLineDash([2, 3]);
         ctx.beginPath();
         ctx.moveTo(0, hoverInfo.y);
@@ -754,30 +888,30 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Signature Bookmap Dark Tooltip Box (matching 4064.9 | 19:54:49 | Vol: +3 ASK)
-        const tooltipW = 104;
-        const tooltipH = 52;
-        const tooltipX = Math.min(hoverInfo.x + 12, chartWidth - tooltipW - 8);
-        const tooltipY = Math.max(8, Math.min(hoverInfo.y - 25, chartHeight - tooltipH - 8));
+        // Dark Floating Card Tooltip
+        const tipW = 120;
+        const tipH = 58;
+        const tipX = Math.min(hoverInfo.x + 14, chartWidth - tipW - 8);
+        const tipY = Math.max(8, Math.min(hoverInfo.y - 25, chartHeight - tipH - 8));
 
         ctx.fillStyle = 'rgba(2, 6, 20, 0.96)';
-        ctx.fillRect(tooltipX, tooltipY, tooltipW, tooltipH);
+        ctx.fillRect(tipX, tipY, tipW, tipH);
 
         ctx.strokeStyle = '#38bdf8';
         ctx.lineWidth = 1;
-        ctx.strokeRect(tooltipX, tooltipY, tooltipW, tooltipH);
+        ctx.strokeRect(tipX, tipY, tipW, tipH);
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 10.5px "JetBrains Mono", monospace';
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(hoverInfo.price.toFixed(currentConfig.decimals), tooltipX + 8, tooltipY + 16);
+        ctx.fillText(hoverInfo.price.toFixed(currentConfig.decimals), tipX + 8, tipY + 16);
 
         ctx.fillStyle = '#94a3b8';
         ctx.font = '9.5px "JetBrains Mono", monospace';
-        ctx.fillText(hoverInfo.timeStr, tooltipX + 8, tooltipY + 31);
+        ctx.fillText(hoverInfo.timeStr, tipX + 8, tipY + 32);
 
-        ctx.fillStyle = '#00e5ff';
-        ctx.fillText(hoverInfo.volStr, tooltipX + 8, tooltipY + 45);
+        ctx.fillStyle = hoverInfo.price >= livePrice ? '#f59a23' : '#10b981';
+        ctx.fillText(hoverInfo.volStr, tipX + 8, tipY + 47);
       }
 
       animId = requestAnimationFrame(render);
@@ -788,13 +922,21 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
   }, [
     livePrice,
     priceZoom,
+    timeZoom,
     panOffsetY,
+    panOffsetX,
+    contrast,
+    bubbleFilter,
+    showDom,
+    showCvd,
+    highlightWallId,
     currentConfig,
+    activeTimeframe,
     chartPatterns,
     hoverInfo
   ]);
 
-  // Handle Resize for 4k / Retina screens
+  // Handle Resize for 4K / Retina screens
   useEffect(() => {
     const handleResize = () => {
       const canvas = canvasRef.current;
@@ -816,7 +958,8 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
   }, [isFullscreen]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // MOUSE & TOUCH INTERACTIONS
+  // 2D MOUSE & TOUCH DRAGGING (BOTH X HORIZONTAL TIME & Y VERTICAL PRICE)
+  // Addresses user request: "usko main chart ko move kar sakta hun dekhne ke liye"
   // ─────────────────────────────────────────────────────────────────────────
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 0) {
@@ -837,176 +980,218 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    const profileWidth = 180;
-    const bottomHistHeight = 110;
+    const profileWidth = showDom ? 175 : 85;
+    const bottomHistHeight = 115;
     const chartW = rect.width - profileWidth;
     const chartH = rect.height - bottomHistHeight;
 
-    // Pan Dragging
+    // Both Horizontal (X Time) and Vertical (Y Price) Panning
     if (isDraggingRef.current) {
+      const dx = e.clientX - dragStartRef.current.x;
       const dy = e.clientY - dragStartRef.current.y;
       dragStartRef.current = { x: e.clientX, y: e.clientY };
 
-      const pSpan = currentConfig.typicalSpanPts / priceZoom;
+      // Y-axis price delta
+      const pSpan = (currentConfig.typicalSpanPts / priceZoom);
       const priceDelta = (dy / chartH) * pSpan;
-
       setPanOffsetY((prev) => prev + priceDelta);
+
+      // X-axis time delta
+      setPanOffsetX((prev) => prev + dx);
       return;
     }
 
     if (x > chartW || y > chartH) return;
 
-    const pSpan = currentConfig.typicalSpanPts / priceZoom;
+    const pSpan = (currentConfig.typicalSpanPts / priceZoom);
     const centerP = livePrice + panOffsetY;
     const curMaxP = centerP + pSpan / 2;
     const priceAtCursor = curMaxP - (y / chartH) * pSpan;
+
+    const date = new Date();
+    const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
 
     setHoverInfo({
       visible: true,
       x,
       y,
       price: priceAtCursor,
-      timeStr: '19:54:49',
-      volStr: priceAtCursor >= livePrice ? 'Vol: +3 ASK' : 'Vol: -5 BID'
+      timeStr,
+      volStr: priceAtCursor >= livePrice ? 'Vol: +18 Ask Wall' : 'Vol: -24 Bid Floor',
+      nearestWall: null
     });
   };
 
+  // Zooming via Mouse Wheel
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    if (e.deltaY < 0) {
-      setPriceZoom((z) => Math.min(4.5, z * 1.12));
+    if (e.shiftKey) {
+      // Shift + Wheel zooms Time (X)
+      if (e.deltaY < 0) {
+        setTimeZoom((z) => Math.min(3.5, z * 1.12));
+      } else {
+        setTimeZoom((z) => Math.max(0.4, z * 0.89));
+      }
     } else {
-      setPriceZoom((z) => Math.max(0.35, z * 0.89));
+      // Standard Wheel zooms Price (Y)
+      if (e.deltaY < 0) {
+        setPriceZoom((z) => Math.min(4.5, z * 1.12));
+      } else {
+        setPriceZoom((z) => Math.max(0.35, z * 0.89));
+      }
     }
   };
 
   return (
-    <div className="bookmap-root-terminal flex flex-col w-full h-[calc(100vh-105px)] min-h-[680px] bg-[#020614] text-slate-100 rounded-md overflow-hidden border border-[#0e243e] shadow-2xl select-none font-sans">
-      {/* ── TOP BOOKMAP SOFTWARE CHROME HEADER (EXACT PHOTO MATCH) ── */}
-      <header className="flex items-center justify-between bg-[#080e1c] px-3 py-1.5 border-b border-[#0e243e] text-xs font-mono select-none">
-        {/* Left: Window Icons & Dropdowns matching photo */}
-        <div className="flex items-center gap-2.5">
-          <button className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800" title="Settings">
-            <Settings className="w-3.5 h-3.5" />
-          </button>
-          <button className="text-slate-400 hover:text-white flex items-center gap-0.5 text-[11px]" title="Pause / Play">
-            <span className="font-bold">❚❚</span>
-          </button>
-
-          {/* Active Contract Selector Pill (#GCZ6 matching photo) */}
-          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#030714] border border-cyan-500/50 text-cyan-300 font-bold text-xs">
+    <div className="bookmap-root-terminal flex flex-col w-full h-[calc(100vh-105px)] min-h-[700px] bg-[#020614] text-slate-100 rounded-lg overflow-hidden border border-[#0e243e] shadow-2xl select-none font-sans">
+      {/* ── TOP SOFTWARE CHROME HEADER (ATAS & BOOKMAP STYLE) ── */}
+      <header className="flex flex-wrap items-center justify-between bg-[#080e1c] px-3 py-1.5 border-b border-[#0e243e] text-xs font-mono select-none gap-2">
+        {/* Left: Contract Pill & Venue status */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#030714] border border-cyan-500/50 text-cyan-300 font-bold text-xs">
+            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-white font-extrabold">{currentConfig.contractCode}</span>
             <span className="text-[10px] text-slate-400">· {currentConfig.venue}</span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-slate-300 text-[11px]">
-            <button className="flex items-center gap-0.5 hover:text-white">
-              <span>Settings</span>
-              <ChevronDown className="w-3 h-3" />
-            </button>
-            <button className="flex items-center gap-0.5 hover:text-white">
-              <Pencil className="w-3 h-3" />
-              <ChevronDown className="w-2.5 h-2.5" />
-            </button>
-            <button className="flex items-center gap-0.5 hover:text-white">
-              <Layers className="w-3 h-3" />
-              <span>Indicators</span>
-              <ChevronDown className="w-3 h-3" />
-            </button>
-            <button className="hover:text-white">
-              <Eye className="w-3 h-3" />
-            </button>
+          <div className="hidden lg:flex items-center gap-2 text-[11px] text-slate-300 border-l border-slate-800 pl-2">
+            <span className="text-slate-400">Feed:</span>
+            <span className="text-emerald-400 font-bold">{currentConfig.feedType}</span>
+            <span className="text-slate-400">Latency:</span>
+            <span className="text-cyan-400 font-bold">{latencyMs}ms</span>
           </div>
         </div>
 
-        {/* Center: "Heatmap" Title + 5 Instant Clickable Asset Tabs */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-bold text-slate-200 tracking-wide hidden md:inline">Heatmap</span>
-
-          <nav className="flex items-center gap-1 bg-[#030714] p-0.5 rounded-md border border-slate-800" aria-label="Asset Tabs">
-            {(Object.keys(ASSET_REGISTRY) as BookmapAssetKey[]).map((k) => {
-              const isActive = activeAsset === k;
-              return (
-                <button
-                  key={k}
-                  onClick={() => handleSelectAsset(k)}
-                  className={`px-3 py-1 rounded text-xs font-bold font-mono transition-all flex items-center gap-1 cursor-pointer ${
-                    isActive
-                      ? 'bg-cyan-500 text-slate-950 font-black shadow-[0_0_10px_rgba(6,182,212,0.8)]'
-                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-                  }`}
-                >
-                  <span>{k}</span>
-                </button>
-              );
-            })}
-          </nav>
+        {/* Center 1: Asset Tabs (Gold, BTC, ETH, SOL, Silver, Oil) */}
+        <div className="flex items-center gap-1 bg-[#030714] p-0.5 rounded-md border border-slate-800">
+          {(Object.keys(ASSET_REGISTRY) as HeatmapAssetKey[]).map((k) => {
+            const isActive = activeAsset === k;
+            return (
+              <button
+                key={k}
+                onClick={() => handleSelectAsset(k)}
+                className={`px-2.5 py-1 rounded text-xs font-bold font-mono transition-all flex items-center gap-1 cursor-pointer ${
+                  isActive
+                    ? 'bg-cyan-500 text-slate-950 font-black shadow-[0_0_10px_rgba(6,182,212,0.8)]'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                }`}
+              >
+                <span>{k}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Right: Window Controls */}
-        <div className="flex items-center gap-2 text-slate-400">
-          <button className="p-1 hover:text-white rounded" title="Link Chart">
-            <Link className="w-3.5 h-3.5" />
+        {/* Center 2: ALL TIMEFRAMES SELECTOR (User Requested: 15m, 1h, 4h, 1d) */}
+        <div className="flex items-center gap-0.5 bg-[#030714] p-0.5 rounded-md border border-slate-800">
+          {(Object.keys(TIMEFRAME_CONFIGS) as HeatmapTimeframe[]).map((tf) => {
+            const isTfActive = activeTimeframe === tf;
+            return (
+              <button
+                key={tf}
+                onClick={() => setActiveTimeframe(tf)}
+                title={TIMEFRAME_CONFIGS[tf].title}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold font-mono transition-all cursor-pointer ${
+                  isTfActive
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_8px_rgba(245,158,11,0.6)]'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+              >
+                {tf}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right: Window & Tool Controls */}
+        <div className="flex items-center gap-1.5 text-slate-400">
+          <button
+            onClick={() => setShowSettingsDrawer(!showSettingsDrawer)}
+            className="p-1 hover:text-white rounded hover:bg-slate-800"
+            title="Heatmap Settings"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
           </button>
-          <button onClick={handleSnapshot} className="p-1 hover:text-white rounded" title="Snapshot">
-            <Camera className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={handleRecenter} className="p-1 hover:text-cyan-300 rounded" title="Recenter">
+          <button
+            onClick={handleRecenter}
+            className="p-1 hover:text-cyan-300 rounded hover:bg-slate-800"
+            title="Recenter Chart (Reset View)"
+          >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
-          <button onClick={handleToggleFullscreen} className="p-1 hover:text-white rounded" title="Fullscreen">
+          <button
+            onClick={handleSnapshot}
+            className="p-1 hover:text-white rounded hover:bg-slate-800"
+            title="Export PNG Screenshot"
+          >
+            <Camera className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={handleToggleFullscreen}
+            className="p-1 hover:text-white rounded hover:bg-slate-800"
+            title="Fullscreen"
+          >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
         </div>
       </header>
 
-      {/* ── MAIN WORKSPACE: LEFT TOOLBAR + FULL HEATMAP CANVAS ── */}
+      {/* ── WORKSPACE: LEFT TOOLBAR + MAIN HEATMAP CANVAS + RIGHT SIDEBAR ── */}
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Left Vertical Bookmap Toolstrip */}
+        {/* Left Vertical Toolstrip */}
         <aside className="w-8 shrink-0 bg-[#060c18] border-r border-[#0e243e] flex flex-col items-center py-2.5 gap-2.5 text-slate-400 z-10 select-none">
           <button
             onClick={() => setActiveTool('CROSSHAIR')}
-            title="Crosshair Tool"
+            title="Crosshair Tool (Inspect Liquidity)"
             className={`p-1 rounded transition ${activeTool === 'CROSSHAIR' ? 'bg-cyan-500/30 text-cyan-300' : 'hover:bg-slate-800 hover:text-white'}`}
           >
             <Crosshair className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setActiveTool('PAN')}
-            title="Hand Tool (Pan Chart)"
+            title="Pan / Hand Tool (Drag Chart Up/Down & Left/Right)"
             className={`p-1 rounded transition ${activeTool === 'PAN' ? 'bg-cyan-500/30 text-cyan-300' : 'hover:bg-slate-800 hover:text-white'}`}
           >
             <Hand className="w-3.5 h-3.5" />
           </button>
-          <button
-            onClick={() => setActiveTool('TRENDLINE')}
-            title="Trendline Tool"
-            className={`p-1 rounded transition ${activeTool === 'TRENDLINE' ? 'bg-cyan-500/30 text-cyan-300' : 'hover:bg-slate-800 hover:text-white'}`}
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          <button
-            title="Horizontal Ray"
-            className="p-1 font-mono text-xs font-bold hover:bg-slate-800 hover:text-white rounded"
-          >
-            ―
-          </button>
 
           <div className="h-px w-4 bg-slate-800 my-0.5" />
 
-          <button onClick={() => setPriceZoom((z) => Math.min(4.5, z * 1.15))} title="Zoom In (+)" className="p-1 rounded hover:bg-slate-800 hover:text-white">
+          {/* Zoom controls */}
+          <button
+            onClick={() => setPriceZoom((z) => Math.min(4.5, z * 1.15))}
+            title="Zoom Price In (+)"
+            className="p-1 rounded hover:bg-slate-800 hover:text-white"
+          >
             <Plus className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => setPriceZoom((z) => Math.max(0.35, z * 0.88))} title="Zoom Out (-)" className="p-1 rounded hover:bg-slate-800 hover:text-white">
+          <button
+            onClick={() => setPriceZoom((z) => Math.max(0.35, z * 0.88))}
+            title="Zoom Price Out (-)"
+            className="p-1 rounded hover:bg-slate-800 hover:text-white"
+          >
             <Minus className="w-3.5 h-3.5" />
           </button>
-          <button onClick={handleRecenter} title="Reset Center" className="p-1 rounded hover:bg-slate-800 hover:text-cyan-300">
+          <button
+            onClick={handleRecenter}
+            title="Reset Pan & Zoom"
+            className="p-1 rounded hover:bg-slate-800 hover:text-cyan-300"
+          >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
         </aside>
 
-        {/* Central Canvas Viewport */}
-        <div ref={containerRef} className="relative flex-1 bg-[#040918] overflow-hidden">
+        {/* Central Heatmap Canvas Viewport */}
+        <div ref={containerRef} className="relative flex-1 bg-[#050a18] overflow-hidden">
+          {/* Top-Left Informational Pill (Matches Reference Photo Header) */}
+          <div className="absolute top-2 left-2 z-10 bg-[#050a18]/90 border border-slate-800 px-2.5 py-1 rounded text-[10.5px] font-mono text-slate-300 flex items-center gap-2 pointer-events-none">
+            <span className="font-bold text-amber-400">{currentConfig.symbol} {currentConfig.venue}</span>
+            <span>|</span>
+            <span className="text-cyan-400">HEATMAP {activeTimeframe} resolution</span>
+            <span>|</span>
+            <span className="text-emerald-400">● LIVE FEED</span>
+          </div>
+
           <canvas
             ref={canvasRef}
             onMouseDown={handleMouseDown}
@@ -1019,7 +1204,200 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
             }`}
           />
         </div>
+
+        {/* ── RIGHT SIDEBAR (EXACT MATCH WITH REFERENCE PHOTO media_1793638601420_16457af5.jpg) ── */}
+        <aside className="w-64 shrink-0 bg-[#060c18] border-l border-[#0e243e] flex flex-col justify-between text-xs font-mono p-3 space-y-3 overflow-y-auto z-10">
+          {/* Section 1: LIQUIDITY ZONES */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <Flame className="w-3 h-3 text-amber-400" />
+                <span>LIQUIDITY ZONES</span>
+              </span>
+              <span className="text-[9px] text-slate-500 font-bold">CLICK TO JUMP</span>
+            </div>
+
+            <div className="space-y-1.5">
+              {currentConfig.restingWalls.map((wall) => {
+                const isAsk = wall.priceOffset > 0;
+                const wallPrice = livePrice + wall.priceOffset;
+                const isSelected = highlightWallId === wall.id;
+
+                return (
+                  <button
+                    key={wall.id}
+                    onClick={() => {
+                      setHighlightWallId(wall.id);
+                      setPanOffsetY(-wall.priceOffset);
+                    }}
+                    className={`w-full text-left p-1.5 rounded border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-cyan-500/15 border-cyan-400 text-white shadow-[0_0_8px_rgba(6,182,212,0.3)]'
+                        : isAsk
+                        ? 'bg-rose-950/20 border-rose-500/20 hover:border-rose-500/50 text-slate-300'
+                        : 'bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/50 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className={`font-bold ${isAsk ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        {isAsk ? 'ASK' : 'BID'} {wallPrice.toFixed(currentConfig.decimals > 1 ? 1 : 0)}
+                      </span>
+                      <span className="text-white font-black">{wall.sizeStr}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[9.5px] text-slate-400 mt-0.5">
+                      <span>strength {wall.strength}</span>
+                      <span>{wall.ageMin} min age</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 2: LIVE ORDERBOOK EVENTS */}
+          <div className="space-y-1.5">
+            <div className="border-b border-slate-800 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
+              <Activity className="w-3 h-3 text-cyan-400" />
+              <span>EVENTS</span>
+            </div>
+            <div className="space-y-1 text-[10px]">
+              <div className="p-1.5 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                <span className="text-amber-300 font-bold">21:23 Absorption</span>
+                <span className="text-slate-400">@{(livePrice + 12).toFixed(1)}</span>
+              </div>
+              <div className="p-1.5 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                <span className="text-rose-400 font-bold">21:04 Wall Pulled</span>
+                <span className="text-slate-400">@{(livePrice + 55).toFixed(1)}</span>
+              </div>
+              <div className="p-1.5 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                <span className="text-emerald-400 font-bold">20:48 Sweep</span>
+                <span className="text-slate-400">@{(livePrice - 30).toFixed(1)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: ORDERBOOK IMBALANCE */}
+          <div className="space-y-1.5">
+            <div className="border-b border-slate-800 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+              IMBALANCE (±2% DEPTH)
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-bold">
+              <span className="text-emerald-400">Bids 54%</span>
+              <span className="text-rose-400">Asks 46%</span>
+            </div>
+            {/* Visual Balance Bar */}
+            <div className="w-full h-2 rounded-full overflow-hidden bg-slate-800 flex">
+              <div className="h-full bg-emerald-500" style={{ width: '54%' }} />
+              <div className="h-full bg-rose-500" style={{ width: '46%' }} />
+            </div>
+          </div>
+
+          {/* Section 4: DATA TELEMETRY & ATTRIBUTION */}
+          <div className="p-2 rounded-md bg-[#040814] border border-slate-800 space-y-1 text-[10.5px]">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DATA FEED</div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Status:</span>
+              <span className="text-emerald-400 font-bold">REAL-TIME</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Source:</span>
+              <span className="text-cyan-300 font-bold truncate">{currentConfig.venue}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Recorded Since:</span>
+              <span className="text-slate-200">18:45 IST</span>
+            </div>
+          </div>
+        </aside>
       </div>
+
+      {/* ── SETTINGS DRAWER (MODAL OVERLAY) ── */}
+      {showSettingsDrawer && (
+        <div className="absolute top-10 right-2 z-30 w-80 bg-[#080e1c] border border-slate-700 rounded-lg shadow-2xl p-3.5 space-y-3 font-sans text-xs">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span className="font-bold text-white flex items-center gap-1.5">
+              <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
+              <span>Heatmap & DOM Controls</span>
+            </span>
+            <button
+              onClick={() => setShowSettingsDrawer(false)}
+              className="text-slate-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <div className="flex justify-between text-slate-300 font-mono">
+                <span>Contrast:</span>
+                <span>{contrast.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.6"
+                max="2.5"
+                step="0.1"
+                value={contrast}
+                onChange={(e) => setContrast(parseFloat(e.target.value))}
+                className="w-full accent-cyan-400"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-slate-300 font-mono">
+                <span>Min Bubble Size:</span>
+                <span>{bubbleFilter}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                step="5"
+                value={bubbleFilter}
+                onChange={(e) => setBubbleFilter(parseInt(e.target.value, 10))}
+                className="w-full accent-cyan-400"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-slate-300 font-mono">
+                <span>Bubble Scale:</span>
+                <span>{bubbleScale.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={bubbleScale}
+                onChange={(e) => setBubbleScale(parseFloat(e.target.value))}
+                className="w-full accent-cyan-400"
+              />
+            </div>
+
+            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <span className="text-slate-300">Show Right DOM Histogram</span>
+              <input
+                type="checkbox"
+                checked={showDom}
+                onChange={(e) => setShowDom(e.target.checked)}
+                className="accent-cyan-400 cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-slate-300">Show Cumulative Delta (CVD)</span>
+              <input
+                type="checkbox"
+                checked={showCvd}
+                onChange={(e) => setShowCvd(e.target.checked)}
+                className="accent-cyan-400 cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

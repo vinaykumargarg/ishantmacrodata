@@ -69,6 +69,7 @@ export const SECTIONS: SidebarSection[] = [
     color: '#fb7185', // Rose
     icon: '🌊',
     items: [
+      { emoji: '🗺️', name: 'ATAS Liquidity Heatmap (1:1)', route: 'atas-heatmap' },
       { emoji: '🌊', name: 'Bookmap Liquidation Live', route: 'bookmap-liquidation' },
       { emoji: '💧', name: 'Liquidity Sweep & Liquidation', route: 'liquidity-sweep-map' },
       { emoji: '📡', name: 'DEEEPR Big Player Radar', route: 'deeepr-big-player-radar' },

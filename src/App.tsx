@@ -203,6 +203,8 @@ function getFeatureTitle(tab: string): string {
     'ultra-ai': 'TradeAI Institutional Terminal',
     'order-flow': 'Order Flow & Bookmap AI Terminal (CVD & Footprint)',
     'order-book-heatmap': 'Order Book Liquidity Heatmap (Bookmap / ATAS 1:1)',
+    'atas-heatmap': 'ATAS Liquidity Heatmap Pro (BTC, Gold, ETH, SOL, Silver, Oil)',
+    'heatmap-pro': 'ATAS & Bookmap Liquidity Heatmap Pro (1:1 Visual Parity)',
     'deeepr-liquidation-hub': 'DEEEPR Liquidation Hub v1 (Map + Heatmap + Max Pain + Cascades)',
     'liquidation-hub': 'DEEEPR Liquidation Hub v1',
     'deeepr-liquidation': 'DEEEPR Liquidation Hub v1',
@@ -663,8 +665,8 @@ function TerminalApp() {
               {activeTab === 'global-intel' && <GlobalIntelView />}
               {activeTab === 'ultra-ai' && <UltraInstitutionalDecisionEngine onNavigate={setActiveTab} />}
               {activeTab === 'order-flow' && <OrderFlowTerminal onNavigate={setActiveTab} />}
-              {(activeTab === 'order-book-heatmap' || activeTab === 'order-book-liquidity-heatmap' || activeTab === 'bookmap-heatmap' || activeTab === 'obh') && <OrderBookHeatmapView onNavigate={setActiveTab} />}
-              {(activeTab === 'bookmap-liquidation' || activeTab === 'bookmap' || activeTab === 'bookmap-chart') && <BookmapLiquidationTerminalView />}
+              {(activeTab === 'order-book-heatmap' || activeTab === 'order-book-liquidity-heatmap' || activeTab === 'bookmap-heatmap' || activeTab === 'obh' || activeTab === 'atas-heatmap' || activeTab === 'atas' || activeTab === 'heatmap-pro') && <OrderBookHeatmapView onNavigate={setActiveTab} />}
+              {(activeTab === 'bookmap-liquidation' || activeTab === 'bookmap' || activeTab === 'bookmap-chart' || activeTab === 'liquidity-heatmap-atas') && <BookmapLiquidationTerminalView />}
               {(activeTab === 'liquidation-heatmap' || activeTab === 'liquidation-chart' || activeTab === 'liq-heatmap') && <LiquidationHeatmapTerminalView onNavigate={setActiveTab} />}
               {(activeTab === 'market-chart-analyse' || activeTab === 'market-chart-analysis' || activeTab === 'market-chart-analyses' || activeTab === 'chart-ai-vision' || activeTab === 'chart-analyzer') && <MarketChartAnalyserTerminalView />}
               {(activeTab === 'institutional-terminal' || activeTab === 'institutional-ai' || activeTab === 'institutional-intelligence' || activeTab === 'btc-gold-terminal') && <InstitutionalAiTerminalView />}
