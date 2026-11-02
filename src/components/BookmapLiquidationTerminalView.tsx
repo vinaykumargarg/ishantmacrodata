@@ -104,23 +104,24 @@ const ASSET_REGISTRY: Record<HeatmapAssetKey, AssetConfig> = {
     key: 'BTC',
     symbol: 'BTCUSDT',
     name: 'Bitcoin Spot & Perp (Binance L2 Depth)',
-    contractCode: 'BTC/USDT',
-    venue: 'BINANCE L2 PERP',
+    contractCode: 'BTCUSDT',
+    venue: 'Binance perp',
     feedType: 'REAL',
     tickSize: 1.0,
-    decimals: 1,
-    defaultPrice: 74320.0,
-    typicalSpanPts: 2400,
-    priceLadderStep: 300,
+    decimals: 0,
+    defaultPrice: 74610.0,
+    typicalSpanPts: 1200,
+    priceLadderStep: 100,
     quoteKey: 'BTCUSDT',
     wsStream: 'btcusdt@depth20@100ms',
     unit: 'BTC',
     restingWalls: [
-      { id: 'btc-ask-wall-1', priceOffset: 720, sizeStr: '520 BTC', volume: 520, strength: 88, ageMin: 62, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 75,040 | 520 BTC | strength 88' },
-      { id: 'btc-cyan-1', priceOffset: 450, sizeStr: '280 BTC', volume: 280, strength: 75, ageMin: 22, thickness: 8, type: 'CYAN_SHELF', label: '74,770 Cyan Resting Shelf' },
-      { id: 'btc-ask-wall-2', priceOffset: 180, sizeStr: '420 BTC', volume: 420, strength: 82, ageMin: 38, thickness: 14, type: 'FIERY_WALL', label: 'ASK WALL 74,500 | 420 BTC | strength 82' },
-      { id: 'btc-bid-wall-1', priceOffset: -220, sizeStr: '365 BTC', volume: 365, strength: 76, ageMin: 52, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 74,100 | 365 BTC | strength 76' },
-      { id: 'btc-bid-wall-2', priceOffset: -680, sizeStr: '640 BTC', volume: 640, strength: 92, ageMin: 95, thickness: 18, type: 'MAJOR_CORE', label: 'BID WALL 73,640 | 640 BTC | strength 92' }
+      { id: 'btc-ask-wall-1', priceOffset: 220, sizeStr: '420 BTC', volume: 420, strength: 94, ageMin: 38, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 74,830 | 420 BTC | strength 94' },
+      { id: 'btc-cyan-1', priceOffset: 120, sizeStr: '280 BTC', volume: 280, strength: 75, ageMin: 22, thickness: 8, type: 'CYAN_SHELF', label: '74,730 Cyan Resting Shelf' },
+      { id: 'btc-ask-wall-2', priceOffset: 60, sizeStr: '190 BTC', volume: 190, strength: 82, ageMin: 18, thickness: 12, type: 'FIERY_WALL', label: 'ASK WALL 74,670 | 190 BTC | strength 82' },
+      { id: 'btc-bid-wall-1', priceOffset: -510, sizeStr: '365 BTC', volume: 365, strength: 76, ageMin: 52, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 74,100 | 365 BTC | strength 76' },
+      { id: 'btc-cyan-2', priceOffset: -240, sizeStr: '210 BTC', volume: 210, strength: 71, ageMin: 34, thickness: 8, type: 'CYAN_SHELF', label: '74,370 Cyan Order Shelf' },
+      { id: 'btc-bid-wall-2', priceOffset: -750, sizeStr: '640 BTC', volume: 640, strength: 92, ageMin: 95, thickness: 18, type: 'MAJOR_CORE', label: 'BID WALL 73,860 | 640 BTC | strength 92' }
     ]
   },
   ETH: {
@@ -567,38 +568,48 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
 
         // ───────────────────────────────────────────────────────────────────
         // ON-CHART WALL ANNOTATION PILL (EXACT MATCH WITH ATAS PHOTO)
-        // e.g. "ASK WALL 74,500 | 420 BTC | strength 82" (Amber pill with line)
-        // e.g. "BID WALL 74,100 | 365 BTC | strength 76" (Emerald pill with line)
+        // e.g. "ASK WALL 74,830 | 420 BTC | strength 94" (Amber pill with leader)
+        // e.g. "BID WALL 74,100 | 365 BTC | strength 76" (Cyan/Emerald pill with leader)
         // ───────────────────────────────────────────────────────────────────
         const isAsk = wall.priceOffset > 0;
-        const pillX = 60 + (wall.strength % 4) * 80;
-        const pillY = isAsk ? wallY - 26 : wallY + 22;
+        const isMajorLeader = wall.strength >= 76 || isTargeted;
 
-        // Leader pointer line from pill to wall
-        ctx.strokeStyle = isAsk ? '#f59a23' : '#10b981';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([2, 2]);
-        ctx.beginPath();
-        ctx.moveTo(pillX + 60, isAsk ? pillY + 14 : pillY);
-        ctx.lineTo(pillX + 90, wallY);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        if (isMajorLeader) {
+          const pillX = isAsk ? chartWidth * 0.28 : chartWidth * 0.18;
+          const pillY = isAsk ? wallY - 24 : wallY + 24;
 
-        // Rounded Tag Box
-        const tagText = `${isAsk ? 'ASK WALL' : 'BID WALL'} ${wallPrice.toFixed(currentConfig.decimals > 1 ? 1 : 0)} | ${wall.sizeStr} | strength ${wall.strength}`;
-        ctx.font = 'bold 10px "JetBrains Mono", monospace';
-        const tagWidth = ctx.measureText(tagText).width + 16;
+          // Dot on the resting line
+          ctx.fillStyle = isAsk ? '#f59a23' : '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(pillX + 90, wallY, 3, 0, Math.PI * 2);
+          ctx.fill();
 
-        ctx.fillStyle = isAsk ? 'rgba(30, 20, 5, 0.94)' : 'rgba(5, 28, 18, 0.94)';
-        ctx.fillRect(pillX, pillY - 11, tagWidth, 20);
+          // Leader pointer line from pill to wall
+          ctx.strokeStyle = isAsk ? '#f59a23' : '#38bdf8';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(pillX + 40, isAsk ? pillY + 12 : pillY);
+          ctx.lineTo(pillX + 90, wallY);
+          ctx.stroke();
+          ctx.setLineDash([]);
 
-        ctx.strokeStyle = isAsk ? '#f59a23' : '#10b981';
-        ctx.lineWidth = 1.2;
-        ctx.strokeRect(pillX, pillY - 11, tagWidth, 20);
+          // Rounded Tag Box
+          const tagText = `${isAsk ? 'ASK WALL' : 'BID WALL'} ${wallPrice.toLocaleString(undefined, { maximumFractionDigits: currentConfig.decimals })} | ${wall.sizeStr} | strength ${wall.strength}`;
+          ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+          const tagWidth = ctx.measureText(tagText).width + 14;
 
-        ctx.fillStyle = isAsk ? '#fbbf24' : '#34d399';
-        ctx.textAlign = 'left';
-        ctx.fillText(tagText, pillX + 8, pillY + 3.5);
+          ctx.fillStyle = isAsk ? 'rgba(25, 18, 5, 0.95)' : 'rgba(5, 24, 28, 0.95)';
+          ctx.fillRect(pillX, pillY - 11, tagWidth, 19);
+
+          ctx.strokeStyle = isAsk ? 'rgba(245, 154, 35, 0.85)' : 'rgba(56, 189, 248, 0.85)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(pillX, pillY - 11, tagWidth, 19);
+
+          ctx.fillStyle = isAsk ? '#fbbf24' : '#38bdf8';
+          ctx.textAlign = 'left';
+          ctx.fillText(tagText, pillX + 7, pillY + 2.5);
+        }
       }
 
       // ─────────────────────────────────────────────────────────────────────
@@ -793,6 +804,7 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
 
       // ─────────────────────────────────────────────────────────────────────
       // 7. BOTTOM PANE: VOLUME BUY/SELL SPLIT & CUMULATIVE DELTA (CVD)
+      // Matches ATAS / Bookmap 1:1 with bidirectional bars (Green UP, Red DOWN)
       // ─────────────────────────────────────────────────────────────────────
       ctx.fillStyle = '#020614';
       ctx.fillRect(0, chartHeight, w, bottomHistHeight);
@@ -805,43 +817,55 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
       ctx.lineTo(w, chartHeight);
       ctx.stroke();
 
-      const histBaseY = h - 24;
-      const colW = Math.max(8, (chartWidth / chartPatterns.histBars.length) * 0.75);
+      // Subchart Title (Exact match with photo)
+      ctx.fillStyle = '#64748b';
+      ctx.font = 'bold 9px "JetBrains Mono", monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('Volume (Buy / Sell) | Cum. Delta ^', 8, chartHeight + 13);
+
+      const histMidY = chartHeight + 52;
+      const colW = Math.max(6, (chartWidth / chartPatterns.histBars.length) * 0.72);
+
+      // Zero baseline for Buy/Sell volume
+      ctx.strokeStyle = 'rgba(30, 58, 92, 0.45)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, histMidY);
+      ctx.lineTo(chartWidth, histMidY);
+      ctx.stroke();
 
       for (const bar of chartPatterns.histBars) {
         const bx = bar.progressX * chartWidth;
         const total = bar.total;
-        const maxH = bottomHistHeight - 38;
-        const barH = Math.min(maxH, Math.max(10, (total / 60) * maxH));
+        const maxBarHalfH = 34;
+        const buyH = Math.min(maxBarHalfH, Math.max(3, (bar.buyVol / 40) * maxBarHalfH));
+        const sellH = Math.min(maxBarHalfH, Math.max(3, (bar.sellVol / 40) * maxBarHalfH));
 
-        const buyH = barH * (bar.buyVol / total);
-        const sellH = barH - buyH;
+        // Green Buy Volume shoots UP from baseline
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(bx - colW / 2, histMidY - buyH, colW, buyH);
 
-        // Buy volume green on top / bottom split
-        ctx.fillStyle = '#2ecc71';
-        ctx.fillRect(bx - colW / 2, histBaseY - buyH, colW, buyH);
+        // Red Sell Volume hangs DOWN from baseline
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(bx - colW / 2, histMidY, colW, sellH);
 
-        // Sell volume red
-        ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(bx - colW / 2, histBaseY - barH, colW, sellH);
-
-        if (bar.label) {
+        if (bar.label && total > 55) {
           ctx.fillStyle = '#94a3b8';
-          ctx.font = 'bold 9px "JetBrains Mono", monospace';
+          ctx.font = 'bold 8.5px "JetBrains Mono", monospace';
           ctx.textAlign = 'center';
-          ctx.fillText(bar.label, bx, histBaseY - barH - 3);
+          ctx.fillText(bar.label, bx, histMidY - buyH - 2);
         }
       }
 
       // Cumulative Volume Delta (CVD) overlaid curve in Electric Cyan
       if (showCvd && chartPatterns.histBars.length > 1) {
         ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 1.6;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let i = 0; i < chartPatterns.histBars.length; i++) {
           const bar = chartPatterns.histBars[i];
           const bx = bar.progressX * chartWidth;
-          const cvdY = chartHeight + 25 + (bar.cvd / 120) * 25;
+          const cvdY = histMidY - (bar.cvd / 80) * 22;
           if (i === 0) ctx.moveTo(bx, cvdY);
           else ctx.lineTo(bx, cvdY);
         }
@@ -1256,22 +1280,21 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
 
           {/* Section 2: LIVE ORDERBOOK EVENTS */}
           <div className="space-y-1.5">
-            <div className="border-b border-slate-800 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
-              <Activity className="w-3 h-3 text-cyan-400" />
-              <span>EVENTS</span>
+            <div className="border-b border-slate-800 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <Activity className="w-3 h-3 text-cyan-400" />
+                <span>EVENTS</span>
+              </span>
+              <span className="text-[9px] px-1 py-0.2 bg-emerald-500/20 text-emerald-400 font-bold rounded">DEFENDED</span>
             </div>
             <div className="space-y-1 text-[10px]">
               <div className="p-1.5 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-                <span className="text-amber-300 font-bold">21:23 Absorption</span>
-                <span className="text-slate-400">@{(livePrice + 12).toFixed(1)}</span>
+                <span className="text-amber-300 font-bold">21:53 Absorption</span>
+                <span className="text-slate-300 font-mono">@{(livePrice - (activeAsset === 'BTC' ? 160 : livePrice * 0.002)).toFixed(currentConfig.decimals > 1 ? 1 : 0)}</span>
               </div>
               <div className="p-1.5 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-                <span className="text-rose-400 font-bold">21:04 Wall Pulled</span>
-                <span className="text-slate-400">@{(livePrice + 55).toFixed(1)}</span>
-              </div>
-              <div className="p-1.5 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-                <span className="text-emerald-400 font-bold">20:48 Sweep</span>
-                <span className="text-slate-400">@{(livePrice - 30).toFixed(1)}</span>
+                <span className="text-emerald-400 font-bold">21:54 Wall added</span>
+                <span className="text-slate-300 font-mono">@{(livePrice + (activeAsset === 'BTC' ? 220 : livePrice * 0.003)).toFixed(currentConfig.decimals > 1 ? 1 : 0)}</span>
               </div>
             </div>
           </div>
@@ -1279,14 +1302,14 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
           {/* Section 3: ORDERBOOK IMBALANCE */}
           <div className="space-y-1.5">
             <div className="border-b border-slate-800 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
-              IMBALANCE (±2% DEPTH)
+              IMBALANCE
             </div>
             <div className="flex items-center justify-between text-[11px] font-bold">
               <span className="text-emerald-400">Bids 54%</span>
               <span className="text-rose-400">Asks 46%</span>
             </div>
             {/* Visual Balance Bar */}
-            <div className="w-full h-2 rounded-full overflow-hidden bg-slate-800 flex">
+            <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-800 flex">
               <div className="h-full bg-emerald-500" style={{ width: '54%' }} />
               <div className="h-full bg-rose-500" style={{ width: '46%' }} />
             </div>
@@ -1294,18 +1317,17 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
 
           {/* Section 4: DATA TELEMETRY & ATTRIBUTION */}
           <div className="p-2 rounded-md bg-[#040814] border border-slate-800 space-y-1 text-[10.5px]">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DATA FEED</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DATA</div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Status:</span>
-              <span className="text-emerald-400 font-bold">REAL-TIME</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">Source:</span>
+              <span className="text-slate-400">Feed:</span>
               <span className="text-cyan-300 font-bold truncate">{currentConfig.venue}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Recorded Since:</span>
-              <span className="text-slate-200">18:45 IST</span>
+              <span className="text-slate-400">Recorded price:</span>
+              <span className="text-white font-mono font-bold">{livePrice.toFixed(currentConfig.decimals)}</span>
+            </div>
+            <div className="pt-1 text-[9px] text-slate-500 leading-tight">
+              Evidence only, non-custodial L2 orderbook depth.
             </div>
           </div>
         </aside>
