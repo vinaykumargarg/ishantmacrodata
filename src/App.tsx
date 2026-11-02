@@ -186,7 +186,11 @@ function getFeatureTitle(tab: string): string {
     'deeepr-stocks': 'DEEEPR Stock Research & Positional Plan Engine v1 (5–12M)',
     'stock-ai': 'AI Stocks (US + NIFTY 100)',
     'indian-stock-ai': 'Indian Stocks AI (Nifty 500 Deep Research)',
+    'indian-stocks': 'Indian Stocks AI — Institutional Equity Research, Swing & Positional Command Centre',
+    'indian-stock': 'Indian Stocks AI — Institutional Equity Research, Swing & Positional Command Centre',
     'usa-stock-ai': 'USA Top 1000 AI Terminal (INDmoney & Russell)',
+    'usa-stocks': 'USA Stock AI — Wall Street Institutional Intelligence & Equity Trading Command Centre',
+    'usa-stock': 'USA Stock AI — Wall Street Institutional Intelligence & Equity Trading Command Centre',
     'volume-profile-ai': 'Volume Profile & Bookmap AI (POC/VAH/VAL)',
     'trend-analysis': 'Multi-Timeframe Trend Analysis Engine (Multi-Asset)',
     'trend-engine': 'Multi-Timeframe Trend Analysis Engine (Multi-Asset)',
@@ -654,8 +658,8 @@ function TerminalApp() {
               {(activeTab === 'global-score' || activeTab === 'global-stock-score' || activeTab === 'stock-investment-engine') && <GlobalStockScoreEngineView onNavigate={setActiveTab} liveTickers={liveTickers} />}
               {activeTab === 'auth' && <AuthPageView onNavigateToTerminal={() => setActiveTab('ultra-ai')} />}
               {activeTab === 'stock-ai' && <StockAiView onNavigate={setActiveTab} />}
-              {(activeTab === 'indian-stock-ai' || activeTab === 'indian-stocks' || activeTab === 'nifty-500') && <IndianStockAiView onNavigate={setActiveTab} />}
-              {(activeTab === 'usa-stock-ai' || activeTab === 'usa-stocks' || activeTab === 'russell-1000' || activeTab === 'indmoney-us') && <UsaTop1000AiView onNavigate={setActiveTab} />}
+              {(activeTab === 'indian-stock-ai' || activeTab === 'indian-stocks' || activeTab === 'nifty-500' || activeTab === 'indian-stock' || activeTab === 'indian-stocks-ai' || activeTab === 'nse-bse') && <IndianStockAiView onNavigate={setActiveTab} />}
+              {(activeTab === 'usa-stock-ai' || activeTab === 'usa-stocks' || activeTab === 'russell-1000' || activeTab === 'indmoney-us' || activeTab === 'usa-stock' || activeTab === 'usa-stocks-ai' || activeTab === 'wall-street') && <UsaTop1000AiView onNavigate={setActiveTab} />}
               {(activeTab === 'volume-profile-ai' || activeTab === 'volume-profile' || activeTab === 'volume-profile-pro' || activeTab === 'volume-profile-setup' || activeTab === 'vp-terminal' || activeTab === 'volume-profile-confluence' || activeTab === 'vp-confluence') && <VolumeProfileTerminalView />}
               {(activeTab === 'gold-smc-lab' || activeTab === 'gold-entry-models' || activeTab === 'gold-smc-auto-lab') && <GoldSmcAutoTradeLabView />}
               {(activeTab === 'xauusd-institutional' || activeTab === 'xauusd-terminal' || activeTab === 'gold-pro' || activeTab === 'xauusd' || activeTab === 'gold-pro-max') && <InstitutionalXauusdTerminalView onNavigate={setActiveTab} />}
