@@ -361,13 +361,13 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
     capTier: 'Large-Cap',
     index: 'S&P 500 / Nasdaq 100',
     currency: 'USD',
-    cmp: 138.25,
-    change24h: 3.45,
-    changePct24h: 2.56,
-    high52w: 153.15,
+    cmp: 207.31,
+    change24h: 6.25,
+    changePct24h: 3.11,
+    high52w: 215.00,
     low52w: 75.60,
-    pe: 44.8,
-    marketCapStr: '$3.38T',
+    pe: 48.6,
+    marketCapStr: '$5.12T',
     tradingViewSymbol: 'NASDAQ:NVDA',
     scores: {
       fundamentalQuality: 19.4, // /20
@@ -383,42 +383,42 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
       riskScore: 22
     },
     entryPlan: {
-      currentPrice: 138.25,
+      currentPrice: 207.31,
       entryZone: {
-        primary: '$132.00 – $137.50',
-        secondaryDip: '$126.00 – $129.50',
-        range: '$130 – $138'
+        primary: '$198.00 – $206.50',
+        secondaryDip: '$188.00 – $194.00',
+        range: '$195 – $207'
       },
       stopLoss: {
-        price: 122.50,
-        formatted: '$122.50',
-        pct: -9.8,
+        price: 182.00,
+        formatted: '$182.00',
+        pct: -12.2,
         structuralLevel: 'Weekly swing support and 50-day EMA structural pivot'
       },
       target1: {
-        price: 155.00,
-        formatted: '$155.00',
-        expectedReturnPct: 12.1,
+        price: 230.00,
+        formatted: '$230.00',
+        expectedReturnPct: 10.9,
         timeframe: '1–2 Months',
-        rationale: 'Retest of previous all-time high resistance cluster'
+        rationale: 'Retest of previous resistance cluster and psychological round barrier'
       },
       target2: {
-        price: 175.00,
-        formatted: '$175.00',
-        expectedReturnPct: 26.6,
+        price: 260.00,
+        formatted: '$260.00',
+        expectedReturnPct: 25.4,
         timeframe: '4–6 Months',
         rationale: 'Primary institutional target: Blackwell architecture ramp and hyperscaler capex delivery'
       },
       target3: {
-        price: 195.00,
-        formatted: '$195.00',
-        expectedReturnPct: 41.0,
+        price: 290.00,
+        formatted: '$290.00',
+        expectedReturnPct: 39.9,
         timeframe: '6+ Months',
-        rationale: 'Blue-sky expansion on sovereign AI and enterprise enterprise deployments'
+        rationale: 'Blue-sky expansion on sovereign AI and enterprise deployments'
       },
-      riskPct: 9.8,
-      expectedReturnPct: 26.6,
-      riskRewardRatio: '2.71 : 1',
+      riskPct: 12.2,
+      expectedReturnPct: 25.4,
+      riskRewardRatio: '2.08 : 1',
       confidenceScore: 89,
       holdingHorizon: '4–6 Months',
       invalidationConditions: [
@@ -908,13 +908,13 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
     capTier: 'Large-Cap',
     index: 'NIFTY 50',
     currency: 'INR',
-    cmp: 1248.50,
-    change24h: 12.80,
-    changePct24h: 1.04,
+    cmp: 1307.90,
+    change24h: 7.90,
+    changePct24h: 0.61,
     high52w: 1608.80,
     low52w: 1118.00,
-    pe: 22.4,
-    marketCapStr: '₹16.89 Lakh Cr',
+    pe: 23.4,
+    marketCapStr: '₹17.65 Lakh Cr',
     tradingViewSymbol: 'NSE:RELIANCE',
     scores: {
       fundamentalQuality: 18.2,
@@ -930,42 +930,42 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
       riskScore: 24
     },
     entryPlan: {
-      currentPrice: 1248.50,
+      currentPrice: 1307.90,
       entryZone: {
-        primary: '₹1,220 – ₹1,255',
-        secondaryDip: '₹1,180 – ₹1,205',
-        range: '₹1,200 – ₹1,255'
+        primary: '₹1,280 – ₹1,305',
+        secondaryDip: '₹1,240 – ₹1,265',
+        range: '₹1,260 – ₹1,308'
       },
       stopLoss: {
-        price: 1140.00,
-        formatted: '₹1,140.00',
-        pct: -8.7,
+        price: 1220.00,
+        formatted: '₹1,220.00',
+        pct: -6.7,
         structuralLevel: 'Key multi-year support base and lower trendline of ascending channel'
       },
       target1: {
-        price: 1380.00,
-        formatted: '₹1,380.00',
-        expectedReturnPct: 10.5,
+        price: 1440.00,
+        formatted: '₹1,440.00',
+        expectedReturnPct: 10.1,
         timeframe: '1–2 Months',
         rationale: 'Retest of 200-day EMA resistance zone'
       },
       target2: {
-        price: 1540.00,
-        formatted: '₹1,540.00',
-        expectedReturnPct: 23.3,
+        price: 1580.00,
+        formatted: '₹1,580.00',
+        expectedReturnPct: 20.8,
         timeframe: '4–6 Months',
         rationale: 'Jio telecom tariff hike flow-through and Retail monetization re-rating'
       },
       target3: {
-        price: 1680.00,
-        formatted: '₹1,680.00',
-        expectedReturnPct: 34.5,
+        price: 1720.00,
+        formatted: '₹1,720.00',
+        expectedReturnPct: 31.5,
         timeframe: '6–9 Months',
         rationale: 'All-time high breakout on Jio / Retail IPO timeline announcements'
       },
-      riskPct: 8.7,
-      expectedReturnPct: 23.3,
-      riskRewardRatio: '2.68 : 1',
+      riskPct: 6.7,
+      expectedReturnPct: 20.8,
+      riskRewardRatio: '3.10 : 1',
       confidenceScore: 87,
       holdingHorizon: '4–6 Months',
       invalidationConditions: [
@@ -1181,13 +1181,13 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
     capTier: 'Large-Cap',
     index: 'S&P 500 / Nasdaq 100 / Dow Jones',
     currency: 'USD',
-    cmp: 428.50,
-    change24h: 4.20,
-    changePct24h: 0.99,
-    high52w: 468.35,
-    low52w: 395.10,
-    pe: 33.2,
-    marketCapStr: '$3.18T',
+    cmp: 521.44,
+    change24h: 14.32,
+    changePct24h: 2.82,
+    high52w: 540.00,
+    low52w: 385.00,
+    pe: 35.8,
+    marketCapStr: '$3.88T',
     tradingViewSymbol: 'NASDAQ:MSFT',
     scores: {
       fundamentalQuality: 19.6,
@@ -1203,42 +1203,42 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
       riskScore: 16
     },
     entryPlan: {
-      currentPrice: 428.50,
+      currentPrice: 521.44,
       entryZone: {
-        primary: '$418.00 – $429.00',
-        secondaryDip: '$405.00 – $414.00',
-        range: '$410 – $429'
+        primary: '$505.00 – $520.00',
+        secondaryDip: '$485.00 – $498.00',
+        range: '$495 – $522'
       },
       stopLoss: {
-        price: 392.00,
-        formatted: '$392.00',
-        pct: -8.5,
-        structuralLevel: 'Key 52-week support floor and 200-day SMA structural trendline'
+        price: 470.00,
+        formatted: '$470.00',
+        pct: -9.8,
+        structuralLevel: 'Key 50-week EMA support floor and multi-month breakout pivot'
       },
       target1: {
-        price: 465.00,
-        formatted: '$465.00',
-        expectedReturnPct: 8.5,
+        price: 565.00,
+        formatted: '$565.00',
+        expectedReturnPct: 8.35,
         timeframe: '1–2 Months',
         rationale: 'Retest of prior all-time high resistance'
       },
       target2: {
-        price: 515.00,
-        formatted: '$515.00',
-        expectedReturnPct: 20.2,
+        price: 620.00,
+        formatted: '$620.00',
+        expectedReturnPct: 18.9,
         timeframe: '4–6 Months',
-        rationale: 'Primary institutional target: Azure AI growth acceleration to 33%+ and Copilot monetization'
+        rationale: 'Primary institutional target: Azure AI growth acceleration and Copilot monetization'
       },
       target3: {
-        price: 560.00,
-        formatted: '$560.00',
-        expectedReturnPct: 30.7,
+        price: 680.00,
+        formatted: '$680.00',
+        expectedReturnPct: 30.4,
         timeframe: '6–9 Months',
         rationale: 'Multiple expansion on enterprise AI agent adoption'
       },
-      riskPct: 8.5,
-      expectedReturnPct: 20.2,
-      riskRewardRatio: '2.38 : 1',
+      riskPct: 9.8,
+      expectedReturnPct: 18.9,
+      riskRewardRatio: '1.93 : 1',
       confidenceScore: 92,
       holdingHorizon: '4–6 Months',
       invalidationConditions: [
@@ -1453,13 +1453,13 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
     capTier: 'Large-Cap',
     index: 'NIFTY 50 / NIFTY Defence',
     currency: 'INR',
-    cmp: 4120.00,
-    change24h: 78.50,
-    changePct24h: 1.94,
+    cmp: 4958.60,
+    change24h: 112.50,
+    changePct24h: 2.32,
     high52w: 5675.00,
-    low52w: 3045.00,
-    pe: 36.4,
-    marketCapStr: '₹2.75 Lakh Cr',
+    low52w: 2900.00,
+    pe: 39.8,
+    marketCapStr: '₹3.32 Lakh Cr',
     tradingViewSymbol: 'NSE:HAL',
     scores: {
       fundamentalQuality: 18.7,
@@ -1475,42 +1475,42 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
       riskScore: 20
     },
     entryPlan: {
-      currentPrice: 4120.00,
+      currentPrice: 4958.60,
       entryZone: {
-        primary: '₹3,980 – ₹4,150',
-        secondaryDip: '₹3,820 – ₹3,920',
-        range: '₹3,900 – ₹4,150'
+        primary: '₹4,800 – ₹4,940',
+        secondaryDip: '₹4,600 – ₹4,720',
+        range: '₹4,700 – ₹4,960'
       },
       stopLoss: {
-        price: 3680.00,
-        formatted: '₹3,680.00',
-        pct: -10.7,
-        structuralLevel: 'Key 200-day EMA support and previous major accumulation pivot'
+        price: 4400.00,
+        formatted: '₹4,400.00',
+        pct: -11.3,
+        structuralLevel: 'Anchor VWAP support and structural swing low'
       },
       target1: {
-        price: 4680.00,
-        formatted: '₹4,680.00',
-        expectedReturnPct: 13.6,
+        price: 5450.00,
+        formatted: '₹5,450.00',
+        expectedReturnPct: 9.9,
         timeframe: '1–2 Months',
-        rationale: 'Retest of 50-day moving average and intermediate resistance'
+        rationale: 'Retest of previous resistance band'
       },
       target2: {
-        price: 5250.00,
-        formatted: '₹5,250.00',
-        expectedReturnPct: 27.4,
+        price: 6100.00,
+        formatted: '₹6,100.00',
+        expectedReturnPct: 23.0,
         timeframe: '4–6 Months',
         rationale: 'Primary institutional target: Tejas Mk1A delivery ramp and GE-414 engine tech transfer progress'
       },
       target3: {
-        price: 5900.00,
-        formatted: '₹5,900.00',
-        expectedReturnPct: 43.2,
+        price: 6800.00,
+        formatted: '₹6,800.00',
+        expectedReturnPct: 37.1,
         timeframe: '6–9 Months',
         rationale: 'New all-time high on formal DAC clearance of Su-30MKI upgrade and mega helicopter orders'
       },
-      riskPct: 10.7,
-      expectedReturnPct: 27.4,
-      riskRewardRatio: '2.56 : 1',
+      riskPct: 11.3,
+      expectedReturnPct: 23.0,
+      riskRewardRatio: '2.04 : 1',
       confidenceScore: 90,
       holdingHorizon: '4–6 Months',
       invalidationConditions: [
@@ -1725,13 +1725,13 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
     capTier: 'Large-Cap',
     index: 'S&P 500 / Nasdaq 100 / Dow Jones',
     currency: 'USD',
-    cmp: 204.80,
-    change24h: 3.10,
-    changePct24h: 1.54,
-    high52w: 215.90,
-    low52w: 166.30,
-    pe: 41.2,
-    marketCapStr: '$2.16T',
+    cmp: 251.19,
+    change24h: 3.65,
+    changePct24h: 1.47,
+    high52w: 260.00,
+    low52w: 166.00,
+    pe: 43.5,
+    marketCapStr: '$2.62T',
     tradingViewSymbol: 'NASDAQ:AMZN',
     scores: {
       fundamentalQuality: 19.1,
@@ -1747,42 +1747,42 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
       riskScore: 21
     },
     entryPlan: {
-      currentPrice: 204.80,
+      currentPrice: 251.19,
       entryZone: {
-        primary: '$198.00 – $205.00',
-        secondaryDip: '$190.00 – $195.00',
-        range: '$192 – $205'
+        primary: '$240.00 – $250.00',
+        secondaryDip: '$228.00 – $236.00',
+        range: '$235 – $252'
       },
       stopLoss: {
-        price: 184.00,
-        formatted: '$184.00',
-        pct: -10.1,
-        structuralLevel: 'Key 200-day moving average and breakout base support'
+        price: 218.00,
+        formatted: '$218.00',
+        pct: -13.2,
+        structuralLevel: 'Key breakout structure and 100-day EMA'
       },
       target1: {
-        price: 225.00,
-        formatted: '$225.00',
-        expectedReturnPct: 9.8,
+        price: 275.00,
+        formatted: '$275.00',
+        expectedReturnPct: 9.5,
         timeframe: '1–2 Months',
-        rationale: 'Breakout above previous all-time high of $215.90'
+        rationale: 'Breakout above previous all-time high'
       },
       target2: {
-        price: 255.00,
-        formatted: '$255.00',
-        expectedReturnPct: 24.5,
+        price: 305.00,
+        formatted: '$305.00',
+        expectedReturnPct: 21.4,
         timeframe: '4–6 Months',
         rationale: 'Primary institutional target: AWS re-acceleration, retail margin expansion and advertising cash flow explosion'
       },
       target3: {
-        price: 280.00,
-        formatted: '$280.00',
-        expectedReturnPct: 36.7,
+        price: 340.00,
+        formatted: '$340.00',
+        expectedReturnPct: 35.3,
         timeframe: '6–9 Months',
-        rationale: 'Multiple expansion on record $65B+ annual free cash flow delivery'
+        rationale: 'Multiple expansion on record annual free cash flow delivery'
       },
-      riskPct: 10.1,
-      expectedReturnPct: 24.5,
-      riskRewardRatio: '2.42 : 1',
+      riskPct: 13.2,
+      expectedReturnPct: 21.4,
+      riskRewardRatio: '1.62 : 1',
       confidenceScore: 90,
       holdingHorizon: '4–6 Months',
       invalidationConditions: [
@@ -1997,13 +1997,13 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
     capTier: 'Large-Cap',
     index: 'NIFTY 50',
     currency: 'INR',
-    cmp: 6420.00,
-    change24h: 115.00,
-    changePct24h: 1.82,
+    cmp: 3036.50,
+    change24h: 76.00,
+    changePct24h: 2.57,
     high52w: 8345.00,
-    low52w: 3950.00,
-    pe: 78.4,
-    marketCapStr: '₹2.28 Lakh Cr',
+    low52w: 2950.00,
+    pe: 58.2,
+    marketCapStr: '₹1.08 Lakh Cr',
     tradingViewSymbol: 'NSE:TRENT',
     scores: {
       fundamentalQuality: 18.4,
@@ -2019,42 +2019,42 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
       riskScore: 28
     },
     entryPlan: {
-      currentPrice: 6420.00,
+      currentPrice: 3036.50,
       entryZone: {
-        primary: '₹6,150 – ₹6,450',
-        secondaryDip: '₹5,800 – ₹6,000',
-        range: '₹5,900 – ₹6,450'
+        primary: '₹2,950 – ₹3,030',
+        secondaryDip: '₹2,800 – ₹2,900',
+        range: '₹2,880 – ₹3,040'
       },
       stopLoss: {
-        price: 5540.00,
-        formatted: '₹5,540.00',
-        pct: -13.7,
-        structuralLevel: 'Key 200-day moving average and previous major multi-month breakout retest zone'
+        price: 2680.00,
+        formatted: '₹2,680.00',
+        pct: -11.7,
+        structuralLevel: 'Major multi-month demand zone and institutional accumulation floor'
       },
       target1: {
-        price: 7250.00,
-        formatted: '₹7,250.00',
-        expectedReturnPct: 12.9,
+        price: 3450.00,
+        formatted: '₹3,450.00',
+        expectedReturnPct: 13.6,
         timeframe: '1–2 Months',
-        rationale: 'Retest of 50-day moving average and intermediate resistance'
+        rationale: 'Mean reversion to 50-day EMA and intermediate resistance'
       },
       target2: {
-        price: 8200.00,
-        formatted: '₹8,200.00',
-        expectedReturnPct: 27.7,
+        price: 3950.00,
+        formatted: '₹3,950.00',
+        expectedReturnPct: 30.1,
         timeframe: '4–6 Months',
         rationale: 'Primary institutional target: Zudio store expansion hitting 650+ outlets and Star Bazaar grocery turnaround'
       },
       target3: {
-        price: 9100.00,
-        formatted: '₹9,100.00',
-        expectedReturnPct: 41.7,
+        price: 4400.00,
+        formatted: '₹4,400.00',
+        expectedReturnPct: 44.9,
         timeframe: '6–9 Months',
-        rationale: 'Expansion toward ₹10,000 mark on international Middle East pilot expansion'
+        rationale: 'Expansion on international Middle East pilot expansion'
       },
-      riskPct: 13.7,
-      expectedReturnPct: 27.7,
-      riskRewardRatio: '2.02 : 1',
+      riskPct: 11.7,
+      expectedReturnPct: 30.1,
+      riskRewardRatio: '2.57 : 1',
       confidenceScore: 86,
       holdingHorizon: '4–6 Months',
       invalidationConditions: [
@@ -2269,13 +2269,13 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
     capTier: 'Large-Cap',
     index: 'S&P 500 / Russell 1000',
     currency: 'USD',
-    cmp: 64.20,
-    change24h: 1.85,
-    changePct24h: 2.97,
-    high52w: 72.85,
+    cmp: 175.17,
+    change24h: 7.45,
+    changePct24h: 4.44,
+    high52w: 185.00,
     low52w: 20.40,
-    pe: 82.5,
-    marketCapStr: '$144.5B',
+    pe: 95.0,
+    marketCapStr: '$390B',
     tradingViewSymbol: 'NYSE:PLTR',
     scores: {
       fundamentalQuality: 18.5,
@@ -2291,42 +2291,42 @@ export const INSTITUTIONAL_STOCKS: InstitutionalStockRecord[] = [
       riskScore: 29
     },
     entryPlan: {
-      currentPrice: 64.20,
+      currentPrice: 175.17,
       entryZone: {
-        primary: '$59.00 – $64.50',
-        secondaryDip: '$54.00 – $57.50',
-        range: '$55 – $64.50'
+        primary: '$165.00 – $174.00',
+        secondaryDip: '$150.00 – $158.00',
+        range: '$155 – $176'
       },
       stopLoss: {
-        price: 51.50,
-        formatted: '$51.50',
-        pct: -19.7,
-        structuralLevel: 'Key 50-day moving average and previous major multi-month breakout platform'
+        price: 140.00,
+        formatted: '$140.00',
+        pct: -20.0,
+        structuralLevel: 'Key institutional accumulation pivot and prior swing high'
       },
       target1: {
-        price: 74.00,
-        formatted: '$74.00',
-        expectedReturnPct: 15.2,
+        price: 200.00,
+        formatted: '$200.00',
+        expectedReturnPct: 14.2,
         timeframe: '1–2 Months',
-        rationale: 'Breakout above recent all-time high resistance'
+        rationale: 'Breakout above $200 psychological barrier'
       },
       target2: {
-        price: 88.00,
-        formatted: '$88.00',
-        expectedReturnPct: 37.0,
+        price: 230.00,
+        formatted: '$230.00',
+        expectedReturnPct: 31.3,
         timeframe: '4–6 Months',
         rationale: 'Primary institutional target: US commercial AIP revenue doubling and NATO defense contract expansions'
       },
       target3: {
-        price: 105.00,
-        formatted: '$105.00',
-        expectedReturnPct: 63.5,
+        price: 260.00,
+        formatted: '$260.00',
+        expectedReturnPct: 48.4,
         timeframe: '6–9 Months',
         rationale: 'Blue-sky expansion as Palantir becomes the default enterprise AI operating system'
       },
-      riskPct: 19.7,
-      expectedReturnPct: 37.0,
-      riskRewardRatio: '1.88 : 1',
+      riskPct: 20.0,
+      expectedReturnPct: 31.3,
+      riskRewardRatio: '1.57 : 1',
       confidenceScore: 88,
       holdingHorizon: '4–6 Months',
       invalidationConditions: [

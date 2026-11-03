@@ -466,13 +466,31 @@ export default function GoldSmcAutoTradeLabView() {
     // Single Locked Trade Signal Marker on Trigger Bar
     const lastCandle = candlesRef.current[candlesRef.current.length - 1];
     if (lastCandle) {
-      markers.push({
-        time: lastCandle.time,
-        position: isShort ? 'aboveBar' : 'belowBar',
-        color: isShort ? '#ef4444' : '#10b981',
-        shape: isShort ? 'arrowDown' : 'arrowUp',
-        text: isShort ? '🔒 LOCKED SHORT SETUP' : '🔒 LOCKED LONG SETUP'
-      });
+      if (tradePlan.direction === 'SHORT') {
+        markers.push({
+          time: lastCandle.time,
+          position: 'aboveBar',
+          color: '#ef4444',
+          shape: 'arrowDown',
+          text: '🔒 LOCKED SHORT SETUP'
+        });
+      } else if (tradePlan.direction === 'LONG') {
+        markers.push({
+          time: lastCandle.time,
+          position: 'belowBar',
+          color: '#10b981',
+          shape: 'arrowUp',
+          text: '🔒 LOCKED LONG SETUP'
+        });
+      } else {
+        markers.push({
+          time: lastCandle.time,
+          position: 'belowBar',
+          color: '#f59e0b',
+          shape: 'circle',
+          text: '⏳ EQUILIBRIUM · WAIT FOR CONFIRMATION'
+        });
+      }
     }
 
     markers.sort((a, b) => (a.time as number) - (b.time as number));
@@ -882,10 +900,20 @@ export default function GoldSmcAutoTradeLabView() {
               <span className={`px-2.5 py-1 rounded-full text-[11px] font-black border flex items-center gap-1.5 shadow-lg backdrop-blur-md ${
                 tradePlan.direction === 'SHORT'
                   ? 'bg-rose-950/80 text-rose-300 border-rose-500/50'
-                  : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                  : tradePlan.direction === 'LONG'
+                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                  : 'bg-amber-950/80 text-amber-300 border-amber-500/50'
               }`}>
-                <span className={`h-2 w-2 rounded-full ${tradePlan.direction === 'SHORT' ? 'bg-rose-400 animate-ping' : 'bg-emerald-400 animate-ping'}`} />
-                <span>Market Structure: {tradePlan.direction === 'SHORT' ? 'BEARISH' : 'BULLISH'}</span>
+                <span className={`h-2 w-2 rounded-full ${
+                  tradePlan.direction === 'SHORT'
+                    ? 'bg-rose-400 animate-ping'
+                    : tradePlan.direction === 'LONG'
+                    ? 'bg-emerald-400 animate-ping'
+                    : 'bg-amber-400'
+                }`} />
+                <span>
+                  Market Structure: {tradePlan.direction === 'SHORT' ? 'BEARISH (LOCKED)' : tradePlan.direction === 'LONG' ? 'BULLISH (LOCKED)' : 'EQUILIBRIUM (WAIT)'}
+                </span>
               </span>
             </div>
 
@@ -1118,21 +1146,29 @@ export default function GoldSmcAutoTradeLabView() {
             {/* ── TAB A: INSTITUTIONAL TRADE PLAN (Matching Screenshot 1) ── */}
             {rightPanelTab === 'TRADE_PLAN' && (
               <div>
-                {/* Big Action Pill (LONG SETUP ✓ or SHORT SETUP ✓) */}
+                {/* Big Action Pill (LONG SETUP ✓, SHORT SETUP ✓, or WAIT) */}
                 <div className={`mt-3 p-3 rounded-xl border text-center shadow-lg transition-all ${
                   tradePlan.direction === 'SHORT'
                     ? 'bg-gradient-to-r from-rose-950/80 via-red-900/50 to-rose-950/80 border-rose-500/60'
-                    : 'bg-gradient-to-r from-emerald-950/80 via-green-900/50 to-emerald-950/80 border-emerald-500/60'
+                    : tradePlan.direction === 'LONG'
+                    ? 'bg-gradient-to-r from-emerald-950/80 via-green-900/50 to-emerald-950/80 border-emerald-500/60'
+                    : 'bg-gradient-to-r from-amber-950/80 via-amber-900/50 to-amber-950/80 border-amber-500/60'
                 }`}>
                   <div className="flex items-center justify-center gap-2">
-                    <Lock className={`w-4 h-4 ${tradePlan.direction === 'SHORT' ? 'text-rose-400' : 'text-emerald-400'}`} />
-                    <span className={`text-base font-black tracking-wider ${tradePlan.direction === 'SHORT' ? 'text-rose-300' : 'text-emerald-300'}`}>
-                      {tradePlan.direction === 'SHORT' ? 'SHORT SETUP' : 'LONG SETUP'}
+                    <Lock className={`w-4 h-4 ${
+                      tradePlan.direction === 'SHORT' ? 'text-rose-400' : tradePlan.direction === 'LONG' ? 'text-emerald-400' : 'text-amber-400'
+                    }`} />
+                    <span className={`text-base font-black tracking-wider ${
+                      tradePlan.direction === 'SHORT' ? 'text-rose-300' : tradePlan.direction === 'LONG' ? 'text-emerald-300' : 'text-amber-300'
+                    }`}>
+                      {tradePlan.direction === 'SHORT' ? 'LOCKED SHORT SETUP' : tradePlan.direction === 'LONG' ? 'LOCKED LONG SETUP' : 'WAIT / NO-TRADE ZONE'}
                     </span>
                     <span className="text-sm text-white">✓</span>
                   </div>
                   <p className="text-[10px] text-slate-300 mt-0.5 font-sans">
-                    PineScript Indicator Confirmed on Bar Close • Macro Target: <strong className="tabular-nums">{tradePlan.rewardPipsTp3} Pips</strong>
+                    {tradePlan.direction !== 'WAIT'
+                      ? <>Anti-Flip State Locked • Macro Target: <strong className="tabular-nums">{tradePlan.rewardPipsTp3} Pips</strong> (Grade {tradePlan.setupGrade} • {tradePlan.confidence}% Conf)</>
+                      : <>Anti-Flip Protection Active • Mid-Range Equilibrium • Waiting for 15M Bar Close Confirmation</>}
                   </p>
                 </div>
 
@@ -1227,10 +1263,16 @@ export default function GoldSmcAutoTradeLabView() {
                 </div>
 
                 <div className={`p-2.5 rounded-xl border text-center ${
-                  tradePlan.direction === 'SHORT' ? 'bg-rose-950/60 border-rose-500/50' : 'bg-emerald-950/60 border-emerald-500/50'
+                  tradePlan.direction === 'SHORT'
+                    ? 'bg-rose-950/60 border-rose-500/50'
+                    : tradePlan.direction === 'LONG'
+                    ? 'bg-emerald-950/60 border-emerald-500/50'
+                    : 'bg-amber-950/60 border-amber-500/50'
                 }`}>
-                  <h3 className={`text-lg font-black tracking-wider ${tradePlan.direction === 'SHORT' ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    {tradePlan.direction === 'SHORT' ? 'SHORT (ARMED)' : 'LONG (ARMED)'}
+                  <h3 className={`text-lg font-black tracking-wider ${
+                    tradePlan.direction === 'SHORT' ? 'text-rose-400' : tradePlan.direction === 'LONG' ? 'text-emerald-400' : 'text-amber-400'
+                  }`}>
+                    {tradePlan.direction === 'SHORT' ? 'SHORT (ARMED)' : tradePlan.direction === 'LONG' ? 'LONG (ARMED)' : 'WAIT (MID-RANGE)'}
                   </h3>
                   <div className="flex items-center justify-center gap-2 text-xs text-slate-300 mt-0.5">
                     <span>Grade {tradePlan.setupGrade}</span>

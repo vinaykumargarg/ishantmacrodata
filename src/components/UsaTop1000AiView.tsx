@@ -13,6 +13,7 @@ import {
   GLOBAL_PORTFOLIO_STRATEGY
 } from '../data/usaTop1000Database';
 import { getUsMarketSession } from '../utils/marketSessionUtils';
+import { liveStockPriceService } from '../services/liveStockPriceService';
 import TradingViewWidget from './TradingViewWidget';
 import {
   TrendingUp,
@@ -85,31 +86,76 @@ export default function UsaTop1000AiView({ onNavigate }: { onNavigate?: (tab: st
   const [marketSession, setMarketSession] = useState(() => getUsMarketSession());
   const [isDemoSim, setIsDemoSim] = useState<boolean>(false); // Strict: default OFF when market is closed!
 
-  // Benchmarks Live State
-  const [liveSp500, setLiveSp500] = useState<number>(US_MACRO_TERMINAL_DATA.sp500);
+  // Benchmarks Live State - Calibrated to Live Institutional Feed
+  const initialSpQuote = liveStockPriceService.getQuote('SP500');
+  const initialNasdaqQuote = liveStockPriceService.getQuote('NASDAQ100');
+  const initialStockQuote = liveStockPriceService.getQuote(stock.symbol);
+
+  const [liveSp500, setLiveSp500] = useState<number>(initialSpQuote?.price || US_MACRO_TERMINAL_DATA.sp500);
   const [sp500Flash, setSp500Flash] = useState<'UP' | 'DOWN' | 'NONE'>('NONE');
 
-  const [liveNasdaq, setLiveNasdaq] = useState<number>(US_MACRO_TERMINAL_DATA.nasdaq100);
+  const [liveNasdaq, setLiveNasdaq] = useState<number>(initialNasdaqQuote?.price || US_MACRO_TERMINAL_DATA.nasdaq100);
   const [nasdaqFlash, setNasdaqFlash] = useState<'UP' | 'DOWN' | 'NONE'>('NONE');
 
   const [liveUsdInr, setLiveUsdInr] = useState<number>(US_MACRO_TERMINAL_DATA.usdInrRate);
   const [usdInrFlash, setUsdInrFlash] = useState<'UP' | 'DOWN' | 'NONE'>('NONE');
 
   // Selected Stock Real-Time Price
-  const [liveUsdCmp, setLiveUsdCmp] = useState<number>(stock.cmpUsd);
-  const [liveUsdChange, setLiveUsdChange] = useState<number>(stock.changeUsd);
-  const [liveUsdChangePct, setLiveUsdChangePct] = useState<number>(stock.changePct);
+  const [liveUsdCmp, setLiveUsdCmp] = useState<number>(initialStockQuote?.price || stock.cmpUsd);
+  const [liveUsdChange, setLiveUsdChange] = useState<number>(initialStockQuote?.changePts ?? stock.changeUsd);
+  const [liveUsdChangePct, setLiveUsdChangePct] = useState<number>(initialStockQuote?.changePct ?? stock.changePct);
   const [stockFlash, setStockFlash] = useState<'UP' | 'DOWN' | 'NONE'>('NONE');
 
   // Universe Dynamic Ticks (Scanner and Quick select)
   const [liveTickMap, setLiveTickMap] = useState<Record<string, { cmpUsd: number; changePct: number; flash: 'UP' | 'DOWN' }>>({});
 
+  // ── REACTIVE LIVE FEED SUBSCRIPTION ──
+  useEffect(() => {
+    liveStockPriceService.refreshQuote(selectedSymbol);
+    liveStockPriceService.refreshQuote('SP500');
+    liveStockPriceService.refreshQuote('NASDAQ100');
+
+    const unsubscribe = liveStockPriceService.subscribe((quote) => {
+      const sym = quote.symbol.toUpperCase();
+      const currentSelected = selectedSymbol.toUpperCase();
+
+      if (sym === currentSelected) {
+        setLiveUsdCmp(quote.price);
+        setLiveUsdChange(quote.changePts);
+        setLiveUsdChangePct(quote.changePct);
+        setStockFlash(quote.changePts >= 0 ? 'UP' : 'DOWN');
+        setTimeout(() => setStockFlash('NONE'), 650);
+      } else if (sym === 'SP500' || sym === 'SPX') {
+        setLiveSp500(quote.price);
+        setSp500Flash(quote.changePts >= 0 ? 'UP' : 'DOWN');
+        setTimeout(() => setSp500Flash('NONE'), 650);
+      } else if (sym === 'NASDAQ100' || sym === 'NDX' || sym === 'NASDAQ') {
+        setLiveNasdaq(quote.price);
+        setNasdaqFlash(quote.changePts >= 0 ? 'UP' : 'DOWN');
+        setTimeout(() => setNasdaqFlash('NONE'), 650);
+      }
+
+      setLiveTickMap((prev) => ({
+        ...prev,
+        [quote.symbol]: {
+          cmpUsd: quote.price,
+          changePct: quote.changePct,
+          flash: quote.changePts >= 0 ? 'UP' : 'DOWN'
+        }
+      }));
+    });
+
+    return () => unsubscribe();
+  }, [selectedSymbol]);
+
   // Reset live prices when selected symbol changes
   useEffect(() => {
-    setLiveUsdCmp(stock.cmpUsd);
-    setLiveUsdChange(stock.changeUsd);
-    setLiveUsdChangePct(stock.changePct);
+    const q = liveStockPriceService.getQuote(stock.symbol);
+    setLiveUsdCmp(q?.price || stock.cmpUsd);
+    setLiveUsdChange(q?.changePts ?? stock.changeUsd);
+    setLiveUsdChangePct(q?.changePct ?? stock.changePct);
     setStockFlash('NONE');
+    liveStockPriceService.refreshQuote(stock.symbol);
   }, [stock.symbol, stock.cmpUsd, stock.changeUsd, stock.changePct]);
 
   // Market-Aware Live Streaming Interval: ONLY ticks when US market is open or during manual demo simulation!
@@ -128,13 +174,15 @@ export default function UsaTop1000AiView({ onNavigate }: { onNavigate?: (tab: st
 
       // If US Market is CLOSED and simulation is not manually enabled, FREEZE ON EXACT SETTLED PRICES!
       if (!curSession.isOpen && !isDemoSim) {
-        setLiveUsdCmp(stock.cmpUsd);
-        setLiveUsdChange(stock.changeUsd);
-        setLiveUsdChangePct(stock.changePct);
-        setLiveSp500(US_MACRO_TERMINAL_DATA.sp500);
-        setLiveNasdaq(US_MACRO_TERMINAL_DATA.nasdaq100);
+        const q = liveStockPriceService.getQuote(stock.symbol);
+        setLiveUsdCmp(q?.price || stock.cmpUsd);
+        setLiveUsdChange(q?.changePts ?? stock.changeUsd);
+        setLiveUsdChangePct(q?.changePct ?? stock.changePct);
+        const spQ = liveStockPriceService.getQuote('SP500');
+        setLiveSp500(spQ?.price || US_MACRO_TERMINAL_DATA.sp500);
+        const ndxQ = liveStockPriceService.getQuote('NASDAQ100');
+        setLiveNasdaq(ndxQ?.price || US_MACRO_TERMINAL_DATA.nasdaq100);
         setLiveUsdInr(US_MACRO_TERMINAL_DATA.usdInrRate);
-        setLiveTickMap({});
         setSp500Flash('NONE');
         setNasdaqFlash('NONE');
         setUsdInrFlash('NONE');
@@ -178,8 +226,9 @@ export default function UsaTop1000AiView({ onNavigate }: { onNavigate?: (tab: st
         const next = { ...prev };
         const candidates = ['NVDA', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'TSLA', 'PLTR', 'COIN', 'MSTR', 'AMD', 'AVGO', 'LLY', 'UBER'];
         const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+        const liveQ = liveStockPriceService.getQuote(chosen);
         const origProfile = getUsStockProfile(chosen);
-        const cur = next[chosen]?.cmpUsd || origProfile.cmpUsd;
+        const cur = next[chosen]?.cmpUsd || liveQ?.price || origProfile.cmpUsd;
         const delta = +((Math.random() - 0.47) * 0.0007 * origProfile.cmpUsd).toFixed(2) || (Math.random() > 0.5 ? 0.05 : -0.05);
         const newP = Math.max(1, +(cur + delta).toFixed(2));
         const prevClose = origProfile.cmpUsd - origProfile.changeUsd;
@@ -207,19 +256,27 @@ export default function UsaTop1000AiView({ onNavigate }: { onNavigate?: (tab: st
 
   // Resync Handler
   const handleManualSync = useCallback(() => {
+    liveStockPriceService.refreshQuote(selectedSymbol);
+    liveStockPriceService.refreshQuote('SP500');
+    liveStockPriceService.refreshQuote('NASDAQ100');
+    const q = liveStockPriceService.getQuote(selectedSymbol);
     const orig = getUsStockProfile(selectedSymbol);
-    setLiveUsdCmp(orig.cmpUsd);
-    setLiveUsdChange(orig.changeUsd);
-    setLiveUsdChangePct(orig.changePct);
-    setLiveSp500(US_MACRO_TERMINAL_DATA.sp500);
-    setLiveNasdaq(US_MACRO_TERMINAL_DATA.nasdaq100);
+    setLiveUsdCmp(q?.price || orig.cmpUsd);
+    setLiveUsdChange(q?.changePts ?? orig.changeUsd);
+    setLiveUsdChangePct(q?.changePct ?? orig.changePct);
+    const spQ = liveStockPriceService.getQuote('SP500');
+    setLiveSp500(spQ?.price || US_MACRO_TERMINAL_DATA.sp500);
+    const ndxQ = liveStockPriceService.getQuote('NASDAQ100');
+    setLiveNasdaq(ndxQ?.price || US_MACRO_TERMINAL_DATA.nasdaq100);
     setLiveUsdInr(US_MACRO_TERMINAL_DATA.usdInrRate);
     setStockFlash('UP');
     setSp500Flash('UP');
+    setNasdaqFlash('UP');
     setTimeout(() => {
       setStockFlash('NONE');
       setSp500Flash('NONE');
-    }, 600);
+      setNasdaqFlash('NONE');
+    }, 650);
   }, [selectedSymbol]);
 
   // Search Results

@@ -7,6 +7,7 @@ import {
   INSTITUTIONAL_STOCKS,
   GLOBAL_MACRO_SNAPSHOT
 } from '../data/globalStockScoreData';
+import { liveStockPriceService } from '../services/liveStockPriceService';
 import TradingViewWidget from './TradingViewWidget';
 import {
   Search,
@@ -58,10 +59,42 @@ export default function GlobalStockScoreEngineView({ onNavigate }: GlobalStockSc
   const [tradingCapital, setTradingCapital] = useState<number>(500000); // ₹5,00,000 or $25,000
   const [riskPerTradePct, setRiskPerTradePct] = useState<number>(1.5);  // 1.5% max risk
 
+  // ── LIVE STOCK PRICE STATE & STREAMING ──
+  const [liveQuotes, setLiveQuotes] = useState<Record<string, { price: number; changePts: number; changePct: number }>>(() => {
+    const initial: Record<string, { price: number; changePts: number; changePct: number }> = {};
+    const all = liveStockPriceService.getAllQuotes();
+    for (const [k, v] of Object.entries(all)) {
+      initial[k] = { price: v.price, changePts: v.changePts, changePct: v.changePct };
+    }
+    return initial;
+  });
+
+  useEffect(() => {
+    // Initial fetch for top institutional stocks
+    const symbols = ['NVDA', 'HDFCBANK', 'RELIANCE', 'MSFT', 'HAL', 'AMZN', 'TRENT', 'PLTR'];
+    symbols.forEach((s) => liveStockPriceService.refreshQuote(s));
+
+    const unsubscribe = liveStockPriceService.subscribe((quote) => {
+      setLiveQuotes((prev) => ({
+        ...prev,
+        [quote.symbol]: {
+          price: quote.price,
+          changePts: quote.changePts,
+          changePct: quote.changePct
+        }
+      }));
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // Fetch current stock record
   const selectedStock: InstitutionalStockRecord = useMemo(() => {
     return INSTITUTIONAL_STOCKS.find((s) => s.id === selectedStockId) || INSTITUTIONAL_STOCKS[0];
   }, [selectedStockId]);
+
+  const liveSelectedCmp = liveQuotes[selectedStock.symbol]?.price || selectedStock.cmp;
+  const liveSelectedChangePct = liveQuotes[selectedStock.symbol]?.changePct ?? selectedStock.changePct24h;
 
   // Adjust default capital currency when switching stock
   const isIndia = selectedStock.country === 'INDIA';
@@ -94,7 +127,7 @@ export default function GlobalStockScoreEngineView({ onNavigate }: GlobalStockSc
 
   // ── POSITION SIZING CALCULATOR LOGIC ──
   const positionCalc = useMemo(() => {
-    const entryPrice = selectedStock.cmp;
+    const entryPrice = liveSelectedCmp;
     const stopPrice = selectedStock.entryPlan.stopLoss.price;
     const riskPerShare = Math.abs(entryPrice - stopPrice);
     const maxRiskAmount = (tradingCapital * riskPerTradePct) / 100;
@@ -116,7 +149,7 @@ export default function GlobalStockScoreEngineView({ onNavigate }: GlobalStockSc
       profitAtTp2,
       profitAtTp3
     };
-  }, [selectedStock, tradingCapital, riskPerTradePct]);
+  }, [selectedStock, liveSelectedCmp, tradingCapital, riskPerTradePct]);
 
   // Helpers for signal badge colors
   const getSignalBadge = (sig: SignalType) => {
@@ -428,9 +461,9 @@ export default function GlobalStockScoreEngineView({ onNavigate }: GlobalStockSc
                         {stock.sector}
                       </td>
                       <td className="py-3 px-3 text-right font-mono font-semibold text-foreground">
-                        {sym}{stock.cmp.toFixed(2)}
-                        <span className={`block text-[10px] ${stock.changePct24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {stock.changePct24h >= 0 ? '+' : ''}{stock.changePct24h.toFixed(2)}%
+                        {sym}{(liveQuotes[stock.symbol]?.price || stock.cmp).toFixed(2)}
+                        <span className={`block text-[10px] ${(liveQuotes[stock.symbol]?.changePct ?? stock.changePct24h) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {(liveQuotes[stock.symbol]?.changePct ?? stock.changePct24h) >= 0 ? '+' : ''}{(liveQuotes[stock.symbol]?.changePct ?? stock.changePct24h).toFixed(2)}%
                         </span>
                       </td>
                       <td className="py-3 px-3 font-mono text-[11px] text-slate-300">
@@ -516,7 +549,7 @@ export default function GlobalStockScoreEngineView({ onNavigate }: GlobalStockSc
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {selectedStock.sector} • {selectedStock.exchange} • Current Price: <span className="font-mono font-semibold text-foreground">{currencySymbol}{selectedStock.cmp}</span> ({selectedStock.changePct24h >= 0 ? '+' : ''}{selectedStock.changePct24h}%)
+                  {selectedStock.sector} • {selectedStock.exchange} • Current Price: <span className="font-mono font-semibold text-foreground">{currencySymbol}{liveSelectedCmp.toFixed(2)}</span> ({liveSelectedChangePct >= 0 ? '+' : ''}{liveSelectedChangePct.toFixed(2)}%)
                 </p>
               </div>
             </div>
@@ -1452,7 +1485,7 @@ export default function GlobalStockScoreEngineView({ onNavigate }: GlobalStockSc
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Current Price: <span className="font-mono font-bold text-foreground">{currencySymbol}{selectedStock.cmp}</span> • Primary Horizon: 4–6 Months • Risk/Reward: <span className="font-mono font-bold text-gold">{selectedStock.entryPlan.riskRewardRatio}</span>
+                Current Price: <span className="font-mono font-bold text-foreground">{currencySymbol}{liveSelectedCmp.toFixed(2)}</span> • Primary Horizon: 4–6 Months • Risk/Reward: <span className="font-mono font-bold text-gold">{selectedStock.entryPlan.riskRewardRatio}</span>
               </p>
             </div>
 

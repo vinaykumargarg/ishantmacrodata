@@ -12,6 +12,7 @@ import {
 } from '../data/indianStockDatabase';
 import { GLOBAL_PORTFOLIO_STRATEGY } from '../data/usaTop1000Database';
 import { getIndianMarketSession } from '../utils/marketSessionUtils';
+import { liveStockPriceService } from '../services/liveStockPriceService';
 import TradingViewWidget from './TradingViewWidget';
 import {
   TrendingUp,
@@ -77,32 +78,82 @@ export default function IndianStockAiView({ onNavigate }: { onNavigate?: (tab: s
   const [marketSession, setMarketSession] = useState(() => getIndianMarketSession());
   const [isDemoSim, setIsDemoSim] = useState<boolean>(false); // Strict: default OFF when market is closed!
 
-  // Benchmark Live State (Nifty & Sensex)
-  const [liveNifty, setLiveNifty] = useState<number>(INDIAN_MACRO_SNAPSHOT.nifty50); // 24180.80
-  const [liveNiftyChange, setLiveNiftyChange] = useState<number>(164.20);
-  const [liveNiftyPct, setLiveNiftyPct] = useState<number>(0.68);
+  // Benchmark Live State (Nifty & Sensex) - Calibrated to Live Institutional Feed
+  const initialNiftyQuote = liveStockPriceService.getQuote('NIFTY50');
+  const initialSensexQuote = liveStockPriceService.getQuote('SENSEX');
+  const initialStockQuote = liveStockPriceService.getQuote(stock.symbol);
+
+  const [liveNifty, setLiveNifty] = useState<number>(initialNiftyQuote?.price || INDIAN_MACRO_SNAPSHOT.nifty50);
+  const [liveNiftyChange, setLiveNiftyChange] = useState<number>(initialNiftyQuote?.changePts ?? 370.05);
+  const [liveNiftyPct, setLiveNiftyPct] = useState<number>(initialNiftyQuote?.changePct ?? 1.58);
   const [niftyFlash, setNiftyFlash] = useState<'UP' | 'DOWN' | 'NONE'>('NONE');
 
-  const [liveSensex, setLiveSensex] = useState<number>(INDIAN_MACRO_SNAPSHOT.sensex); // 79640.50
-  const [liveSensexChange, setLiveSensexChange] = useState<number>(492.60);
-  const [liveSensexPct, setLiveSensexPct] = useState<number>(0.62);
+  const [liveSensex, setLiveSensex] = useState<number>(initialSensexQuote?.price || INDIAN_MACRO_SNAPSHOT.sensex);
+  const [liveSensexChange, setLiveSensexChange] = useState<number>(initialSensexQuote?.changePts ?? 1225.07);
+  const [liveSensexPct, setLiveSensexPct] = useState<number>(initialSensexQuote?.changePct ?? 1.62);
   const [sensexFlash, setSensexFlash] = useState<'UP' | 'DOWN' | 'NONE'>('NONE');
 
   // Selected Stock Real-Time Price State
-  const [liveStockCmp, setLiveStockCmp] = useState<number>(stock.cmp);
-  const [liveStockChange, setLiveStockChange] = useState<number>(stock.change24h);
-  const [liveStockChangePct, setLiveStockChangePct] = useState<number>(stock.changePct24h);
+  const [liveStockCmp, setLiveStockCmp] = useState<number>(initialStockQuote?.price || stock.cmp);
+  const [liveStockChange, setLiveStockChange] = useState<number>(initialStockQuote?.changePts ?? stock.change24h);
+  const [liveStockChangePct, setLiveStockChangePct] = useState<number>(initialStockQuote?.changePct ?? stock.changePct24h);
   const [stockTickFlash, setStockTickFlash] = useState<'UP' | 'DOWN' | 'NONE'>('NONE');
 
   // Universe Live Ticks (Dynamic tick map for Quick Select & Scanner)
   const [liveTickMap, setLiveTickMap] = useState<Record<string, { cmp: number; changePct: number; flash: 'UP' | 'DOWN' }>>({});
 
+  // ── REACTIVE LIVE FEED SUBSCRIPTION ──
+  useEffect(() => {
+    // Refresh quotes on mount or symbol switch
+    liveStockPriceService.refreshQuote(selectedSymbol);
+    liveStockPriceService.refreshQuote('NIFTY50');
+    liveStockPriceService.refreshQuote('SENSEX');
+
+    const unsubscribe = liveStockPriceService.subscribe((quote) => {
+      const sym = quote.symbol.toUpperCase();
+      const currentSelected = selectedSymbol.toUpperCase();
+
+      if (sym === currentSelected) {
+        setLiveStockCmp(quote.price);
+        setLiveStockChange(quote.changePts);
+        setLiveStockChangePct(quote.changePct);
+        setStockTickFlash(quote.changePts >= 0 ? 'UP' : 'DOWN');
+        setTimeout(() => setStockTickFlash('NONE'), 650);
+      } else if (sym === 'NIFTY50' || sym === 'NIFTY') {
+        setLiveNifty(quote.price);
+        setLiveNiftyChange(quote.changePts);
+        setLiveNiftyPct(quote.changePct);
+        setNiftyFlash(quote.changePts >= 0 ? 'UP' : 'DOWN');
+        setTimeout(() => setNiftyFlash('NONE'), 650);
+      } else if (sym === 'SENSEX') {
+        setLiveSensex(quote.price);
+        setLiveSensexChange(quote.changePts);
+        setLiveSensexPct(quote.changePct);
+        setSensexFlash(quote.changePts >= 0 ? 'UP' : 'DOWN');
+        setTimeout(() => setSensexFlash('NONE'), 650);
+      }
+
+      setLiveTickMap((prev) => ({
+        ...prev,
+        [quote.symbol]: {
+          cmp: quote.price,
+          changePct: quote.changePct,
+          flash: quote.changePts >= 0 ? 'UP' : 'DOWN'
+        }
+      }));
+    });
+
+    return () => unsubscribe();
+  }, [selectedSymbol]);
+
   // Reset live prices when user switches stock
   useEffect(() => {
-    setLiveStockCmp(stock.cmp);
-    setLiveStockChange(stock.change24h);
-    setLiveStockChangePct(stock.changePct24h);
+    const q = liveStockPriceService.getQuote(stock.symbol);
+    setLiveStockCmp(q?.price || stock.cmp);
+    setLiveStockChange(q?.changePts ?? stock.change24h);
+    setLiveStockChangePct(q?.changePct ?? stock.changePct24h);
     setStockTickFlash('NONE');
+    liveStockPriceService.refreshQuote(stock.symbol);
   }, [stock.symbol, stock.cmp, stock.change24h, stock.changePct24h]);
 
   // Market-Aware Live Streaming Interval: ONLY ticks during live market hours or explicit demo simulation!
@@ -118,12 +169,18 @@ export default function IndianStockAiView({ onNavigate }: { onNavigate?: (tab: s
 
       // If market is CLOSED and simulation is not manually enabled, FREEZE ON EXACT SETTLED PRICES!
       if (!currentSession.isOpen && !isDemoSim) {
-        setLiveStockCmp(stock.cmp);
-        setLiveStockChange(stock.change24h);
-        setLiveStockChangePct(stock.changePct24h);
-        setLiveNifty(INDIAN_MACRO_SNAPSHOT.nifty50);
-        setLiveSensex(INDIAN_MACRO_SNAPSHOT.sensex);
-        setLiveTickMap({});
+        const q = liveStockPriceService.getQuote(stock.symbol);
+        setLiveStockCmp(q?.price || stock.cmp);
+        setLiveStockChange(q?.changePts ?? stock.change24h);
+        setLiveStockChangePct(q?.changePct ?? stock.changePct24h);
+        const niftyQ = liveStockPriceService.getQuote('NIFTY50');
+        setLiveNifty(niftyQ?.price || INDIAN_MACRO_SNAPSHOT.nifty50);
+        setLiveNiftyChange(niftyQ?.changePts ?? 370.05);
+        setLiveNiftyPct(niftyQ?.changePct ?? 1.58);
+        const sensexQ = liveStockPriceService.getQuote('SENSEX');
+        setLiveSensex(sensexQ?.price || INDIAN_MACRO_SNAPSHOT.sensex);
+        setLiveSensexChange(sensexQ?.changePts ?? 1225.07);
+        setLiveSensexPct(sensexQ?.changePct ?? 1.62);
         setNiftyFlash('NONE');
         setSensexFlash('NONE');
         setStockTickFlash('NONE');
@@ -134,14 +191,14 @@ export default function IndianStockAiView({ onNavigate }: { onNavigate?: (tab: s
       const niftyDelta = +((Math.random() - 0.46) * 3.8).toFixed(2);
       setLiveNifty(prev => +(prev + niftyDelta).toFixed(2));
       setLiveNiftyChange(prev => +(prev + niftyDelta).toFixed(2));
-      setLiveNiftyPct(prev => +(prev + (niftyDelta / 24180.80) * 100).toFixed(2));
+      setLiveNiftyPct(prev => +(prev + (niftyDelta / 23810.85) * 100).toFixed(2));
       setNiftyFlash(niftyDelta >= 0 ? 'UP' : 'DOWN');
 
       // 3. SENSEX Micro-Tick
       const sensexDelta = +((Math.random() - 0.46) * 12.8).toFixed(2);
       setLiveSensex(prev => +(prev + sensexDelta).toFixed(2));
       setLiveSensexChange(prev => +(prev + sensexDelta).toFixed(2));
-      setLiveSensexPct(prev => +(prev + (sensexDelta / 79640.50) * 100).toFixed(2));
+      setLiveSensexPct(prev => +(prev + (sensexDelta / 76917.85) * 100).toFixed(2));
       setSensexFlash(sensexDelta >= 0 ? 'UP' : 'DOWN');
 
       // 4. Selected Stock Real-Time CMP Micro-Tick
@@ -167,8 +224,9 @@ export default function IndianStockAiView({ onNavigate }: { onNavigate?: (tab: s
         const next = { ...prev };
         const keys = ['RELIANCE', 'TCS', 'HDFCBANK', 'TATAMOTORS', 'SBIN', 'INFY', 'HAL', 'BEL', 'TRENT', 'DIXON', 'ITC', 'LT', 'ICICIBANK', 'BHARTIARTL'];
         const chosen = keys[Math.floor(Math.random() * keys.length)];
+        const liveQ = liveStockPriceService.getQuote(chosen);
         const origProfile = getIndianStockProfile(chosen);
-        const currentP = next[chosen]?.cmp || origProfile.cmp;
+        const currentP = next[chosen]?.cmp || liveQ?.price || origProfile.cmp;
         const delta = Math.round(((Math.random() - 0.47) * 0.0006 * origProfile.cmp) * 20) / 20 || (Math.random() > 0.5 ? 0.10 : -0.10);
         const newP = Math.max(1, +(currentP + delta).toFixed(2));
         const prevClose = origProfile.cmp - origProfile.change24h;
@@ -195,12 +253,22 @@ export default function IndianStockAiView({ onNavigate }: { onNavigate?: (tab: s
 
   // Manual Instant Resync Handler
   const handleManualSync = useCallback(() => {
+    liveStockPriceService.refreshQuote(selectedSymbol);
+    liveStockPriceService.refreshQuote('NIFTY50');
+    liveStockPriceService.refreshQuote('SENSEX');
+    const q = liveStockPriceService.getQuote(selectedSymbol);
     const origProfile = getIndianStockProfile(selectedSymbol);
-    setLiveStockCmp(origProfile.cmp);
-    setLiveStockChange(origProfile.change24h);
-    setLiveStockChangePct(origProfile.changePct24h);
-    setLiveNifty(INDIAN_MACRO_SNAPSHOT.nifty50);
-    setLiveSensex(INDIAN_MACRO_SNAPSHOT.sensex);
+    setLiveStockCmp(q?.price || origProfile.cmp);
+    setLiveStockChange(q?.changePts ?? origProfile.change24h);
+    setLiveStockChangePct(q?.changePct ?? origProfile.changePct24h);
+    const niftyQ = liveStockPriceService.getQuote('NIFTY50');
+    setLiveNifty(niftyQ?.price || INDIAN_MACRO_SNAPSHOT.nifty50);
+    setLiveNiftyChange(niftyQ?.changePts ?? 370.05);
+    setLiveNiftyPct(niftyQ?.changePct ?? 1.58);
+    const sensexQ = liveStockPriceService.getQuote('SENSEX');
+    setLiveSensex(sensexQ?.price || INDIAN_MACRO_SNAPSHOT.sensex);
+    setLiveSensexChange(sensexQ?.changePts ?? 1225.07);
+    setLiveSensexPct(sensexQ?.changePct ?? 1.62);
     setStockTickFlash('UP');
     setNiftyFlash('UP');
     setSensexFlash('UP');

@@ -1,14 +1,18 @@
 /**
- * INSTITUTIONAL SMC & PINESCRIPT ANALYSIS ENGINE
+ * INSTITUTIONAL SMC & PINESCRIPT ANALYSIS ENGINE  v2 — ANTI-FLIP-FLOP
  *
  * Mathematically evaluates REAL historical and live candles:
- * 1. PineScript v5 Single Lock-In (EMA14 + Momentum14 + RSI14)
- * 2. Swing Points (HH, HL, LH, LL)
- * 3. Break of Structure (BOS)
+ * 1. Multi-EMA Trend Stack (EMA 14 / 50 / 200) — NOT a single EMA14 cross
+ * 2. Swing Points (HH, HL, LH, LL) with confirmed closed-candle labelling
+ * 3. Break of Structure (BOS) — only candle-close breaks count
  * 4. Market Structure Shift / Change of Character (MSS / CHoCH)
  * 5. Liquidity Sweeps (X Sweep / BSL & SSL Grab)
  * 6. Order Blocks & Fair Value Gaps (FVG)
  * 7. Mathematically Validated Entry, SL, TP1, TP2, TP3 with Strict RRR proof
+ *
+ * KEY FIX: Direction is LOCKED once confirmed and requires a REGIME SHIFT
+ * (structural break + multi-factor confirmation) to flip — NO tick-by-tick
+ * toggling between LONG and SHORT.
  */
 
 export interface CandleDataPoint {
@@ -147,6 +151,131 @@ export function calculateATR(candles: CandleDataPoint[], period = 14): number {
   return +(trSum / count).toFixed(2);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// INSTITUTIONAL DIRECTION LOCK STORE (ANTI-FLIP-FLOP STATE MACHINE)
+// ─────────────────────────────────────────────────────────────────────────────
+export interface LockedTradeState {
+  symbol: string;
+  direction: 'LONG' | 'SHORT' | 'WAIT';
+  entryPrice: number;
+  stopLoss: number;
+  tp1: number;
+  tp2: number;
+  tp3: number;
+  lockedAt: number;
+  voteCount: number;
+  invalidationLevel: number;
+  consecutiveOppositeVotes: number;
+}
+
+const LOCKED_SMC_STATES: Record<string, LockedTradeState> = {};
+
+export function getLockedTradeState(symbol: string): LockedTradeState | undefined {
+  return LOCKED_SMC_STATES[symbol];
+}
+
+export function resetLockedTradeState(symbol: string): void {
+  delete LOCKED_SMC_STATES[symbol];
+}
+
+function resolveLockedDirection(
+  symbol: string,
+  currentPrice: number,
+  longVotes: number,
+  shortVotes: number,
+  atr: number
+): { direction: 'LONG' | 'SHORT' | 'WAIT'; confidence: number; isLocked: boolean } {
+  const existing = LOCKED_SMC_STATES[symbol];
+
+  // 1. If an active position is currently locked
+  if (existing && existing.direction !== 'WAIT') {
+    const isLong = existing.direction === 'LONG';
+
+    // A. Check Stop Loss breach
+    if (isLong && currentPrice <= existing.stopLoss) {
+      existing.direction = 'WAIT';
+      existing.consecutiveOppositeVotes = 0;
+      return { direction: 'WAIT', confidence: 45, isLocked: false };
+    }
+    if (!isLong && currentPrice >= existing.stopLoss) {
+      existing.direction = 'WAIT';
+      existing.consecutiveOppositeVotes = 0;
+      return { direction: 'WAIT', confidence: 45, isLocked: false };
+    }
+
+    // B. Check Target 3 Hit (Trade Achieved Full RR)
+    if (isLong && currentPrice >= existing.tp3) {
+      existing.direction = 'WAIT';
+      existing.consecutiveOppositeVotes = 0;
+      return { direction: 'WAIT', confidence: 50, isLocked: false };
+    }
+    if (!isLong && currentPrice <= existing.tp3) {
+      existing.direction = 'WAIT';
+      existing.consecutiveOppositeVotes = 0;
+      return { direction: 'WAIT', confidence: 50, isLocked: false };
+    }
+
+    // C. Check Regime Invalidation (Needs strong opposite vote overwhelming trend for 2+ checks)
+    const oppositeVotes = isLong ? shortVotes : longVotes;
+    if (oppositeVotes >= 5) {
+      existing.consecutiveOppositeVotes = (existing.consecutiveOppositeVotes || 0) + 1;
+      if (existing.consecutiveOppositeVotes >= 2) {
+        // Regime shifted: Move to WAIT first (NEVER flip straight from LONG to SHORT in 1 step!)
+        existing.direction = 'WAIT';
+        existing.consecutiveOppositeVotes = 0;
+        return { direction: 'WAIT', confidence: 50, isLocked: false };
+      }
+    } else {
+      existing.consecutiveOppositeVotes = 0;
+    }
+
+    // Otherwise: PERSIST IN THE SAME DIRECTION (NO FLIP-FLOP)
+    const favorableVotes = isLong ? longVotes : shortVotes;
+    const conf = Math.min(95, Math.max(65, 60 + favorableVotes * 5));
+    return { direction: existing.direction, confidence: conf, isLocked: true };
+  }
+
+  // 2. If currently in WAIT or fresh evaluation
+  if (longVotes >= 4 && shortVotes < 3) {
+    const conf = Math.min(95, 55 + longVotes * 6);
+    LOCKED_SMC_STATES[symbol] = {
+      symbol,
+      direction: 'LONG',
+      entryPrice: currentPrice,
+      stopLoss: currentPrice - atr * 1.5,
+      tp1: currentPrice + atr * 2.5,
+      tp2: currentPrice + atr * 5.0,
+      tp3: currentPrice + atr * 10.0,
+      lockedAt: Date.now(),
+      voteCount: longVotes,
+      invalidationLevel: currentPrice - atr * 1.8,
+      consecutiveOppositeVotes: 0
+    };
+    return { direction: 'LONG', confidence: conf, isLocked: true };
+  }
+
+  if (shortVotes >= 4 && longVotes < 3) {
+    const conf = Math.min(95, 55 + shortVotes * 6);
+    LOCKED_SMC_STATES[symbol] = {
+      symbol,
+      direction: 'SHORT',
+      entryPrice: currentPrice,
+      stopLoss: currentPrice + atr * 1.5,
+      tp1: currentPrice - atr * 2.5,
+      tp2: currentPrice - atr * 5.0,
+      tp3: currentPrice - atr * 10.0,
+      lockedAt: Date.now(),
+      voteCount: shortVotes,
+      invalidationLevel: currentPrice + atr * 1.8,
+      consecutiveOppositeVotes: 0
+    };
+    return { direction: 'SHORT', confidence: conf, isLocked: true };
+  }
+
+  // Equilibrium / Ambiguous -> WAIT (No trade forced)
+  return { direction: 'WAIT', confidence: 50, isLocked: false };
+}
+
 /**
  * 4. Run Pure Mathematical Institutional SMC Analysis on Candle Series
  */
@@ -163,9 +292,14 @@ export function analyzeInstitutionalSMC(
   const lastCandle = candles[candles.length - 1];
   const currentPrice = livePriceOverride && livePriceOverride > 0 ? livePriceOverride : lastCandle.close;
 
-  // A. Indicator Calculations
-  const emas = calculateEMA(candles, 14);
-  const ema14 = emas[emas.length - 1] || currentPrice;
+  // A. Multi-EMA Indicator Calculations (EMA 14 / 50 / 200 Trend Stack)
+  const ema14arr = calculateEMA(candles, 14);
+  const ema50arr = calculateEMA(candles, 50);
+  const ema200arr = candles.length >= 200 ? calculateEMA(candles, 200) : ema50arr;
+
+  const ema14 = ema14arr[ema14arr.length - 1] || currentPrice;
+  const ema50 = ema50arr[ema50arr.length - 1] || currentPrice;
+  const ema200 = ema200arr[ema200arr.length - 1] || currentPrice;
 
   const refIndex = Math.max(0, candles.length - 1 - 14);
   const momentum = +(currentPrice - candles[refIndex].close).toFixed(2);
@@ -280,14 +414,90 @@ export function analyzeInstitutionalSMC(
     });
   }
 
-  // E. Direction Determination from PineScript v5 & Structure
-  const isBullish = currentPrice > ema14 && momentum > 0 && rsi > 50;
-  const isBearish = currentPrice < ema14 && momentum < 0 && rsi < 50;
+  // E. ROBUST DIRECTION DETERMINATION — ANTI-FLIP-FLOP ENGINE
+  //
+  // PROBLEM SOLVED: old logic used (price > ema14 && momentum > 0 && rsi > 50)
+  // which flipped LONG <-> SHORT on every tick when price was near EMA.
+  //
+  // NEW APPROACH:
+  // 1. Structural Voting: count multiple closed-candle factors
+  // 2. Hysteresis Deadband: price must clear EMA by 0.35 ATR before signal flips
+  // 3. Swing-based confirmation: last swing labels matter more than tick noise
+  // 4. Direction requires 4+ out of 7 votes to confirm; else WAIT
+  // 5. Locked direction persists until structure flips (not until next tick)
 
-  let direction: 'LONG' | 'SHORT' | 'WAIT' = 'WAIT';
-  if (isBearish) direction = 'SHORT';
-  else if (isBullish) direction = 'LONG';
-  else direction = currentPrice <= ema14 ? 'SHORT' : 'LONG';
+  const emaDeadband = atr * 0.35; // Price must clear EMA by this to count
+  const lastClose = lastCandle.close; // Use CLOSED candle, not live tick
+
+  // Vote 1: Price vs EMA14 with deadband
+  const priceAboveEma14 = lastClose > ema14 + emaDeadband;
+  const priceBelowEma14 = lastClose < ema14 - emaDeadband;
+
+  // Vote 2: Price vs EMA50 with deadband (higher timeframe trend)
+  const priceAboveEma50 = lastClose > ema50 + emaDeadband * 0.5;
+  const priceBelowEma50 = lastClose < ema50 - emaDeadband * 0.5;
+
+  // Vote 3: EMA stack alignment (EMA14 > EMA50 = bullish trend)
+  const emaStackBullish = ema14 > ema50;
+  const emaStackBearish = ema14 < ema50;
+
+  // Vote 4: Momentum with noise filter (require > 0.3 ATR magnitude)
+  const momThreshold = atr * 0.3;
+  const momentumBullish = momentum > momThreshold;
+  const momentumBearish = momentum < -momThreshold;
+
+  // Vote 5: RSI with deadband (not 50 ± 0, but 50 ± 5)
+  const rsiBullish = rsi > 55;
+  const rsiBearish = rsi < 45;
+
+  // Vote 6: Recent swing structure (last 2 swing highs & lows)
+  const recentSwingHighs = swings.filter(s => s.type === 'SWING_HIGH').slice(-2);
+  const recentSwingLows = swings.filter(s => s.type === 'SWING_LOW').slice(-2);
+  const swingStructureBullish = recentSwingHighs.length >= 2
+    ? (recentSwingHighs[1].price > recentSwingHighs[0].price) // HH
+    : false;
+  const swingStructureBearish = recentSwingLows.length >= 2
+    ? (recentSwingLows[1].price < recentSwingLows[0].price) // LL
+    : false;
+
+  // Vote 7: Recent 5-candle body direction (are most candles bullish or bearish?)
+  const last5 = candles.slice(-5);
+  const bullishCandles = last5.filter(c => c.close > c.open).length;
+  const bearishCandles = last5.filter(c => c.close < c.open).length;
+  const recentBodyBullish = bullishCandles >= 4;
+  const recentBodyBearish = bearishCandles >= 4;
+
+  // --- TALLY THE VOTES ---
+  let longVotes = 0;
+  let shortVotes = 0;
+
+  if (priceAboveEma14) longVotes++;
+  if (priceBelowEma14) shortVotes++;
+
+  if (priceAboveEma50) longVotes++;
+  if (priceBelowEma50) shortVotes++;
+
+  if (emaStackBullish) longVotes++;
+  if (emaStackBearish) shortVotes++;
+
+  if (momentumBullish) longVotes++;
+  if (momentumBearish) shortVotes++;
+
+  if (rsiBullish) longVotes++;
+  if (rsiBearish) shortVotes++;
+
+  if (swingStructureBullish) longVotes++;
+  if (swingStructureBearish) shortVotes++;
+
+  if (recentBodyBullish) longVotes++;
+  if (recentBodyBearish) shortVotes++;
+
+  // --- DIRECTION DECISION WITH ANTI-FLIP-FLOP LOCK ---
+  // Uses state machine: Once locked, stays on one side until SL/TP3/invalidation
+  const resolved = resolveLockedDirection(symbol, currentPrice, longVotes, shortVotes, atr);
+  const direction = resolved.direction;
+  const confidence = resolved.confidence;
+  const setupGrade = confidence >= 85 ? 'A+' : confidence >= 75 ? 'A' : confidence >= 65 ? 'B+' : confidence >= 55 ? 'B' : 'C';
 
   // F. Calculate Trade Levels from Actual Price and Structure
   const isGold = symbol.includes('XAU') || symbol.includes('GOLD') || symbol.includes('PAXG');
@@ -326,6 +536,16 @@ export function analyzeInstitutionalSMC(
     tp1 = +(entryPrice + riskPoints * 2.2).toFixed(2);
     tp2 = +(entryPrice + riskPoints * 4.6).toFixed(2);
     tp3 = +(entryPrice + riskPoints * 10.4).toFixed(2);
+  }
+
+  // Update locked state targets and SL for active asset
+  if (LOCKED_SMC_STATES[symbol] && direction !== 'WAIT') {
+    LOCKED_SMC_STATES[symbol].entryPrice = entryPrice;
+    LOCKED_SMC_STATES[symbol].stopLoss = stopLoss;
+    LOCKED_SMC_STATES[symbol].tp1 = tp1;
+    LOCKED_SMC_STATES[symbol].tp2 = tp2;
+    LOCKED_SMC_STATES[symbol].tp3 = tp3;
+    LOCKED_SMC_STATES[symbol].invalidationLevel = invalidationLevel;
   }
 
   const rewardPointsTp3 = +Math.abs(tp3 - entryPrice).toFixed(2);
@@ -411,8 +631,8 @@ export function analyzeInstitutionalSMC(
     marketStructure: direction === 'SHORT' ? 'Bearish Breakdown (BOS Confirmed)' : 'Bullish Expansion (BOS Confirmed)',
     liquidityTarget: direction === 'SHORT' ? 'Sell-Side Liquidity Target ($$)' : 'Buy-Side Liquidity Target ($$)',
     dxyOrBtcDCorrelation: isGold ? 'DXY 102.35 ▼ (Dollar Softening supports bias)' : 'BTC.D 58.7% ▲ (Capital Concentration)',
-    setupGrade: 'A+',
-    confidence: 94,
+    setupGrade,
+    confidence,
     dailyBias,
     h4Bias,
     h1Bias,
