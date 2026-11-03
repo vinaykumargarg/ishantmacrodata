@@ -231,7 +231,30 @@ export const FREE_TABS = new Set([
   'liquidation-hub',
   'deeepr-liquidation',
   'liquidation-map',
-  'liquidation'
+  'liquidation',
+  // Indian & US Stocks Institutional Research & Scanners
+  'indian-stock-ai',
+  'indian-stocks',
+  'indian-stock',
+  'indian-stocks-ai',
+  'nifty-500',
+  'nse-bse',
+  'stock-ai',
+  'usa-stock-ai',
+  'usa-stocks',
+  'usa-stock',
+  'usa-stocks-ai',
+  'russell-1000',
+  'indmoney-us',
+  'wall-street',
+  'usa-swing-scanner',
+  'usa-stocks-scanner',
+  'us-swing',
+  'usa-stock-scanner',
+  // ATAS & Bookmap Liquidity Heatmap
+  'atas-heatmap',
+  'atas',
+  'heatmap-pro'
 ]);
 
 /**

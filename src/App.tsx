@@ -669,7 +669,7 @@ function TerminalApp() {
               {activeTab === 'global-intel' && <GlobalIntelView />}
               {activeTab === 'ultra-ai' && <UltraInstitutionalDecisionEngine onNavigate={setActiveTab} />}
               {activeTab === 'order-flow' && <OrderFlowTerminal onNavigate={setActiveTab} />}
-              {(activeTab === 'order-book-heatmap' || activeTab === 'order-book-liquidity-heatmap' || activeTab === 'bookmap-heatmap' || activeTab === 'obh' || activeTab === 'atas-heatmap' || activeTab === 'atas' || activeTab === 'heatmap-pro') && <OrderBookHeatmapView onNavigate={setActiveTab} />}
+              {(activeTab === 'order-book-heatmap' || activeTab === 'order-book-liquidity-heatmap' || activeTab === 'bookmap-heatmap' || activeTab === 'obh' || activeTab === 'atas-heatmap' || activeTab === 'atas' || activeTab === 'heatmap-pro' || activeTab === 'liquidity-heatmap' || activeTab === 'heatmap' || activeTab === 'atas-liquidity') && <OrderBookHeatmapView onNavigate={setActiveTab} />}
               {(activeTab === 'bookmap-liquidation' || activeTab === 'bookmap' || activeTab === 'bookmap-chart' || activeTab === 'liquidity-heatmap-atas') && <BookmapLiquidationTerminalView />}
               {(activeTab === 'liquidation-heatmap' || activeTab === 'liquidation-chart' || activeTab === 'liq-heatmap') && <LiquidationHeatmapTerminalView onNavigate={setActiveTab} />}
               {(activeTab === 'market-chart-analyse' || activeTab === 'market-chart-analysis' || activeTab === 'market-chart-analyses' || activeTab === 'chart-ai-vision' || activeTab === 'chart-analyzer') && <MarketChartAnalyserTerminalView />}

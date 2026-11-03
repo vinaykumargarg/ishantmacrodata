@@ -48,6 +48,7 @@ export type HeatmapTimeframe = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d';
 
 export interface RestingWall {
   id: string;
+  absolutePrice?: number;
   priceOffset: number;
   sizeStr: string;
   volume: number;
@@ -109,19 +110,19 @@ const ASSET_REGISTRY: Record<HeatmapAssetKey, AssetConfig> = {
     feedType: 'REAL',
     tickSize: 1.0,
     decimals: 0,
-    defaultPrice: 74610.0,
+    defaultPrice: 74181.0,
     typicalSpanPts: 1200,
     priceLadderStep: 100,
     quoteKey: 'BTCUSDT',
     wsStream: 'btcusdt@depth20@100ms',
     unit: 'BTC',
     restingWalls: [
-      { id: 'btc-ask-wall-1', priceOffset: 220, sizeStr: '420 BTC', volume: 420, strength: 94, ageMin: 38, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 74,830 | 420 BTC | strength 94' },
-      { id: 'btc-cyan-1', priceOffset: 120, sizeStr: '280 BTC', volume: 280, strength: 75, ageMin: 22, thickness: 8, type: 'CYAN_SHELF', label: '74,730 Cyan Resting Shelf' },
-      { id: 'btc-ask-wall-2', priceOffset: 60, sizeStr: '190 BTC', volume: 190, strength: 82, ageMin: 18, thickness: 12, type: 'FIERY_WALL', label: 'ASK WALL 74,670 | 190 BTC | strength 82' },
-      { id: 'btc-bid-wall-1', priceOffset: -510, sizeStr: '365 BTC', volume: 365, strength: 76, ageMin: 52, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 74,100 | 365 BTC | strength 76' },
-      { id: 'btc-cyan-2', priceOffset: -240, sizeStr: '210 BTC', volume: 210, strength: 71, ageMin: 34, thickness: 8, type: 'CYAN_SHELF', label: '74,370 Cyan Order Shelf' },
-      { id: 'btc-bid-wall-2', priceOffset: -750, sizeStr: '640 BTC', volume: 640, strength: 92, ageMin: 95, thickness: 18, type: 'MAJOR_CORE', label: 'BID WALL 73,860 | 640 BTC | strength 92' }
+      { id: 'btc-ask-wall-1', absolutePrice: 74610, priceOffset: 429, sizeStr: '420 BTC', volume: 420, strength: 86, ageMin: 20, thickness: 16, type: 'MAJOR_CORE', label: 'ASK WALL 74,610 | 420 BTC | strength 86 [estimated]' },
+      { id: 'btc-cyan-1', absolutePrice: 74450, priceOffset: 269, sizeStr: '280 BTC', volume: 280, strength: 75, ageMin: 22, thickness: 8, type: 'CYAN_SHELF', label: '74,450 Cyan Resting Shelf' },
+      { id: 'btc-ask-wall-2', absolutePrice: 74300, priceOffset: 119, sizeStr: '190 BTC', volume: 190, strength: 82, ageMin: 18, thickness: 12, type: 'FIERY_WALL', label: 'ASK WALL 74,300 | 190 BTC | strength 82' },
+      { id: 'btc-bid-wall-1', absolutePrice: 74100, priceOffset: -81, sizeStr: '365 BTC', volume: 365, strength: 76, ageMin: 52, thickness: 14, type: 'FIERY_WALL', label: 'BID WALL 74,100 | 365 BTC | strength 76' },
+      { id: 'btc-cyan-2', absolutePrice: 73950, priceOffset: -231, sizeStr: '210 BTC', volume: 210, strength: 71, ageMin: 34, thickness: 8, type: 'CYAN_SHELF', label: '73,950 Cyan Order Shelf' },
+      { id: 'btc-bid-wall-2', absolutePrice: 73860, priceOffset: -321, sizeStr: '640 BTC', volume: 640, strength: 92, ageMin: 95, thickness: 18, type: 'MAJOR_CORE', label: 'BID WALL 73,860 | 640 BTC | strength 92' }
     ]
   },
   ETH: {
@@ -410,25 +411,32 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
     }
 
     // Right DOM Histogram: Red Ask bars above, Green Bid bars below
+    const baseP = livePrice;
     const domAsks = currentConfig.restingWalls
-      .filter((w) => w.priceOffset > 0)
-      .map((w) => ({
-        priceOffset: w.priceOffset,
-        volume: w.volume,
-        label: w.sizeStr,
-        peakLabel: `${w.volume}`,
-        radiusY: Math.max(10, w.thickness)
-      }));
+      .filter((w) => (w.absolutePrice !== undefined ? w.absolutePrice > baseP : w.priceOffset > 0))
+      .map((w) => {
+        const offset = w.absolutePrice !== undefined ? (w.absolutePrice - baseP) : w.priceOffset;
+        return {
+          priceOffset: offset,
+          volume: w.volume,
+          label: w.sizeStr,
+          peakLabel: `${w.volume}`,
+          radiusY: Math.max(10, w.thickness)
+        };
+      });
 
     const domBids = currentConfig.restingWalls
-      .filter((w) => w.priceOffset < 0)
-      .map((w) => ({
-        priceOffset: w.priceOffset,
-        volume: w.volume,
-        label: w.sizeStr,
-        peakLabel: `${w.volume}`,
-        radiusY: Math.max(10, w.thickness)
-      }));
+      .filter((w) => (w.absolutePrice !== undefined ? w.absolutePrice < baseP : w.priceOffset < 0))
+      .map((w) => {
+        const offset = w.absolutePrice !== undefined ? (w.absolutePrice - baseP) : w.priceOffset;
+        return {
+          priceOffset: offset,
+          volume: w.volume,
+          label: w.sizeStr,
+          peakLabel: `${w.volume}`,
+          radiusY: Math.max(10, w.thickness)
+        };
+      });
 
     // Bottom Volume Histogram Bars (Buy/Sell split + CVD points)
     const histBars = [];
@@ -518,7 +526,7 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
       // (1:1 with yellow/orange/red/white laser bands in reference photo)
       // ─────────────────────────────────────────────────────────────────────
       for (const wall of currentConfig.restingWalls) {
-        const wallPrice = basePrice + wall.priceOffset;
+        const wallPrice = wall.absolutePrice !== undefined ? wall.absolutePrice : (basePrice + wall.priceOffset);
         const wallY = priceToY(wallPrice);
 
         if (wallY < -50 || wallY > chartHeight + 50) continue;
@@ -1207,13 +1215,13 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
 
         {/* Central Heatmap Canvas Viewport */}
         <div ref={containerRef} className="relative flex-1 bg-[#050a18] overflow-hidden">
-          {/* Top-Left Informational Pill (Matches Reference Photo Header) */}
-          <div className="absolute top-2 left-2 z-10 bg-[#050a18]/90 border border-slate-800 px-2.5 py-1 rounded text-[10.5px] font-mono text-slate-300 flex items-center gap-2 pointer-events-none">
-            <span className="font-bold text-amber-400">{currentConfig.symbol} {currentConfig.venue}</span>
-            <span>|</span>
-            <span className="text-cyan-400">HEATMAP {activeTimeframe} resolution</span>
-            <span>|</span>
-            <span className="text-emerald-400">● LIVE FEED</span>
+          {/* Top-Left Informational Overlay (Matches Reference Photo Header 1:1) */}
+          <div className="absolute top-2.5 left-3 z-10 text-[11px] font-mono select-none tracking-tight flex items-center gap-2 pointer-events-none drop-shadow-md">
+            <span className="font-semibold text-[#f59e0b]">{currentConfig.symbol} {currentConfig.venue}</span>
+            <span className="text-slate-500">|</span>
+            <span className="text-slate-300">HEATMAP {activeTimeframe} columns</span>
+            <span className="text-slate-500">|</span>
+            <span className="text-amber-300/80">ILLUSTRATIVE MOCKUP - synthetic data</span>
           </div>
 
           <canvas
@@ -1243,8 +1251,8 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
 
             <div className="space-y-1.5">
               {currentConfig.restingWalls.map((wall) => {
-                const isAsk = wall.priceOffset > 0;
-                const wallPrice = livePrice + wall.priceOffset;
+                const wallPrice = wall.absolutePrice !== undefined ? wall.absolutePrice : (livePrice + wall.priceOffset);
+                const isAsk = wall.absolutePrice !== undefined ? wall.absolutePrice > livePrice : wall.priceOffset > 0;
                 const isSelected = highlightWallId === wall.id;
 
                 return (
@@ -1252,7 +1260,7 @@ export const BookmapLiquidationTerminalView: React.FC = () => {
                     key={wall.id}
                     onClick={() => {
                       setHighlightWallId(wall.id);
-                      setPanOffsetY(-wall.priceOffset);
+                      setPanOffsetY(livePrice - wallPrice);
                     }}
                     className={`w-full text-left p-1.5 rounded border transition-all cursor-pointer ${
                       isSelected

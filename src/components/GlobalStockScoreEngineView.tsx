@@ -201,6 +201,16 @@ export default function GlobalStockScoreEngineView({ onNavigate }: GlobalStockSc
 
         {/* Global Macro Regime Indicators Quick Bar */}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => onNavigate && onNavigate('atas-heatmap')}
+            className="px-3 py-2 rounded-lg bg-gradient-to-r from-amber-500/20 via-cyan-500/20 to-blue-500/20 border border-cyan-400/60 hover:border-cyan-300 text-cyan-300 hover:text-white font-mono text-xs font-bold transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)] flex items-center gap-2 cursor-pointer"
+            title="Open ATAS / Bookmap 1:1 Live Liquidity Heatmap"
+          >
+            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>🗺️ ATAS Liquidity Heatmap 1:1 (BTC, Gold, ETH, SOL, Silver, Oil)</span>
+            <ChevronRight className="size-3.5" />
+          </button>
+
           <div className="panel px-3 py-2 flex items-center gap-3 text-xs">
             <div>
               <p className="text-[10px] text-muted-foreground uppercase font-semibold">India RBI Repo</p>

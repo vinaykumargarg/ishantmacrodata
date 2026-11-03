@@ -78,14 +78,14 @@ export default function IndianStockAiView({ onNavigate }: { onNavigate?: (tab: s
   const [isDemoSim, setIsDemoSim] = useState<boolean>(false); // Strict: default OFF when market is closed!
 
   // Benchmark Live State (Nifty & Sensex)
-  const [liveNifty, setLiveNifty] = useState<number>(INDIAN_MACRO_SNAPSHOT.nifty50); // 22520.45
-  const [liveNiftyChange, setLiveNiftyChange] = useState<number>(288.75);
-  const [liveNiftyPct, setLiveNiftyPct] = useState<number>(1.30);
+  const [liveNifty, setLiveNifty] = useState<number>(INDIAN_MACRO_SNAPSHOT.nifty50); // 24180.80
+  const [liveNiftyChange, setLiveNiftyChange] = useState<number>(164.20);
+  const [liveNiftyPct, setLiveNiftyPct] = useState<number>(0.68);
   const [niftyFlash, setNiftyFlash] = useState<'UP' | 'DOWN' | 'NONE'>('NONE');
 
-  const [liveSensex, setLiveSensex] = useState<number>(INDIAN_MACRO_SNAPSHOT.sensex); // 72472.33
-  const [liveSensexChange, setLiveSensexChange] = useState<number>(874.15);
-  const [liveSensexPct, setLiveSensexPct] = useState<number>(1.22);
+  const [liveSensex, setLiveSensex] = useState<number>(INDIAN_MACRO_SNAPSHOT.sensex); // 79640.50
+  const [liveSensexChange, setLiveSensexChange] = useState<number>(492.60);
+  const [liveSensexPct, setLiveSensexPct] = useState<number>(0.62);
   const [sensexFlash, setSensexFlash] = useState<'UP' | 'DOWN' | 'NONE'>('NONE');
 
   // Selected Stock Real-Time Price State
@@ -134,14 +134,14 @@ export default function IndianStockAiView({ onNavigate }: { onNavigate?: (tab: s
       const niftyDelta = +((Math.random() - 0.46) * 3.8).toFixed(2);
       setLiveNifty(prev => +(prev + niftyDelta).toFixed(2));
       setLiveNiftyChange(prev => +(prev + niftyDelta).toFixed(2));
-      setLiveNiftyPct(prev => +(prev + (niftyDelta / 22520.45) * 100).toFixed(2));
+      setLiveNiftyPct(prev => +(prev + (niftyDelta / 24180.80) * 100).toFixed(2));
       setNiftyFlash(niftyDelta >= 0 ? 'UP' : 'DOWN');
 
       // 3. SENSEX Micro-Tick
       const sensexDelta = +((Math.random() - 0.46) * 12.8).toFixed(2);
       setLiveSensex(prev => +(prev + sensexDelta).toFixed(2));
       setLiveSensexChange(prev => +(prev + sensexDelta).toFixed(2));
-      setLiveSensexPct(prev => +(prev + (sensexDelta / 72472.33) * 100).toFixed(2));
+      setLiveSensexPct(prev => +(prev + (sensexDelta / 79640.50) * 100).toFixed(2));
       setSensexFlash(sensexDelta >= 0 ? 'UP' : 'DOWN');
 
       // 4. Selected Stock Real-Time CMP Micro-Tick
