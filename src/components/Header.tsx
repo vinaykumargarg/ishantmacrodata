@@ -85,6 +85,7 @@ const SEARCH_DATABASE: SearchItem[] = [
   { id: 'usa-earnings-guard', name: 'Earnings Risk Guard (<14D Warning)', category: 'Scanners', badge: 'Risk', keywords: ['earnings', 'guard'] },
 
   // Liquidity & Order Flow
+  { id: 'quant-order-book', name: 'Quant OrderBook Pro (Live Heatmap · DOM Ladder · CVD)', category: 'Liquidity & Order Flow', badge: 'Quant Pro', keywords: ['quant', 'orderbook', 'heatmap', 'dom', 'ladder', 'cvd', 'binance', 'okx', 'bybit'] },
   { id: 'atas-heatmap', name: 'ATAS Liquidity Heatmap 1:1 (BTC, Gold, ETH, SOL, Silver, Oil)', category: 'Liquidity & Order Flow', badge: 'ATAS 1:1', keywords: ['atas', 'heatmap', 'liquidity heatmap', 'bookmap', 'order book', 'depth', 'dom', 'cvd', 'bubbles'] },
   { id: 'order-book-heatmap', name: 'Order Book Liquidity Heatmap (Bookmap / ATAS 1:1)', category: 'Liquidity & Order Flow', badge: 'Heatmap', keywords: ['bookmap', 'atas', 'order book', 'depth', 'liquidity'] },
   { id: 'deeepr-liquidation-hub', name: 'DEEEPR Liquidation Hub v1 (Map + Heatmap)', category: 'Liquidity & Order Flow', badge: 'Liq', keywords: ['liquidation', 'max pain', 'cascades'] },

@@ -206,6 +206,8 @@ function getFeatureTitle(tab: string): string {
     'global-intel': 'Global Intelligence Desk',
     'ultra-ai': 'TradeAI Institutional Terminal',
     'order-flow': 'Order Flow & Bookmap AI Terminal (CVD & Footprint)',
+    'quant-order-book': 'Quant OrderBook Pro (Heatmap · DOM Ladder · CVD · Multi-Exchange)',
+    'orderbook-pro': 'Quant OrderBook Pro Terminal',
     'order-book-heatmap': 'Order Book Liquidity Heatmap (Bookmap / ATAS 1:1)',
     'atas-heatmap': 'ATAS Liquidity Heatmap Pro (BTC, Gold, ETH, SOL, Silver, Oil)',
     'heatmap-pro': 'ATAS & Bookmap Liquidity Heatmap Pro (1:1 Visual Parity)',
@@ -669,7 +671,7 @@ function TerminalApp() {
               {activeTab === 'global-intel' && <GlobalIntelView />}
               {activeTab === 'ultra-ai' && <UltraInstitutionalDecisionEngine onNavigate={setActiveTab} />}
               {activeTab === 'order-flow' && <OrderFlowTerminal onNavigate={setActiveTab} />}
-              {(activeTab === 'order-book-heatmap' || activeTab === 'order-book-liquidity-heatmap' || activeTab === 'bookmap-heatmap' || activeTab === 'obh' || activeTab === 'atas-heatmap' || activeTab === 'atas' || activeTab === 'heatmap-pro' || activeTab === 'liquidity-heatmap' || activeTab === 'heatmap' || activeTab === 'atas-liquidity') && <OrderBookHeatmapView onNavigate={setActiveTab} />}
+              {(activeTab === 'order-book-heatmap' || activeTab === 'quant-order-book' || activeTab === 'orderbook-pro' || activeTab === 'order-book-liquidity-heatmap' || activeTab === 'bookmap-heatmap' || activeTab === 'obh' || activeTab === 'atas-heatmap' || activeTab === 'atas' || activeTab === 'heatmap-pro' || activeTab === 'liquidity-heatmap' || activeTab === 'heatmap' || activeTab === 'atas-liquidity') && <OrderBookHeatmapView onNavigate={setActiveTab} />}
               {(activeTab === 'bookmap-liquidation' || activeTab === 'bookmap' || activeTab === 'bookmap-chart' || activeTab === 'liquidity-heatmap-atas') && <BookmapLiquidationTerminalView />}
               {(activeTab === 'liquidation-heatmap' || activeTab === 'liquidation-chart' || activeTab === 'liq-heatmap') && <LiquidationHeatmapTerminalView onNavigate={setActiveTab} />}
               {(activeTab === 'market-chart-analyse' || activeTab === 'market-chart-analysis' || activeTab === 'market-chart-analyses' || activeTab === 'chart-ai-vision' || activeTab === 'chart-analyzer') && <MarketChartAnalyserTerminalView />}
