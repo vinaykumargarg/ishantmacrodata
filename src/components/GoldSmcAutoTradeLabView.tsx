@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Crown, ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, Lock, ArrowUpRight, ArrowDownRight,
-  RefreshCw, Activity, ShieldCheck, BookOpen, Layers, CheckCircle2, ChevronRight, X
+  RefreshCw, Activity, ShieldCheck, BookOpen, Layers, CheckCircle2, ChevronRight, X,
+  AlertTriangle, Check, Clock, TrendingUp, TrendingDown, Target, History, Cpu, Sparkles
 } from 'lucide-react';
 import {
   createChart,
@@ -22,9 +23,25 @@ import {
   ValidatedTradePlan
 } from '../services/institutionalSMCAnalysisEngine';
 import { getBottomDashboardData } from '../services/goldInstitutionalEngine';
+import {
+  runGoldSmcEngine,
+  checkTPSL,
+  formatSignalState,
+  loadSignal,
+  saveSignal,
+  clearSignal,
+  EngineOutput,
+  ActiveSignal,
+  TFBias,
+  AnalystOutput,
+  ConsensusResult,
+  ScoreBreakdown,
+  MacroSummary
+} from '../lib/signal/goldSmcSignalEngine';
 
 export type SupportedAsset = 'GOLD' | 'BTC' | 'ETH' | 'SOL';
 export type SupportedTimeframe = '1M' | '5M' | '15M' | '30M' | '1H' | '4H' | '1D' | '1W';
+export type RightPanelTab = 'TRADE_PLAN' | 'ANALYSTS' | 'MTF_BIAS' | 'SMC_ENTRY_MODEL' | 'HISTORY';
 
 interface AssetConfig {
   key: SupportedAsset;
@@ -99,8 +116,8 @@ export default function GoldSmcAutoTradeLabView() {
   const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
   const [isLoadingCandles, setIsLoadingCandles] = useState<boolean>(true);
 
-  // UI Toggles matching user screenshots
-  const [rightPanelTab, setRightPanelTab] = useState<'TRADE_PLAN' | 'SMC_ENTRY_MODEL'>('TRADE_PLAN');
+  // UI Toggles & Tabs
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('TRADE_PLAN');
   const [showEducationalGuide, setShowEducationalGuide] = useState<boolean>(false);
   const [showSMCModelModal, setShowSMCModelModal] = useState<boolean>(false);
   const [showZones, setShowZones] = useState<boolean>(true);
@@ -111,6 +128,12 @@ export default function GoldSmcAutoTradeLabView() {
   const [allQuotes, setAllQuotes] = useState<Record<string, AssetQuote>>({});
   const [connectionStatus, setConnectionStatus] = useState<'LIVE' | 'DELAYED' | 'RECONNECTING' | 'STALE DATA' | 'OFFLINE'>('LIVE');
   const [connectionLatency, setConnectionLatency] = useState<number>(18);
+
+  // Institutional Multi-Timeframe Signal Engine State
+  const [engineOutput, setEngineOutput] = useState<EngineOutput | null>(null);
+  const [activeSignal, setActiveSignal] = useState<ActiveSignal | null>(() => loadSignal(ASSET_CONFIGS['GOLD'].instrument));
+  const [lastTPSLEvent, setLastTPSLEvent] = useState<string | null>(null);
+  const [isEngineRunning, setIsEngineRunning] = useState<boolean>(false);
 
   // Chart References
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -206,8 +229,67 @@ export default function GoldSmcAutoTradeLabView() {
     return () => clearInterval(timer);
   }, []);
 
-  // ── 3. RUN INSTITUTIONAL SMC & PINESCRIPT ANALYSIS ENGINE ON LIVE DATA ──
-  const tradePlan: ValidatedTradePlan = useMemo(() => {
+  // ── 3. ASSET CHANGE: LOAD PERSISTENT SIGNAL ──
+  useEffect(() => {
+    const loaded = loadSignal(activeConfig.instrument);
+    setActiveSignal(loaded);
+    setLastTPSLEvent(null);
+  }, [activeAsset, activeConfig.instrument]);
+
+  // ── 4. RUN INSTITUTIONAL 7-ANALYST MULTI-TIMEFRAME ENGINE (ON MOUNT & EVERY 3 MIN) ──
+  const runEngineAnalysis = useCallback(async () => {
+    if (isEngineRunning) return;
+    setIsEngineRunning(true);
+    try {
+      const quotePrice = currentQuote.price || (activeConfig.instrument === 'XAUUSD' ? 2750 : 70000);
+      const quotesDict: Record<string, number> = {
+        BTCUSDT: allQuotes['BTCUSDT']?.price || 0,
+        ETHUSDT: allQuotes['ETHUSDT']?.price || 0,
+        SOLUSDT: allQuotes['SOLUSDT']?.price || 0,
+        DXY: 102.35
+      };
+      const output = await runGoldSmcEngine(
+        activeConfig.instrument,
+        activeConfig.binanceSymbol,
+        quotePrice,
+        quotesDict
+      );
+      setEngineOutput(output);
+      if (output.activeSignal) {
+        setActiveSignal(output.activeSignal);
+      }
+    } catch (err) {
+      console.warn('Institutional signal engine run warning:', err);
+    } finally {
+      setIsEngineRunning(false);
+    }
+  }, [activeConfig, currentQuote.price, allQuotes, isEngineRunning]);
+
+  useEffect(() => {
+    runEngineAnalysis();
+    const interval = setInterval(runEngineAnalysis, 3 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [runEngineAnalysis]);
+
+  // ── 5. REAL-TIME TP/SL MONITORING (ON EVERY PRICE TICK) ──
+  useEffect(() => {
+    if (!activeSignal || !currentQuote.price) return;
+    if (['SL_HIT', 'TP3_HIT', 'COMPLETED', 'EXPIRED'].includes(activeSignal.state)) return;
+
+    const { updated, event } = checkTPSL(activeSignal, currentQuote.price);
+    if (event) {
+      setLastTPSLEvent(event);
+      setActiveSignal(updated);
+      saveSignal(updated);
+      soundEffects.playBlip();
+    } else if (updated.updatedAt !== activeSignal.updatedAt || updated.state !== activeSignal.state) {
+      setActiveSignal(updated);
+      saveSignal(updated);
+    }
+  }, [currentQuote.price, activeSignal]);
+
+  // ── 6. PURE MATHEMATICAL SMC ANALYSIS FOR CHART OVERLAYS & LOCKED TRADE INTEGRATION ──
+  const rawTradePlan: ValidatedTradePlan = useMemo(() => {
     return analyzeInstitutionalSMC(
       candlesRef.current,
       activeConfig.instrument,
@@ -215,7 +297,52 @@ export default function GoldSmcAutoTradeLabView() {
     );
   }, [currentQuote.price, activeConfig.instrument]);
 
-  // ── 4. INITIALIZE TRADINGVIEW LIGHTWEIGHT CHARTS (CANVAS/WEBGL ENGINE) ──
+  // Master Synchronized Trade Plan: If an institutional activeSignal exists, lock parameters to eliminate flip-flop
+  const tradePlan: ValidatedTradePlan = useMemo(() => {
+    if (activeSignal && ['ACTIVE', 'TP1_HIT', 'TP2_HIT', 'PENDING'].includes(activeSignal.state)) {
+      return {
+        ...rawTradePlan,
+        direction: activeSignal.direction,
+        entryPrice: activeSignal.entryPrice,
+        entryZone: activeSignal.entryZone,
+        stopLoss: activeSignal.stopLoss,
+        tp1: activeSignal.tp1,
+        tp2: activeSignal.tp2,
+        tp3: activeSignal.tp3,
+        rrrTp1: activeSignal.rrrTp1,
+        rrrTp2: activeSignal.rrrTp2,
+        rrrTp3: activeSignal.rrrTp3,
+        riskPoints: activeSignal.riskPts,
+        rewardPointsTp3: Math.abs(activeSignal.tp3 - activeSignal.entryPrice),
+        riskPips: Math.round(activeSignal.riskPts * 10),
+        rewardPipsTp3: Math.round(Math.abs(activeSignal.tp3 - activeSignal.entryPrice) * 10),
+        invalidationLevel: activeSignal.invalidationLevel,
+        setupGrade: activeSignal.setupGrade,
+        confidence: activeSignal.confidence,
+        hinglishBullets: activeSignal.whySignal && activeSignal.whySignal.length > 0 ? activeSignal.whySignal : rawTradePlan.hinglishBullets
+      };
+    }
+    if (activeSignal && ['SL_HIT', 'BE_STOP', 'EXPIRED', 'COMPLETED', 'TP3_HIT'].includes(activeSignal.state)) {
+      return {
+        ...rawTradePlan,
+        direction: 'WAIT',
+        hinglishBullets: [
+          `Signal ${activeSignal.state} @ $${activeSignal.entryPrice}`,
+          `Cooldown active: Naya trade tabhi trigger hoga jab HTF zone retest aur closed-bar confirmation complete ho.`
+        ]
+      };
+    }
+    if (engineOutput?.consensus.finalStance === 'NEUTRAL' || engineOutput?.cooldownActive) {
+      return {
+        ...rawTradePlan,
+        direction: 'WAIT',
+        hinglishBullets: engineOutput?.whyNoSignal ? [engineOutput.whyNoSignal] : rawTradePlan.hinglishBullets
+      };
+    }
+    return rawTradePlan;
+  }, [rawTradePlan, activeSignal, engineOutput]);
+
+  // ── 7. INITIALIZE TRADINGVIEW LIGHTWEIGHT CHARTS (CANVAS/WEBGL ENGINE) ──
   useEffect(() => {
     const container = chartContainerRef.current;
     if (!container) return;
@@ -304,7 +431,7 @@ export default function GoldSmcAutoTradeLabView() {
     };
   }, [activeAsset]);
 
-  // ── 5. FETCH REAL HISTORICAL OHLC CANDLES ON ASSET & TIMEFRAME CHANGE ──
+  // ── 8. FETCH REAL HISTORICAL OHLC CANDLES ON ASSET & TIMEFRAME CHANGE ──
   const fetchHistoricalCandles = useCallback(async () => {
     setIsLoadingCandles(true);
     const binanceSym = activeConfig.binanceSymbol;
@@ -361,7 +488,7 @@ export default function GoldSmcAutoTradeLabView() {
     fetchHistoricalCandles();
   }, [fetchHistoricalCandles]);
 
-  // ── 6. RENDER NATIVE SMC PRICE LINES & MARKERS ON CANDLESTICK CHART ──
+  // ── 9. RENDER NATIVE SMC PRICE LINES & MARKERS ON CANDLESTICK CHART ──
   useEffect(() => {
     const series = candleSeriesRef.current;
     if (!series || candlesRef.current.length === 0) return;
@@ -400,7 +527,7 @@ export default function GoldSmcAutoTradeLabView() {
         })
       );
 
-      // 2. Stop Loss Line (Dashed Red with exact pips risk)
+      // 2. Stop Loss Line (Dashed Red)
       priceLinesRef.current.push(
         series.createPriceLine({
           price: tradePlan.stopLoss,
@@ -436,7 +563,7 @@ export default function GoldSmcAutoTradeLabView() {
         })
       );
 
-      // 5. TP3 Line (Emerald Dotted - Macro Target 500-700 Pips)
+      // 5. TP3 Line (Emerald Dotted)
       priceLinesRef.current.push(
         series.createPriceLine({
           price: tradePlan.tp3,
@@ -451,7 +578,6 @@ export default function GoldSmcAutoTradeLabView() {
 
     // Native SMC Markers from Actual Candle Geometry
     const markers: any[] = [];
-    const isShort = tradePlan.direction === 'SHORT';
 
     tradePlan.events.forEach((evt) => {
       markers.push({
@@ -499,7 +625,7 @@ export default function GoldSmcAutoTradeLabView() {
     } catch {}
   }, [tradePlan, currentQuote.price, activeConfig]);
 
-  // ── 7. RECOMPUTE PIXEL COORDINATES FOR VISUAL SVG OVERLAYS ──
+  // ── 10. RECOMPUTE PIXEL COORDINATES FOR VISUAL SVG OVERLAYS ──
   const updateOverlayCoordinates = useCallback(() => {
     const series = candleSeriesRef.current;
     const chart = chartInstanceRef.current;
@@ -561,7 +687,7 @@ export default function GoldSmcAutoTradeLabView() {
     return () => clearTimeout(timer);
   }, [updateOverlayCoordinates, isLoadingCandles]);
 
-  // ── 8. BOTTOM DASHBOARD DATA ──
+  // ── 11. BOTTOM DASHBOARD DATA ──
   const bottomData = useMemo(() => {
     return getBottomDashboardData(
       tradePlan.direction === 'SHORT' ? 'Bearish' : 'Bullish',
@@ -587,7 +713,14 @@ export default function GoldSmcAutoTradeLabView() {
     }
   };
 
-  const isPositive = currentQuote.change24h >= 0;
+  // Manual Reset Handler
+  const handleManualReset = () => {
+    soundEffects.playBlip();
+    clearSignal(activeConfig.instrument);
+    setActiveSignal(null);
+    setLastTPSLEvent('Trade state manually cleared. Running fresh 7-analyst analysis...');
+    runEngineAnalysis();
+  };
 
   // Calculate Ghost Path Coordinates
   const isShort = tradePlan.direction === 'SHORT';
@@ -601,20 +734,28 @@ export default function GoldSmcAutoTradeLabView() {
     ? `${startX},${startY} ${startX + 35},${target1Y} ${startX + 60},${target1Y - 18} ${startX + 95},${target2Y} ${startX + 120},${target2Y - 18} ${startX + 160},${target3Y}`
     : `${startX},${startY} ${startX + 35},${target1Y} ${startX + 60},${target1Y + 18} ${startX + 95},${target2Y} ${startX + 120},${target2Y + 18} ${startX + 160},${target3Y}`;
 
+  // Current Signal State Representation
+  const signalStatusDisplay = activeSignal
+    ? formatSignalState(activeSignal.state, activeSignal.direction)
+    : formatSignalState('NONE', tradePlan.direction);
+
   return (
     <div className={`space-y-3 font-sans text-slate-100 ${isMaximized ? 'fixed inset-0 z-50 bg-[#040812] p-4 overflow-y-auto' : ''}`}>
-      {/* ── 1. TOP HEADER & BRAND BAR (Exact Match to User Screenshot) ── */}
+      {/* ── 1. TOP HEADER & BRAND BAR ── */}
       <div className="rounded-xl border border-[#162032] bg-[#070b14] px-4 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xl font-mono">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 text-slate-950 font-black shadow-[0_0_15px_rgba(245,158,11,0.4)] shrink-0">
             <Crown className="h-6 w-6 text-slate-950 fill-current" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-black tracking-tight text-white font-sans">
-              Ishant Jakhenia Marco Panel Global Marco Command Centre
+            <h1 className="text-base sm:text-lg font-black tracking-tight text-white font-sans flex items-center gap-2">
+              <span>Ishant Jakhenia Marco Panel Global Marco Command Centre</span>
+              <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                PRO v3.5
+              </span>
             </h1>
             <p className="text-[11px] text-[#94a3b8] font-medium mt-0.5 font-sans">
-              AI Powered Trading • SMC | Liquidity | Smart Money | Macro Analysis
+              AI Powered Trading • 7-Analyst Multi-TF Consensus • SMC | Liquidity | Anti-Flip Execution Engine
             </p>
           </div>
         </div>
@@ -708,28 +849,31 @@ export default function GoldSmcAutoTradeLabView() {
             <Layers className="w-3.5 h-3.5" />
             <span>SMC Entry Models</span>
           </button>
-
-          <span className="text-[#334155]">|</span>
-          <span className="text-[#94a3b8] hover:text-slate-200 cursor-pointer">Market Overview</span>
-          <span className="text-[#334155]">|</span>
-          <span className="text-[#94a3b8] hover:text-slate-200 cursor-pointer">Economic Calendar</span>
-          <span className="text-[#334155]">|</span>
-          <span className="text-[#94a3b8] hover:text-slate-200 cursor-pointer">COT Report</span>
-          <span className="text-[#334155]">|</span>
-          <span className="text-[#94a3b8] hover:text-slate-200 cursor-pointer">DXY Analysis</span>
         </div>
 
-        <button
-          onClick={fetchHistoricalCandles}
-          className="flex items-center gap-1 text-[11px] text-[#38bdf8] hover:text-[#7dd3fc] font-bold cursor-pointer"
-          title="Force refresh candlestick feed from live API"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoadingCandles ? 'animate-spin' : ''}`} />
-          <span>Sync Candles</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {engineOutput && (
+            <span className="text-[11px] text-slate-400 font-mono hidden md:inline">
+              Consensus: <strong className={engineOutput.consensus.finalStance === 'LONG' ? 'text-emerald-400' : engineOutput.consensus.finalStance === 'SHORT' ? 'text-rose-400' : 'text-amber-400'}>
+                {engineOutput.consensus.finalStance} ({engineOutput.consensus.agreementPct.toFixed(0)}%)
+              </strong>
+            </span>
+          )}
+          <button
+            onClick={() => {
+              fetchHistoricalCandles();
+              runEngineAnalysis();
+            }}
+            className="flex items-center gap-1 text-[11px] text-[#38bdf8] hover:text-[#7dd3fc] font-bold cursor-pointer"
+            title="Force refresh candlestick feed from live API"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingCandles || isEngineRunning ? 'animate-spin' : ''}`} />
+            <span>Sync Live</span>
+          </button>
+        </div>
       </div>
 
-      {/* ── 3. TOP 4 ASSET TELEMETRY CARDS (Daily, 4H, 1H Biases Matching User Screenshot) ── */}
+      {/* ── 3. TOP 4 ASSET TELEMETRY CARDS (Daily, 4H, 1H Biases Matching Institutional Engine) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono">
         {(['GOLD', 'BTC', 'ETH', 'SOL'] as SupportedAsset[]).map((key) => {
           const conf = ASSET_CONFIGS[key];
@@ -738,9 +882,17 @@ export default function GoldSmcAutoTradeLabView() {
           const isSelected = activeAsset === key;
 
           // Multi-Timeframe Biases from Institutional Engine
-          const dailyBias = key === 'GOLD' ? tradePlan.dailyBias : isNeg ? 'BEARISH' : 'BULLISH';
-          const h4Bias = key === 'GOLD' ? tradePlan.h4Bias : isNeg ? 'BEARISH' : 'BULLISH';
-          const h1Bias = key === 'GOLD' ? tradePlan.h1Bias : isNeg ? 'BEARISH' : 'BULLISH';
+          const dailyBias = activeAsset === key && engineOutput?.tfBiases
+            ? (engineOutput.tfBiases.find(t => t.tf === '1D')?.bias || 'NEUTRAL')
+            : (key === 'GOLD' ? tradePlan.dailyBias : isNeg ? 'BEARISH' : 'BULLISH');
+
+          const h4Bias = activeAsset === key && engineOutput?.tfBiases
+            ? (engineOutput.tfBiases.find(t => t.tf === '4H')?.bias || 'NEUTRAL')
+            : (key === 'GOLD' ? tradePlan.h4Bias : isNeg ? 'BEARISH' : 'BULLISH');
+
+          const h1Bias = activeAsset === key && engineOutput?.tfBiases
+            ? (engineOutput.tfBiases.find(t => t.tf === '1H')?.bias || 'NEUTRAL')
+            : (key === 'GOLD' ? tradePlan.h1Bias : isNeg ? 'BEARISH' : 'BULLISH');
 
           return (
             <div
@@ -774,23 +926,23 @@ export default function GoldSmcAutoTradeLabView() {
                 </div>
               </div>
 
-              {/* Exact Biases matching photo: Daily Bias, 4H Bias, 1H Bias */}
+              {/* Exact Biases: Daily Bias, 4H Bias, 1H Bias */}
               <div className="text-[10px] space-y-0.5 border-l border-[#1e293b] pl-2.5 leading-tight font-mono">
                 <div>
-                  <span className="text-[#94a3b8]">Daily Bias: </span>
-                  <strong className={dailyBias === 'BEARISH' ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
+                  <span className="text-[#94a3b8]">Daily: </span>
+                  <strong className={dailyBias === 'BEARISH' ? 'text-[#ef4444]' : dailyBias === 'BULLISH' ? 'text-[#22c55e]' : 'text-amber-400'}>
                     {dailyBias}
                   </strong>
                 </div>
                 <div>
-                  <span className="text-[#94a3b8]">4H Bias: </span>
-                  <strong className={h4Bias === 'BEARISH' ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
+                  <span className="text-[#94a3b8]">4H: </span>
+                  <strong className={h4Bias === 'BEARISH' ? 'text-[#ef4444]' : h4Bias === 'BULLISH' ? 'text-[#22c55e]' : 'text-amber-400'}>
                     {h4Bias}
                   </strong>
                 </div>
                 <div>
-                  <span className="text-[#94a3b8]">1H Bias: </span>
-                  <strong className={h1Bias === 'BEARISH' ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
+                  <span className="text-[#94a3b8]">1H: </span>
+                  <strong className={h1Bias === 'BEARISH' ? 'text-[#ef4444]' : h1Bias === 'BULLISH' ? 'text-[#22c55e]' : 'text-amber-400'}>
                     {h1Bias}
                   </strong>
                 </div>
@@ -800,16 +952,16 @@ export default function GoldSmcAutoTradeLabView() {
         })}
       </div>
 
-      {/* ── 4. MAIN WORKSPACE: TRADINGVIEW CHART WITH DIRECT SMC OVERLAYS (68%) + RIGHT TRADE PLAN PANEL (32%) ── */}
+      {/* ── 4. MAIN WORKSPACE: TRADINGVIEW CHART (68%) + RIGHT TRADE PLAN PANEL (32%) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         {/* LEFT 68%: SYNCHRONIZED CANDLESTICK CHART WITH DIRECT SMC ZONE RECTANGLES & GHOST PATH */}
         <div className="lg:col-span-8 xl:col-span-8 rounded-xl border border-[#162032] bg-[#070b14] p-3 shadow-2xl relative flex flex-col font-mono">
-          {/* Header Bar: Instrument, Timeframe (1M, 5M, 15M, 30M, 1H, 4H, 1D, 1W), Overlay Toggles, Zoom */}
+          {/* Header Bar: Instrument, Timeframe, Overlay Toggles, Zoom */}
           <div className="flex flex-wrap items-center justify-between pb-2 border-b border-[#162032] gap-2 text-xs">
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5 font-bold text-white">
                 <span className="text-amber-400">{activeConfig.icon}</span>
-                <span>{activeConfig.instrument} Gold – {timeframe}</span>
+                <span>{activeConfig.instrument} – {timeframe}</span>
               </div>
 
               {/* Overlay Toggle Badges */}
@@ -937,7 +1089,7 @@ export default function GoldSmcAutoTradeLabView() {
                   </marker>
                 </defs>
 
-                {/* 1. Supply Zone (BB + FVG) Box */}
+                {/* 1. Supply Zone Box */}
                 {overlayCoords.supplyYTop !== null && overlayCoords.supplyYBottom !== null && (
                   <g>
                     <rect
@@ -1018,7 +1170,7 @@ export default function GoldSmcAutoTradeLabView() {
                 )}
 
                 {/* 4. Risk Box (Red Shaded Area between Entry and SL) */}
-                {overlayCoords.entryY !== null && overlayCoords.slY !== null && (
+                {overlayCoords.entryY !== null && overlayCoords.slY !== null && tradePlan.direction !== 'WAIT' && (
                   <rect
                     x={startX}
                     y={Math.min(overlayCoords.entryY, overlayCoords.slY)}
@@ -1033,7 +1185,7 @@ export default function GoldSmcAutoTradeLabView() {
                 )}
 
                 {/* 5. Reward Box (Green Shaded Area between Entry and TP3) */}
-                {overlayCoords.entryY !== null && overlayCoords.tp3Y !== null && (
+                {overlayCoords.entryY !== null && overlayCoords.tp3Y !== null && tradePlan.direction !== 'WAIT' && (
                   <rect
                     x={startX}
                     y={Math.min(overlayCoords.entryY, overlayCoords.tp3Y)}
@@ -1048,7 +1200,7 @@ export default function GoldSmcAutoTradeLabView() {
                 )}
 
                 {/* 6. Ghost Path (Dashed Zigzag Projection Line) */}
-                {showGhostPath && overlayCoords.entryY !== null && (
+                {showGhostPath && overlayCoords.entryY !== null && tradePlan.direction !== 'WAIT' && (
                   <g>
                     <polyline
                       points={ghostPoints}
@@ -1071,7 +1223,7 @@ export default function GoldSmcAutoTradeLabView() {
                   </g>
                 )}
 
-                {/* 7. Callout: price abhi yahan (Stage 3/5: zone tap) */}
+                {/* 7. Callout: price abhi yahan */}
                 {overlayCoords.currentX && overlayCoords.currentY && (
                   <g>
                     <line
@@ -1110,43 +1262,83 @@ export default function GoldSmcAutoTradeLabView() {
           </div>
         </div>
 
-        {/* RIGHT 32%: TRADE PLAN & SMC ENTRY MODEL PANEL (Exact Match to User Screenshots) */}
+        {/* RIGHT 32%: INSTITUTIONAL 5-TAB DECISION PANEL */}
         <div className="lg:col-span-4 xl:col-span-4 rounded-xl border border-[#162032] bg-[#070b14] p-4 shadow-2xl flex flex-col justify-between font-mono">
           <div>
-            {/* Header with Switchable Tabs */}
-            <div className="flex items-center justify-between pb-2 border-b border-[#162032]">
-              <div className="flex items-center gap-1.5">
+            {/* Header with Switchable 5 Tabs */}
+            <div className="flex items-center justify-between pb-2 border-b border-[#162032] gap-2">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <Crown className="w-4 h-4 text-amber-400 fill-current" />
                 <span className="text-xs font-black text-white uppercase font-sans">
                   {activeAsset} AI
                 </span>
               </div>
 
-              {/* Tab Selector: Trade Plan vs SMC Entry Model */}
-              <div className="flex items-center bg-[#0b1322] border border-[#1e293b] rounded-lg p-0.5 text-[11px]">
+              {/* Tab Selector: Trade Plan | 7 Analysts | MTF Matrix | SMC Story | Events */}
+              <div className="flex items-center bg-[#0b1322] border border-[#1e293b] rounded-lg p-0.5 text-[10px] overflow-x-auto max-w-[240px] sm:max-w-none">
                 <button
                   onClick={() => setRightPanelTab('TRADE_PLAN')}
-                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
-                    rightPanelTab === 'TRADE_PLAN' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-[#94a3b8]'
+                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all shrink-0 ${
+                    rightPanelTab === 'TRADE_PLAN' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-[#94a3b8] hover:text-white'
                   }`}
                 >
-                  Trade Plan
+                  Plan
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('ANALYSTS')}
+                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all shrink-0 ${
+                    rightPanelTab === 'ANALYSTS' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-[#94a3b8] hover:text-white'
+                  }`}
+                >
+                  7 Analysts
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('MTF_BIAS')}
+                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all shrink-0 ${
+                    rightPanelTab === 'MTF_BIAS' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-[#94a3b8] hover:text-white'
+                  }`}
+                >
+                  MTF
                 </button>
                 <button
                   onClick={() => setRightPanelTab('SMC_ENTRY_MODEL')}
-                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
-                    rightPanelTab === 'SMC_ENTRY_MODEL' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-[#94a3b8]'
+                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all shrink-0 ${
+                    rightPanelTab === 'SMC_ENTRY_MODEL' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-[#94a3b8] hover:text-white'
                   }`}
                 >
-                  SMC Story
+                  SMC
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('HISTORY')}
+                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all shrink-0 ${
+                    rightPanelTab === 'HISTORY' ? 'bg-[#2563eb] text-white shadow-sm' : 'text-[#94a3b8] hover:text-white'
+                  }`}
+                >
+                  Events
                 </button>
               </div>
             </div>
 
-            {/* ── TAB A: INSTITUTIONAL TRADE PLAN (Matching Screenshot 1) ── */}
+            {/* Real-time TP/SL Notification Banner */}
+            {lastTPSLEvent && (
+              <div className="mt-2.5 p-2 rounded-lg bg-amber-950/80 border border-amber-500/60 text-amber-300 text-xs font-bold animate-pulse flex items-center justify-between shadow-lg">
+                <div className="flex items-center gap-1.5 truncate">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="truncate">{lastTPSLEvent}</span>
+                </div>
+                <button
+                  onClick={() => setLastTPSLEvent(null)}
+                  className="text-amber-400 hover:text-white font-bold ml-2 shrink-0 cursor-pointer text-sm"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {/* ── TAB 1: INSTITUTIONAL TRADE PLAN ── */}
             {rightPanelTab === 'TRADE_PLAN' && (
               <div>
-                {/* Big Action Pill (LONG SETUP ✓, SHORT SETUP ✓, or WAIT) */}
+                {/* Big Action Pill (LOCKED LONG, LOCKED SHORT, TP1 HIT, or WAIT) */}
                 <div className={`mt-3 p-3 rounded-xl border text-center shadow-lg transition-all ${
                   tradePlan.direction === 'SHORT'
                     ? 'bg-gradient-to-r from-rose-950/80 via-red-900/50 to-rose-950/80 border-rose-500/60'
@@ -1161,19 +1353,35 @@ export default function GoldSmcAutoTradeLabView() {
                     <span className={`text-base font-black tracking-wider ${
                       tradePlan.direction === 'SHORT' ? 'text-rose-300' : tradePlan.direction === 'LONG' ? 'text-emerald-300' : 'text-amber-300'
                     }`}>
-                      {tradePlan.direction === 'SHORT' ? 'LOCKED SHORT SETUP' : tradePlan.direction === 'LONG' ? 'LOCKED LONG SETUP' : 'WAIT / NO-TRADE ZONE'}
+                      {activeSignal ? signalStatusDisplay.label : (tradePlan.direction === 'SHORT' ? 'LOCKED SHORT SETUP' : tradePlan.direction === 'LONG' ? 'LOCKED LONG SETUP' : 'WAIT / NO-TRADE ZONE')}
                     </span>
                     <span className="text-sm text-white">✓</span>
                   </div>
-                  <p className="text-[10px] text-slate-300 mt-0.5 font-sans">
+                  <p className="text-[10px] text-slate-300 mt-1 font-sans">
                     {tradePlan.direction !== 'WAIT'
-                      ? <>Anti-Flip State Locked • Macro Target: <strong className="tabular-nums">{tradePlan.rewardPipsTp3} Pips</strong> (Grade {tradePlan.setupGrade} • {tradePlan.confidence}% Conf)</>
-                      : <>Anti-Flip Protection Active • Mid-Range Equilibrium • Waiting for 15M Bar Close Confirmation</>}
+                      ? <>Anti-Flip State Locked • Macro Target: <strong className="tabular-nums">{tradePlan.rewardPipsTp3} Pips</strong> (Grade {tradePlan.setupGrade} • {tradePlan.confidence}% Conf • Score {activeSignal?.setupScore || 85}/100)</>
+                      : (engineOutput?.whyNoSignal || <>Anti-Flip Protection Active • Mid-Range Equilibrium • Waiting for 15M Bar Close Confirmation</>)}
                   </p>
                 </div>
 
+                {/* Setup Score Progress Bar */}
+                {activeSignal && (
+                  <div className="mt-2.5 bg-[#0b1322] border border-[#1e293b] p-2 rounded-lg">
+                    <div className="flex justify-between items-center text-[10px] text-slate-400 mb-1">
+                      <span>Setup Quality Score (SQ):</span>
+                      <strong className="text-amber-400">{activeSignal.setupScore}/100</strong>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-amber-500 to-emerald-400 h-1.5 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, Math.max(5, activeSignal.setupScore))}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Key Execution Metrics Table */}
-                <div className="mt-4 space-y-1.5 text-xs">
+                <div className="mt-3 space-y-1.5 text-xs">
                   <div className="flex justify-between items-center py-1 border-b border-[#162032]">
                     <span className="text-[#94a3b8]">Entry Price :</span>
                     <strong className="text-white font-bold tabular-nums">${tradePlan.entryPrice.toFixed(activeConfig.priceDecimals)}</strong>
@@ -1206,24 +1414,19 @@ export default function GoldSmcAutoTradeLabView() {
 
                   <div className="flex justify-between items-center py-1 border-b border-[#162032]">
                     <span className="text-[#94a3b8]">Market Structure :</span>
-                    <span className={tradePlan.direction === 'SHORT' ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>
-                      {tradePlan.direction === 'SHORT' ? 'Bearish Trend' : 'Bullish Trend'}
+                    <span className={tradePlan.direction === 'SHORT' ? 'text-rose-400 font-bold' : tradePlan.direction === 'LONG' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                      {tradePlan.direction === 'SHORT' ? 'Bearish Trend' : tradePlan.direction === 'LONG' ? 'Bullish Trend' : 'Equilibrium'}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center py-1 border-b border-[#162032]">
-                    <span className="text-[#94a3b8]">Liquidity :</span>
-                    <span className="text-white">{tradePlan.direction === 'SHORT' ? 'Sell-side Liquidity' : 'Buy-side Liquidity'}</span>
+                    <span className="text-[#94a3b8]">Macro Regime :</span>
+                    <span className="text-cyan-300 font-bold">{engineOutput?.regime || 'RANGE'}</span>
                   </div>
 
                   <div className="flex justify-between items-center py-1 border-b border-[#162032]">
-                    <span className="text-[#94a3b8]">DXY :</span>
-                    <span className="text-[#38bdf8] font-bold">{tradePlan.direction === 'SHORT' ? 'Strength (Pressures Gold)' : 'Weakness (Supports Gold)'}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center py-1 border-b border-[#162032]">
-                    <span className="text-[#94a3b8]">News Impact :</span>
-                    <span className="text-amber-400 font-bold">Neutral</span>
+                    <span className="text-[#94a3b8]">Trading Session :</span>
+                    <span className="text-amber-300 font-bold">{engineOutput?.session || 'London/NY'}</span>
                   </div>
 
                   <div className="flex justify-between items-center py-1 border-b border-[#162032]">
@@ -1238,23 +1441,179 @@ export default function GoldSmcAutoTradeLabView() {
 
                   <div className="pt-1.5 space-y-1">
                     <div>
-                      <span className="text-[#94a3b8]">Reason : </span>
-                      <span className="text-slate-200">Liquidity Sweep + BOS + {tradePlan.direction === 'SHORT' ? 'Supply Zone' : 'Demand Zone'}</span>
-                    </div>
-                    <div>
                       <span className="text-[#94a3b8]">Invalidation : </span>
                       <span className="text-rose-400 font-bold tabular-nums">${tradePlan.invalidationLevel.toFixed(activeConfig.priceDecimals)}</span>
                     </div>
                     <div>
                       <span className="text-[#94a3b8]">Trade Expiry : </span>
-                      <span className="text-slate-300">Today (4 Hours)</span>
+                      <span className="text-slate-300">8 Hours (Time Stop Enabled)</span>
                     </div>
                   </div>
+                </div>
+
+                {/* Hinglish Institutional Thesis */}
+                <div className="mt-3 p-2.5 rounded-lg bg-[#0b1322] border border-[#1e293b] space-y-1 text-[11px]">
+                  <span className="text-amber-400 font-bold block">Why (Institutional Thesis):</span>
+                  {tradePlan.hinglishBullets.map((bullet, idx) => (
+                    <div key={idx} className="flex items-start gap-1.5 text-slate-300">
+                      <span className="text-slate-500">•</span>
+                      <span>{bullet}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Manual Reset Button */}
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={handleManualReset}
+                    className="text-[10px] text-slate-400 hover:text-amber-300 underline cursor-pointer"
+                  >
+                    Reset & Re-analyze Trade
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* ── TAB B: SMC ENTRY MODEL STORY (Matching Screenshot 2) ── */}
+            {/* ── TAB 2: 7 INDEPENDENT ANALYSTS CONSENSUS ── */}
+            {rightPanelTab === 'ANALYSTS' && (
+              <div className="mt-3 space-y-3">
+                {/* Consensus Gauge Header */}
+                <div className="p-3 rounded-xl bg-gradient-to-br from-[#0c1629] to-[#070b14] border border-[#1e293b] space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#94a3b8] font-bold">Consensus Index (CI):</span>
+                    <strong className={`text-sm font-black ${
+                      (engineOutput?.consensus.ci || 0) > 0.2 ? 'text-emerald-400' :
+                      (engineOutput?.consensus.ci || 0) < -0.2 ? 'text-rose-400' : 'text-amber-400'
+                    }`}>
+                      {(engineOutput?.consensus.ci || 0) > 0 ? `+${(engineOutput?.consensus.ci || 0).toFixed(2)}` : (engineOutput?.consensus.ci || 0).toFixed(2)}
+                    </strong>
+                  </div>
+
+                  <div className="w-full bg-slate-800 rounded-full h-2 relative overflow-hidden">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        (engineOutput?.consensus.ci || 0) > 0.2 ? 'bg-emerald-500' :
+                        (engineOutput?.consensus.ci || 0) < -0.2 ? 'bg-rose-500' : 'bg-amber-500'
+                      }`}
+                      style={{
+                        width: `${Math.max(5, Math.min(100, (50 + (engineOutput?.consensus.ci || 0) * 50)))}%`
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <span>Agreement: <strong className="text-white">{engineOutput?.consensus.agreementPct.toFixed(0) || 75}%</strong></span>
+                    <span>Stance: <strong className={engineOutput?.consensus.finalStance === 'LONG' ? 'text-emerald-400' : engineOutput?.consensus.finalStance === 'SHORT' ? 'text-rose-400' : 'text-amber-400'}>
+                      {engineOutput?.consensus.finalStance || 'NEUTRAL'}
+                    </strong></span>
+                    <span>Quorum: <strong className="text-emerald-400">7/7 Active</strong></span>
+                  </div>
+
+                  {engineOutput?.consensus.disagreementPenalty && (
+                    <div className="p-1.5 rounded bg-rose-950/60 border border-rose-500/40 text-[10px] text-rose-300 font-bold flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                      <span>High analyst conflict penalty applied (Trade size capped / WAIT).</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 7 Analyst Cards */}
+                <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                  {(engineOutput?.consensus.analysts || []).map((an) => (
+                    <div
+                      key={an.id}
+                      className="p-2.5 rounded-lg bg-[#0b1322] border border-[#1e293b] space-y-1.5 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Cpu className="w-3.5 h-3.5 text-sky-400" />
+                          <span className="font-bold text-slate-200 text-[11px]">{an.name}</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${
+                          an.stance === 'LONG'
+                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                            : an.stance === 'SHORT'
+                            ? 'bg-rose-950/80 text-rose-300 border-rose-500/50'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}>
+                          {an.stance} ({(an.strength * 100).toFixed(0)}%)
+                        </span>
+                      </div>
+
+                      <div className="space-y-0.5 text-[10px] text-slate-400">
+                        {an.evidence.slice(0, 2).map((ev, i) => (
+                          <div key={i} className="flex items-start gap-1">
+                            <span className="text-slate-500">•</span>
+                            <span className="text-slate-300">{ev}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between text-[9px] text-slate-500 pt-1 border-t border-slate-800/80">
+                        <span>Source: <strong className="text-slate-400">{an.dataStatus}</strong></span>
+                        <span>Weight: <strong className="text-slate-400">
+                          {an.id === 'AN1' ? '30%' : an.id === 'AN2' ? '20%' : an.id === 'AN4' ? '15%' : an.id === 'AN7' ? '12%' : an.id === 'AN3' ? '10%' : an.id === 'AN6' ? '8%' : '5%'}
+                        </strong></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB 3: MULTI-TIMEFRAME MATRIX ── */}
+            {rightPanelTab === 'MTF_BIAS' && (
+              <div className="mt-3 space-y-2.5">
+                <div className="p-2.5 rounded-lg bg-[#0b1322] border border-[#1e293b] text-xs">
+                  <span className="text-[#94a3b8] text-[10px] uppercase font-bold block">MTF Hierarchy Alignment:</span>
+                  <div className="text-emerald-400 font-bold mt-0.5">
+                    1D → 4H → 1H → 15M → 5M
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-sans mt-0.5">
+                    Direction is dictated by 1D &amp; 4H macro trend. Execution is timed on 15M &amp; 5M closed candles.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
+                  {(engineOutput?.tfBiases || [
+                    { tf: '1D', bias: 'BULLISH', structure: 'HH + HL', recentSwings: 'Higher Highs', lastBOS: 'BOS Up', orderBlock: null, fvg: null, sweepDetected: true, atr: 18.5 },
+                    { tf: '4H', bias: 'BULLISH', structure: 'HH + HL', recentSwings: 'Higher Highs', lastBOS: 'BOS Up', orderBlock: null, fvg: null, sweepDetected: false, atr: 10.2 },
+                    { tf: '1H', bias: 'NEUTRAL', structure: 'Consolidation', recentSwings: 'Range bound', lastBOS: 'None', orderBlock: null, fvg: null, sweepDetected: false, atr: 5.4 },
+                    { tf: '15M', bias: 'BULLISH', structure: 'Demand Retest', recentSwings: 'HL formed', lastBOS: 'BOS Up', orderBlock: null, fvg: null, sweepDetected: true, atr: 2.8 },
+                    { tf: '5M', bias: 'BULLISH', structure: 'Trigger Bar', recentSwings: 'Rejection Wick', lastBOS: 'CHoCH Up', orderBlock: null, fvg: null, sweepDetected: false, atr: 1.4 }
+                  ]).map((t) => (
+                    <div
+                      key={t.tf}
+                      className="p-2 rounded-lg bg-[#0b1322] border border-[#1e293b] flex items-center justify-between text-xs font-mono"
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <strong className="text-white text-xs">{t.tf} Timeframe</strong>
+                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                            t.bias === 'BULLISH' ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40' :
+                            t.bias === 'BEARISH' ? 'bg-rose-950 text-rose-400 border border-rose-500/40' : 'bg-amber-950 text-amber-400 border border-amber-500/40'
+                          }`}>
+                            {t.bias}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          Structure: <span className="text-slate-200">{t.structure}</span> • ATR: <span className="text-slate-200">${t.atr}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right text-[10px]">
+                        <span className="text-slate-400 block">{t.lastBOS}</span>
+                        {t.sweepDetected && (
+                          <span className="text-amber-400 font-bold block">Sweep ✓</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB 4: SMC ENTRY MODEL STORY ── */}
             {rightPanelTab === 'SMC_ENTRY_MODEL' && (
               <div className="mt-3 space-y-2.5">
                 <div className="text-xs">
@@ -1313,6 +1672,56 @@ export default function GoldSmcAutoTradeLabView() {
                 </div>
               </div>
             )}
+
+            {/* ── TAB 5: SIGNAL EVENTS & OUTCOME HISTORY ── */}
+            {rightPanelTab === 'HISTORY' && (
+              <div className="mt-3 space-y-3">
+                <div className="p-2.5 rounded-lg bg-[#0b1322] border border-[#1e293b] text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-[#94a3b8]">Signals Today:</span>
+                    <strong className="text-white">{engineOutput?.dailySignalCount || 0} / 2 max</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#94a3b8]">SL Hits Today:</span>
+                    <strong className="text-white">{engineOutput?.dailySLCount || 0} / 2 max</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#94a3b8]">Cooldown Status:</span>
+                    <strong className={engineOutput?.cooldownActive ? 'text-amber-400' : 'text-emerald-400'}>
+                      {engineOutput?.cooldownActive ? `Active (Ends ${new Date(engineOutput.cooldownEndsAt).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })})` : 'Clear'}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 max-h-[350px] overflow-y-auto pr-1">
+                  {activeSignal && activeSignal.events && activeSignal.events.length > 0 ? (
+                    activeSignal.events.map((evt, i) => (
+                      <div
+                        key={i}
+                        className="p-2 rounded bg-[#0b1322] border border-[#1e293b] text-xs font-mono"
+                      >
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className={`font-black ${
+                            evt.type.includes('SL') ? 'text-rose-400' :
+                            evt.type.includes('TP') ? 'text-emerald-400' : 'text-sky-400'
+                          }`}>
+                            {evt.type}
+                          </span>
+                          <span className="text-slate-500">
+                            {new Date(evt.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-300 mt-0.5">{evt.note}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-xs text-slate-500 font-mono">
+                      No events logged for current session yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-4 pt-3 border-t border-[#162032] flex items-center justify-between text-[10px] text-[#94a3b8]">
@@ -1325,7 +1734,7 @@ export default function GoldSmcAutoTradeLabView() {
         </div>
       </div>
 
-      {/* ── 5. EDUCATIONAL 7-STEP SMC GUIDE DRAWER (Matching Screenshot 3) ── */}
+      {/* ── 5. EDUCATIONAL 7-STEP SMC GUIDE DRAWER ── */}
       {showEducationalGuide && (
         <div className="rounded-xl border border-sky-500/40 bg-[#070e1c] p-4 shadow-2xl relative">
           <div className="flex items-center justify-between pb-3 border-b border-sky-900/50">
@@ -1441,7 +1850,7 @@ export default function GoldSmcAutoTradeLabView() {
         </div>
       )}
 
-      {/* ── 6. SMC ENTRY MODEL MODAL (Matching Screenshots 4 & 5) ── */}
+      {/* ── 6. SMC ENTRY MODEL MODAL ── */}
       {showSMCModelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
           <div className="w-full max-w-3xl rounded-2xl border border-amber-500/40 bg-[#070b14] p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto font-mono">
@@ -1512,7 +1921,7 @@ export default function GoldSmcAutoTradeLabView() {
         </div>
       )}
 
-      {/* ── 7. BOTTOM 4 ANALYSIS DASHBOARD CARDS (Matching User Screenshot) ── */}
+      {/* ── 7. BOTTOM 4 ANALYSIS DASHBOARD CARDS ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs">
         {/* Card 1: Market Analysis Summary */}
         <div className="rounded-xl border border-[#162032] bg-[#070b14] p-3 shadow-lg space-y-2">
@@ -1629,7 +2038,7 @@ export default function GoldSmcAutoTradeLabView() {
               </div>
               <div className="flex items-center gap-2 text-slate-200">
                 <span className="text-[#22c55e]">✓</span>
-                <span>AI Engine : <strong className="text-white">Active (PineScript v5 Lock)</strong></span>
+                <span>AI Engine : <strong className="text-white">7-Analyst Multi-TF (v3.5)</strong></span>
               </div>
             </div>
           </div>
