@@ -12,6 +12,8 @@
  *   8. Cooldown engine: post-SL 45 min, post-TP 15 min, max 2 signals/day
  */
 
+import { fetchResilientCandles, SupportedAsset, SupportedTimeframe } from '../../services/multiSourceCandleService';
+
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
 export interface CandleOHLC {
@@ -875,17 +877,33 @@ export function checkTPSL(signal: ActiveSignal, currentPrice: number): {
 // ─── MASTER ENGINE ───────────────────────────────────────────────────────────
 
 export async function fetchTFCandles(binanceSymbol: string, interval: string, limit = 150): Promise<CandleOHLC[]> {
+  const asset: SupportedAsset =
+    binanceSymbol.includes('PAXG') || binanceSymbol.includes('XAU') ? 'GOLD' :
+    binanceSymbol.includes('BTC') ? 'BTC' :
+    binanceSymbol.includes('ETH') ? 'ETH' : 'SOL';
+
+  const tfMap: Record<string, SupportedTimeframe> = {
+    '1m': '1M',
+    '5m': '5M',
+    '15m': '15M',
+    '30m': '30M',
+    '1h': '1H',
+    '4h': '4H',
+    '1d': '1D',
+    '1w': '1W'
+  };
+
+  const timeframe = tfMap[interval.toLowerCase()] || '15M';
+
   try {
-    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`);
-    if (!res.ok) return [];
-    const data: any[] = await res.json();
-    return data.map((d: any) => ({
-      time: Math.floor(d[0] / 1000),
-      open: parseFloat(d[1]),
-      high: parseFloat(d[2]),
-      low: parseFloat(d[3]),
-      close: parseFloat(d[4]),
-      volume: parseFloat(d[5])
+    const candles = await fetchResilientCandles(asset, timeframe, undefined, limit);
+    return candles.map((c) => ({
+      time: c.time,
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+      volume: c.volume
     }));
   } catch {
     return [];

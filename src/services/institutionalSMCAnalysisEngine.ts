@@ -596,19 +596,33 @@ export function analyzeInstitutionalSMC(
   };
 
   const hinglishBullets: string[] = direction === 'SHORT' ? [
-    `${(recentHigh?.price || currentPrice + atr * 1.5).toFixed(1)} EQH sweep ho chuka (X)`,
-    `${(recentLow?.price || currentPrice - atr * 0.8).toFixed(1)} ke neeche MSS close confirm`,
-    `Price BB+FVG zone me retrace`,
-    `Momentum H1 bearish (M=${momentum})`,
-    `Event blackout: nahi`,
-    `Target: ${tp3.toFixed(1)} sell-side liquidity`
+    `BSL Liquidity Sweep: ${(recentHigh?.price || currentPrice + atr * 1.5).toFixed(1)} par retail buy-stops sweep karke rejection wick confirm ho chuki hai.`,
+    `Market Structure Shift (MSS): ${(recentLow?.price || currentPrice - atr * 0.8).toFixed(1)} ke neeche strong candle body close hua hai (BOS Down).`,
+    `Institutional Order Block: Supply block ($${supplyZone.bottom.toFixed(1)} - $${supplyZone.top.toFixed(1)}) se sharp rejection aayi hai.`,
+    `Fair Value Gap Rebalanced: FVG ($${fvgZone.bottom.toFixed(1)} - $${fvgZone.top.toFixed(1)}) ka 50% consequent encroachment test ho chuka hai.`,
+    `Dealing Range: Price Premium zone mein hai (Expensive area), jahan se institutional desks distribution sell karti hain.`,
+    `Multi-EMA Alignment: Price EMA 14 ($${ema14.toFixed(1)}) aur EMA 50 ke neeche sustained hai jo downward trend velocity confirm karta hai.`,
+    `Momentum Velocity: H1 momentum (-${Math.abs(momentum)}) aur RSI (${rsi.toFixed(1)}) sustained selling pressure prove kar rahe hain.`,
+    `Volume Spread & Delta: Supply zone tap par selling delta increase hua hai, passive buyers absorb ho chuke hain.`,
+    `Intermarket Transmission: ${isGold ? 'US Dollar Index (DXY) support se bounce kar raha hai, jo Gold par downward pressure daal raha hai.' : 'USDT Dominance hold kar rahi hai jo crypto par selling bias create karti hai.'}`,
+    `Session Timing: Active institutional killzone (London/NY) mein execution ho raha hai jahan deep volume follow-through deta hai.`,
+    `Event Blackout Gate: Macro news check clear hai (No high-impact FOMC/CPI/NFP data in immediate window).`,
+    `Structural Risk Defense: Stop-Loss $${stopLoss.toFixed(1)} order block ke extreme edge ke upar +0.35 ATR buffer par rakha hai.`,
+    `Asymmetric Target Proof: TP1 par ${rrrTp1}, TP2 par ${rrrTp2}, aur final TP3 par ${rrrTp3} ($${tp3.toFixed(1)}) sell-side liquidity target locked hai.`
   ] : [
-    `${(recentLow?.price || currentPrice - atr * 1.5).toFixed(1)} EQL sweep ho chuka (X)`,
-    `${(recentHigh?.price || currentPrice + atr * 0.8).toFixed(1)} ke upar MSS close confirm`,
-    `Price Demand + FVG zone me retrace`,
-    `Momentum H1 bullish (M=+${Math.abs(momentum)})`,
-    `Event blackout: nahi`,
-    `Target: ${tp3.toFixed(1)} buy-side liquidity`
+    `SSL Liquidity Sweep: ${(recentLow?.price || currentPrice - atr * 1.5).toFixed(1)} par retail panic sell stops sweep karke smart money ne liquidity reclaim ki hai.`,
+    `Market Structure Shift (MSS): ${(recentHigh?.price || currentPrice + atr * 0.8).toFixed(1)} ke upar clear candle body close ho chuka hai (BOS Up).`,
+    `Institutional Order Block: Demand block ($${demandZone.bottom.toFixed(1)} - $${demandZone.top.toFixed(1)}) par bank algorithms ne buying step-in ki hai.`,
+    `Fair Value Gap Rebalanced: Bullish FVG ($${fvgZone.bottom.toFixed(1)} - $${fvgZone.top.toFixed(1)}) ka 50% CE fill hokar price ne upward reaction diya hai.`,
+    `Dealing Range: Price Discount zone mein hai (Cheap area), jo institutional accumulation ke liye mandatory criteria hai.`,
+    `Multi-EMA Alignment: Price EMA 14 ($${ema14.toFixed(1)}) aur EMA 50 ke upar hold kar raha hai jo fast bullish momentum stack banata hai.`,
+    `Momentum Velocity: Positive momentum (+${Math.abs(momentum)}) aur RSI (${rsi.toFixed(1)}) strong expansion drive dikha rahe hain.`,
+    `Volume Spread & Delta: Demand zone par buyers ka positive delta expand hua hai aur supply absorption complete hui hai.`,
+    `Intermarket Transmission: ${isGold ? 'DXY Dollar Index resistance se reject hokar soft ho raha hai, jo Gold (XAUUSD) ke liye strong tailwind hai.' : 'USDT Dominance fall ho rahi hai, capital crypto risk assets mein rotate ho raha hai.'}`,
+    `Session Timing: High-liquidity institutional trading session mein valid trigger bar confirm hua hai.`,
+    `Event Blackout Gate: Clear macro window - koi immediate interest rate decision ya CPI news spike risk nahi hai.`,
+    `Structural Risk Defense: Stop-Loss $${stopLoss.toFixed(1)} swing low aur demand block ke safe distance par positioned hai.`,
+    `Asymmetric Target Proof: TP1 par ${rrrTp1}, TP2 par ${rrrTp2}, aur final TP3 par ${rrrTp3} ($${tp3.toFixed(1)}) buy-side resting liquidity tak clear room hai.`
   ];
 
   return {

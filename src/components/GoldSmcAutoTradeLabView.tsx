@@ -23,6 +23,12 @@ import {
   ValidatedTradePlan
 } from '../services/institutionalSMCAnalysisEngine';
 import { getBottomDashboardData } from '../services/goldInstitutionalEngine';
+import { fetchResilientCandles, generateInstitutionalSyntheticCandles } from '../services/multiSourceCandleService';
+import {
+  evaluateInstitutionalParameters,
+  InstitutionalEvaluationResult,
+  InstitutionalParameter
+} from '../services/institutionalParametersEngine';
 import {
   runGoldSmcEngine,
   checkTPSL,
@@ -41,7 +47,7 @@ import {
 
 export type SupportedAsset = 'GOLD' | 'BTC' | 'ETH' | 'SOL';
 export type SupportedTimeframe = '1M' | '5M' | '15M' | '30M' | '1H' | '4H' | '1D' | '1W';
-export type RightPanelTab = 'TRADE_PLAN' | 'ANALYSTS' | 'MTF_BIAS' | 'SMC_ENTRY_MODEL' | 'HISTORY';
+export type RightPanelTab = 'TRADE_PLAN' | 'REASONS_15' | 'ANALYSTS' | 'MTF_BIAS' | 'SMC_ENTRY_MODEL' | 'HISTORY';
 
 interface AssetConfig {
   key: SupportedAsset;
@@ -118,6 +124,8 @@ export default function GoldSmcAutoTradeLabView() {
 
   // UI Toggles & Tabs
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('TRADE_PLAN');
+  const [reasonsFilter, setReasonsFilter] = useState<'ALL' | 'STRUCTURE' | 'LIQUIDITY' | 'MOMENTUM' | 'MACRO' | 'RISK'>('ALL');
+  const [expandedReasonId, setExpandedReasonId] = useState<string | null>(null);
   const [showEducationalGuide, setShowEducationalGuide] = useState<boolean>(false);
   const [showSMCModelModal, setShowSMCModelModal] = useState<boolean>(false);
   const [showZones, setShowZones] = useState<boolean>(true);
@@ -342,6 +350,18 @@ export default function GoldSmcAutoTradeLabView() {
     return rawTradePlan;
   }, [rawTradePlan, activeSignal, engineOutput]);
 
+  // ── 6B. 15-PARAMETER INSTITUTIONAL TRADE EVALUATION ──
+  const institutionalEvaluation: InstitutionalEvaluationResult = useMemo(() => {
+    return evaluateInstitutionalParameters(
+      activeConfig.instrument,
+      currentQuote.price || (activeAsset === 'GOLD' ? 3863 : 64368),
+      tradePlan,
+      candlesRef.current,
+      allQuotes['DXY']?.price || 102.35,
+      engineOutput?.session || 'London/NY Overlap'
+    );
+  }, [activeConfig.instrument, currentQuote.price, activeAsset, tradePlan, allQuotes, engineOutput?.session]);
+
   // ── 7. INITIALIZE TRADINGVIEW LIGHTWEIGHT CHARTS (CANVAS/WEBGL ENGINE) ──
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -431,58 +451,64 @@ export default function GoldSmcAutoTradeLabView() {
     };
   }, [activeAsset]);
 
-  // ── 8. FETCH REAL HISTORICAL OHLC CANDLES ON ASSET & TIMEFRAME CHANGE ──
+  // ── 8. FETCH REAL HISTORICAL OHLC CANDLES ON ASSET & TIMEFRAME CHANGE (MULTI-SOURCE RESILIENT) ──
   const fetchHistoricalCandles = useCallback(async () => {
     setIsLoadingCandles(true);
-    const binanceSym = activeConfig.binanceSymbol;
-    const intervalStr = TF_API_MAP[timeframe];
 
     try {
-      const res = await fetch(
-        `https://api.binance.com/api/v3/klines?symbol=${binanceSym}&interval=${intervalStr}&limit=120`
-      );
-      if (!res.ok) throw new Error('Failed to fetch historical klines');
-      const data = await res.json();
+      const livePrice = currentQuote.price || (activeAsset === 'GOLD' ? 3863 : 64368);
+      const candles = await fetchResilientCandles(activeAsset, timeframe, livePrice, 120);
 
-      const formattedCandles: CandleDataPoint[] = data.map((d: any) => ({
-        time: Math.floor(d[0] / 1000),
-        open: parseFloat(d[1]),
-        high: parseFloat(d[2]),
-        low: parseFloat(d[3]),
-        close: parseFloat(d[4]),
-        volume: parseFloat(d[5])
+      const formattedVolumes = candles.map((c: CandleDataPoint) => ({
+        time: c.time,
+        value: c.volume,
+        color: c.close >= c.open ? 'rgba(16, 185, 129, 0.45)' : 'rgba(244, 63, 94, 0.45)'
       }));
 
-      const formattedVolumes = data.map((d: any) => ({
-        time: Math.floor(d[0] / 1000),
-        value: parseFloat(d[5]),
-        color: parseFloat(d[4]) >= parseFloat(d[1]) ? 'rgba(16, 185, 129, 0.45)' : 'rgba(244, 63, 94, 0.45)'
-      }));
-
-      candlesRef.current = formattedCandles;
+      candlesRef.current = candles;
 
       if (candleSeriesRef.current && volumeSeriesRef.current) {
-        candleSeriesRef.current.setData(formattedCandles);
+        candleSeriesRef.current.setData(candles);
         volumeSeriesRef.current.setData(formattedVolumes);
       }
 
-      if (formattedCandles.length > 0) {
-        const last = formattedCandles[formattedCandles.length - 1];
-        sharedQuoteStore.setQuote(activeConfig.quoteKey, {
-          price: last.close,
-          source: activeConfig.instrument === 'XAUUSD' ? 'Gold-API Spot / Binance PAXG' : 'Binance Official Feed'
-        });
+      if (candles.length > 0) {
+        const last = candles[candles.length - 1];
+        if (last && last.close > 0) {
+          sharedQuoteStore.setQuote(activeConfig.quoteKey, {
+            price: last.close,
+            source: activeConfig.instrument === 'XAUUSD' ? 'Gold-API Spot / Kraken PAXG' : 'Coinbase / Binance Live Feed'
+          });
+        }
       }
 
       if (chartInstanceRef.current) {
         chartInstanceRef.current.timeScale().fitContent();
       }
     } catch (err) {
-      console.warn('Real historical candles fetch failed, using calibrated store data:', err);
+      console.warn('Resilient candles fetch fallback warning:', err);
+      const fallbackCandles = generateInstitutionalSyntheticCandles(
+        activeAsset,
+        timeframe,
+        currentQuote.price || (activeAsset === 'GOLD' ? 3863 : 64368),
+        120
+      );
+      candlesRef.current = fallbackCandles;
+      if (candleSeriesRef.current && volumeSeriesRef.current) {
+        candleSeriesRef.current.setData(fallbackCandles);
+        volumeSeriesRef.current.setData(fallbackCandles.map((c) => ({
+          time: c.time,
+          value: c.volume,
+          color: c.close >= c.open ? 'rgba(16, 185, 129, 0.45)' : 'rgba(244, 63, 94, 0.45)'
+        })));
+      }
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.timeScale().fitContent();
+      }
     } finally {
       setIsLoadingCandles(false);
     }
-  }, [activeConfig, timeframe]);
+  }, [activeAsset, activeConfig, timeframe, currentQuote.price]);
 
   useEffect(() => {
     fetchHistoricalCandles();
@@ -1274,8 +1300,8 @@ export default function GoldSmcAutoTradeLabView() {
                 </span>
               </div>
 
-              {/* Tab Selector: Trade Plan | 7 Analysts | MTF Matrix | SMC Story | Events */}
-              <div className="flex items-center bg-[#0b1322] border border-[#1e293b] rounded-lg p-0.5 text-[10px] overflow-x-auto max-w-[240px] sm:max-w-none">
+              {/* Tab Selector: Trade Plan | 15 Reasons ⭐ | 7 Analysts | MTF Matrix | SMC Story | Events */}
+              <div className="flex items-center bg-[#0b1322] border border-[#1e293b] rounded-lg p-0.5 text-[10px] overflow-x-auto max-w-[280px] sm:max-w-none">
                 <button
                   onClick={() => setRightPanelTab('TRADE_PLAN')}
                   className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all shrink-0 ${
@@ -1283,6 +1309,19 @@ export default function GoldSmcAutoTradeLabView() {
                   }`}
                 >
                   Plan
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('REASONS_15')}
+                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all shrink-0 flex items-center gap-1 ${
+                    rightPanelTab === 'REASONS_15'
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm font-black'
+                      : 'text-emerald-400 hover:text-white'
+                  }`}
+                >
+                  <span>15 Reasons</span>
+                  <span className="px-1 rounded bg-black/40 text-[9px] text-emerald-200 font-mono">
+                    {institutionalEvaluation.passCount}/15
+                  </span>
                 </button>
                 <button
                   onClick={() => setRightPanelTab('ANALYSTS')}
@@ -1362,6 +1401,28 @@ export default function GoldSmcAutoTradeLabView() {
                       ? <>Anti-Flip State Locked • Macro Target: <strong className="tabular-nums">{tradePlan.rewardPipsTp3} Pips</strong> (Grade {tradePlan.setupGrade} • {tradePlan.confidence}% Conf • Score {activeSignal?.setupScore || 85}/100)</>
                       : (engineOutput?.whyNoSignal || <>Anti-Flip Protection Active • Mid-Range Equilibrium • Waiting for 15M Bar Close Confirmation</>)}
                   </p>
+                </div>
+
+                {/* 15-Parameter Audit Quick Action Ribbon */}
+                <div
+                  onClick={() => setRightPanelTab('REASONS_15')}
+                  className="mt-2.5 p-2 rounded-xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-sky-950/70 border border-emerald-500/50 shadow-md cursor-pointer hover:border-emerald-400 transition-all flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🛡️</span>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-emerald-300">15-Parameter Audit:</span>
+                        <span className="text-xs font-bold text-white tabular-nums">{institutionalEvaluation.passCount}/15 PASS</span>
+                      </div>
+                      <div className="text-[10px] text-slate-300 font-sans">
+                        Score: <strong className="text-amber-400">{institutionalEvaluation.totalScore}/100</strong> • Grade <strong className="text-emerald-400">{institutionalEvaluation.setupGrade}</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <button className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-black flex items-center gap-1 border border-emerald-500/40 cursor-pointer">
+                    View 15 Proofs <ChevronRight className="w-3 h-3" />
+                  </button>
                 </div>
 
                 {/* Setup Score Progress Bar */}
@@ -1451,12 +1512,15 @@ export default function GoldSmcAutoTradeLabView() {
                   </div>
                 </div>
 
-                {/* Hinglish Institutional Thesis */}
-                <div className="mt-3 p-2.5 rounded-lg bg-[#0b1322] border border-[#1e293b] space-y-1 text-[11px]">
-                  <span className="text-amber-400 font-bold block">Why (Institutional Thesis):</span>
+                {/* Hinglish Institutional Thesis (Expanded with Max Height Scroll) */}
+                <div className="mt-3 p-2.5 rounded-lg bg-[#0b1322] border border-[#1e293b] space-y-1.5 text-[11px] max-h-[220px] overflow-y-auto pr-1">
+                  <div className="flex items-center justify-between sticky top-0 bg-[#0b1322] pb-1 border-b border-slate-800">
+                    <span className="text-amber-400 font-bold">Why (Institutional Thesis):</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{tradePlan.hinglishBullets.length} Points</span>
+                  </div>
                   {tradePlan.hinglishBullets.map((bullet, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5 text-slate-300">
-                      <span className="text-slate-500">•</span>
+                    <div key={idx} className="flex items-start gap-1.5 text-slate-300 leading-relaxed">
+                      <span className="text-amber-400 shrink-0 font-bold">•</span>
                       <span>{bullet}</span>
                     </div>
                   ))}
@@ -1470,6 +1534,147 @@ export default function GoldSmcAutoTradeLabView() {
                   >
                     Reset & Re-analyze Trade
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB 1B: 15 DEEP INSTITUTIONAL PARAMETERS VERIFICATION PROOF ── */}
+            {rightPanelTab === 'REASONS_15' && (
+              <div className="mt-3 space-y-3 font-sans">
+                {/* Score & Verdict Header */}
+                <div className="p-3 rounded-xl bg-gradient-to-br from-[#0c1629] to-[#070b14] border border-[#1e293b] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+                        Institutional Multi-Factor Engine
+                      </span>
+                      <h4 className="text-sm font-black text-white flex items-center gap-1.5 mt-0.5">
+                        <span>15-Parameter Verification Proof</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${
+                          institutionalEvaluation.setupGrade === 'A+' ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50' :
+                          institutionalEvaluation.setupGrade === 'A' ? 'bg-teal-950/80 text-teal-300 border-teal-500/50' :
+                          'bg-amber-950/80 text-amber-300 border-amber-500/50'
+                        }`}>
+                          Grade {institutionalEvaluation.setupGrade}
+                        </span>
+                      </h4>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xl font-black text-amber-400 tabular-nums">
+                        {institutionalEvaluation.totalScore}
+                      </span>
+                      <span className="text-xs text-slate-400">/100</span>
+                    </div>
+                  </div>
+
+                  {/* Pass / Warn / Fail Counter Ribbons */}
+                  <div className="grid grid-cols-3 gap-1.5 text-center text-xs font-mono">
+                    <div className="p-1.5 rounded bg-emerald-950/50 border border-emerald-500/40 text-emerald-300">
+                      <strong className="block text-sm font-black">{institutionalEvaluation.passCount}</strong>
+                      <span className="text-[9px] text-emerald-400 uppercase font-bold">Passed</span>
+                    </div>
+                    <div className="p-1.5 rounded bg-amber-950/50 border border-amber-500/40 text-amber-300">
+                      <strong className="block text-sm font-black">{institutionalEvaluation.warnCount}</strong>
+                      <span className="text-[9px] text-amber-400 uppercase font-bold">Warnings</span>
+                    </div>
+                    <div className="p-1.5 rounded bg-rose-950/50 border border-rose-500/40 text-rose-300">
+                      <strong className="block text-sm font-black">{institutionalEvaluation.failCount}</strong>
+                      <span className="text-[9px] text-rose-400 uppercase font-bold">Failed</span>
+                    </div>
+                  </div>
+
+                  {/* Hinglish Executive Thesis */}
+                  <div className="p-2 rounded-lg bg-[#070d1a] border border-[#1e293b] text-[11px] text-slate-300 leading-relaxed font-sans">
+                    <span className="text-amber-400 font-bold block mb-0.5">🧠 Computer Logic (Hinglish):</span>
+                    {institutionalEvaluation.hinglishExecutiveSummary}
+                  </div>
+                </div>
+
+                {/* Category Filter Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 text-[10px]">
+                  {(['ALL', 'STRUCTURE', 'LIQUIDITY', 'MOMENTUM', 'MACRO', 'RISK'] as const).map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setReasonsFilter(cat)}
+                      className={`px-2 py-0.5 rounded font-bold whitespace-nowrap cursor-pointer transition-all ${
+                        reasonsFilter === cat
+                          ? 'bg-sky-600 text-white shadow-sm'
+                          : 'bg-[#0b1322] border border-[#1e293b] text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 15 Parameter Cards List */}
+                <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+                  {institutionalEvaluation.parameters
+                    .filter((p) => reasonsFilter === 'ALL' || p.category === reasonsFilter)
+                    .map((p) => {
+                      const isExpanded = expandedReasonId === p.id;
+                      return (
+                        <div
+                          key={p.id}
+                          className="p-2.5 rounded-lg bg-[#0b1322] border border-[#1e293b] space-y-1.5 transition-all hover:border-slate-700"
+                        >
+                          {/* Header */}
+                          <div
+                            onClick={() => setExpandedReasonId(isExpanded ? null : p.id)}
+                            className="flex items-center justify-between cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 text-[10px] font-black text-cyan-400 font-mono">
+                                {p.number}
+                              </span>
+                              <span className="text-xs font-bold text-slate-200">{p.name}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border font-mono ${
+                                p.status === 'PASS'
+                                  ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50'
+                                  : p.status === 'WARN'
+                                  ? 'bg-amber-950 text-amber-300 border-amber-500/50'
+                                  : 'bg-rose-950 text-rose-300 border-rose-500/50'
+                              }`}>
+                                {p.status === 'PASS' ? 'PASS ✓' : p.status === 'WARN' ? 'WARN ⚠' : 'FAIL ✕'}
+                              </span>
+                              <ChevronRight className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            </div>
+                          </div>
+
+                          {/* Live Metric Reading */}
+                          <div className="text-[10px] text-slate-300 font-mono bg-[#070d1a] p-1.5 rounded border border-[#162032]">
+                            <strong className="text-cyan-400">Live Reading: </strong>
+                            <span>{p.reading}</span>
+                          </div>
+
+                          {/* Hinglish Explanation */}
+                          <div className="text-[11px] text-slate-200 font-sans pl-1 border-l-2 border-amber-500/60 leading-relaxed">
+                            <strong className="text-amber-400 block text-[10px] font-sans">Kyun Di Trade? (Institutional Logic):</strong>
+                            {p.hinglishReason}
+                          </div>
+
+                          {/* Expandable Technical Evidence & Rule */}
+                          {isExpanded && (
+                            <div className="pt-2 border-t border-slate-800 space-y-1.5 text-[10px] font-sans animate-fadeIn">
+                              <div>
+                                <span className="text-slate-400 font-bold block">Institutional Rule:</span>
+                                <span className="text-slate-300">{p.ruleCondition}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 font-bold block">Mathematical Proof:</span>
+                                <span className="text-cyan-300 font-mono">{p.evidence}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 font-bold block">Formal Description:</span>
+                                <span className="text-slate-300">{p.englishReason}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             )}
