@@ -97,3 +97,4 @@ export async function getCoinbaseSymbols(): Promise<{ symbol: string; baseAsset:
     { symbol: 'SOL-USD', baseAsset: 'SOL', quoteAsset: 'USD' }
   ];
 }
+

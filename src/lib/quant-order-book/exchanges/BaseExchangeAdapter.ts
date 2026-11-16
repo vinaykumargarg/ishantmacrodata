@@ -149,3 +149,4 @@ export abstract class BaseExchangeAdapter {
     this.ws = null;
   }
 }
+

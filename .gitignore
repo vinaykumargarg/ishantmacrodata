@@ -30,3 +30,4 @@ scripts/send_activation.py
 
 .vercel
 .agents/
+scratch/

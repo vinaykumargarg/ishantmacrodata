@@ -301,3 +301,4 @@ export class OrderBookHeatmap {
     if (this.canvas?.parentNode) this.canvas.parentNode.removeChild(this.canvas);
   }
 }
+

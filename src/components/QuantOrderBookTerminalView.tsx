@@ -1192,3 +1192,4 @@ export const QuantOrderBookTerminalView: React.FC<QuantOrderBookTerminalViewProp
 };
 
 export default QuantOrderBookTerminalView;
+

@@ -194,3 +194,4 @@ export async function getBinanceKlines(symbol: string, interval = '1h', limit = 
     return [];
   }
 }
+

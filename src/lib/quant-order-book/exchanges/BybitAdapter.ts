@@ -136,3 +136,4 @@ export async function getBybitSymbols(): Promise<{ symbol: string; baseAsset: st
     { symbol: 'MNTUSDT', baseAsset: 'MNT', quoteAsset: 'USDT' }
   ];
 }
+
