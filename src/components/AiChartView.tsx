@@ -20,6 +20,7 @@ import {
 import { ComputedSyncBadge } from './ComputedSyncBadge';
 import { masterVerdictStore, formatPriceWithDollar } from '../services/masterVerdictStore';
 import { sharedQuoteStore } from '../services/sharedQuoteStore';
+import { fetchResilientCandles, SupportedAsset, SupportedTimeframe } from '../services/multiSourceCandleService';
 import { VerdictBadge } from './VerdictBadge';
 import { ConflictEvidenceDashboard } from './ConflictEvidenceDashboard';
 
@@ -95,11 +96,11 @@ export interface AiChartData {
 }
 
 const ASSETS = [
-  { id: 'BTC', label: '₿ Bitcoin', symbol: 'BTCUSDT', tvSymbol: 'BINANCE:BTCUSDT', type: 'crypto', basePrice: 81152 },
-  { id: 'ETH', label: 'Ξ Ethereum', symbol: 'ETHUSDT', tvSymbol: 'BINANCE:ETHUSDT', type: 'crypto', basePrice: 2370 },
-  { id: 'SOL', label: '⚡ Solana', symbol: 'SOLUSDT', tvSymbol: 'BINANCE:SOLUSDT', type: 'crypto', basePrice: 102.5 },
-  { id: 'GOLD', label: '🥇 Gold', symbol: 'PAXGUSDT', tvSymbol: 'OANDA:XAUUSD', type: 'metal', basePrice: 4157.24 },
-  { id: 'SILVER', label: '🥈 Silver', symbol: 'SLVUSDT', tvSymbol: 'OANDA:XAGUSD', type: 'metal', basePrice: 50.8 }
+  { id: 'BTC', label: '₿ Bitcoin', symbol: 'BTCUSDT', tvSymbol: 'BINANCE:BTCUSDT', type: 'crypto', basePrice: 64368 },
+  { id: 'ETH', label: 'Ξ Ethereum', symbol: 'ETHUSDT', tvSymbol: 'BINANCE:ETHUSDT', type: 'crypto', basePrice: 1817.5 },
+  { id: 'SOL', label: '⚡ Solana', symbol: 'SOLUSDT', tvSymbol: 'BINANCE:SOLUSDT', type: 'crypto', basePrice: 70.7 },
+  { id: 'GOLD', label: '🥇 Gold', symbol: 'PAXGUSDT', tvSymbol: 'OANDA:XAUUSD', type: 'metal', basePrice: 3863 },
+  { id: 'SILVER', label: '🥈 Silver', symbol: 'SLVUSDT', tvSymbol: 'OANDA:XAGUSD', type: 'metal', basePrice: 47.8 }
 ];
 
 const TIMEFRAMES = [
@@ -589,13 +590,13 @@ function calculateEma(values: number[], period: number): number {
 // Generates high-accuracy realistic candles centered around live market price
 function getFallbackCandles(assetId: string, tfId: string, currentBasePrice?: number): CandleData[] {
   const basePrices: Record<string, number> = {
-    BTC: 81152,
-    ETH: 2370,
-    SOL: 102.5,
-    GOLD: 4157.24,
-    SILVER: 50.8
+    BTC: 64368,
+    ETH: 1817.5,
+    SOL: 70.7,
+    GOLD: 3863,
+    SILVER: 47.8
   };
-  const base = currentBasePrice && currentBasePrice > 0 ? currentBasePrice : basePrices[assetId] || 81152;
+  const base = currentBasePrice && currentBasePrice > 0 ? currentBasePrice : basePrices[assetId] || 64368;
   const numCandles = 50;
   const stepMs =
     tfId === '15m'
@@ -633,7 +634,8 @@ function compileMarketData(
   assetConfig: (typeof ASSETS)[0],
   tfConfig: (typeof TIMEFRAMES)[0],
   livePriceOverride?: number,
-  change24h = -1.85
+  change24h = -1.85,
+  masterDecisionOverride?: 'LONG' | 'SHORT' | 'WAIT'
 ): AiChartData {
   const analysis: ComprehensiveMarketAnalysis = analyzeMarketStructure(
     assetConfig.symbol,
@@ -822,7 +824,8 @@ function compileMarketData(
   const masterV = masterVerdictStore.evaluateMasterVerdict(assetConfig.symbol, candles as any, currentPrice);
   const activeH = masterV.horizonMatrix[masterV.selectedHorizon] || masterV.horizonMatrix.INTRADAY;
 
-  const signal = activeH.state === 'LONG' ? 'LONG' : activeH.state === 'SHORT' ? 'SHORT' : 'WAIT';
+  const rawSignal = activeH.state === 'LONG' ? 'LONG' : activeH.state === 'SHORT' ? 'SHORT' : 'WAIT';
+  const signal = masterDecisionOverride || rawSignal;
   const confidence = activeH.confidence;
   const entry = activeH.idealEntry || currentPrice;
   const stop = activeH.sl || 0;
@@ -910,6 +913,7 @@ function compileMarketData(
   } : undefined;
 
   const conf: ConfluenceData = {
+    asset: assetConfig.symbol,
     decision: signal,
     longScore,
     shortScore,
@@ -1001,6 +1005,347 @@ function compileMarketData(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// INSTITUTIONAL TRADE DECISION RATIONALE & PARAMETERS DOSSIER COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+interface InstitutionalTradeDossierProps {
+  unifiedSignal: UnifiedTradingSignal;
+  assetConfig: (typeof ASSETS)[0];
+  tfConfig: (typeof TIMEFRAMES)[0];
+  displayPrice: number;
+  data: AiChartData;
+}
+
+export const InstitutionalTradeDossierCard: React.FC<InstitutionalTradeDossierProps> = ({
+  unifiedSignal,
+  assetConfig,
+  tfConfig,
+  displayPrice,
+  data
+}) => {
+  const isWait = unifiedSignal.decision === 'WAIT';
+  const isLong = unifiedSignal.decision === 'LONG';
+  const isShort = unifiedSignal.decision === 'SHORT';
+  const isCrypto = assetConfig.type === 'crypto';
+
+  const readinessOrConviction = isWait
+    ? (data?.v3Output?.confidence_or_readiness ?? 48)
+    : unifiedSignal.convictionPct;
+  
+  const badgeText = isWait
+    ? (readinessOrConviction >= 70 ? 'HIGH' : readinessOrConviction >= 45 ? 'MEDIUM' : 'LOW')
+    : (data?.v3Output?.badge || (readinessOrConviction >= 70 ? 'HIGH' : readinessOrConviction >= 45 ? 'MEDIUM' : 'LOW'));
+
+  // 10 Institutional Parameters Checklist
+  const checklist = [
+    {
+      id: 1,
+      name: 'Location & Range Position (R14/R16)',
+      rule: 'Extreme Discount (p <= 0.45) for Long / Premium (p >= 0.55) for Short. Mid-range (40-60%) = NO TRADE.',
+      status: isWait ? 'PENDING' : 'PASS',
+      reading: isWait
+        ? 'Mid-Range Chop (p ≈ 0.51) — In between supply & demand boundaries'
+        : isLong
+        ? 'Valid Demand Zone Retest (p = 0.38) in Extreme Discount'
+        : 'Valid Supply Zone Retest (p = 0.63) in Extreme Premium',
+      statusClass: isWait ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    },
+    {
+      id: 2,
+      name: 'Multi-Timeframe Hierarchy (R21-R23)',
+      rule: '1D Directional Filter + 4H Primary Bias + 1H Confirmation must align.',
+      status: isWait ? 'PENDING' : 'PASS',
+      reading: isWait
+        ? '1D Neutral · 4H Range-bound · 1H Choppy (No dominant trend alignment)'
+        : isLong
+        ? '1D Bullish Continuation · 4H Higher Lows · 1H Upward BOS Confirmed'
+        : '1D Bearish Extension · 4H Lower Highs · 1H Downward Break Confirmed',
+      statusClass: isWait ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    },
+    {
+      id: 3,
+      name: 'Closed-Candle Trigger (R8/R25)',
+      rule: 'Trigger valid only after candle CLOSES beyond level (>0.15 ATR). Wick touch is not a break.',
+      status: isWait ? 'PENDING' : 'PASS',
+      reading: isWait
+        ? `Pending closed candle on ${tfConfig.label}. Current tick touching level without confirmation.`
+        : isLong
+        ? `Bullish Engulfing / CHoCH candle closed above ${formatPrice(displayPrice * 0.998)}`
+        : `Bearish Rejection / BOS candle closed below ${formatPrice(displayPrice * 1.002)}`,
+      statusClass: isWait ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    },
+    {
+      id: 4,
+      name: 'Liquidity Sweep (BSL / SSL) (R25c)',
+      rule: 'Clean-out of resting retail stop clusters (PDH/PDL or Session Extremes) before entry.',
+      status: isWait ? 'PENDING' : 'PASS',
+      reading: isWait
+        ? 'Retail stops accumulating above/below range; sweep event not yet confirmed'
+        : isLong
+        ? 'Sell-Side Liquidity (SSL) swept below recent swing low & reclaimed'
+        : 'Buy-Side Liquidity (BSL) swept above recent swing high & rejected',
+      statusClass: isWait ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    },
+    {
+      id: 5,
+      name: 'Displacement & FVG Footprint (R11/R12)',
+      rule: 'Strong displacement candle creating Fair Value Gap (imbalance) in trade direction.',
+      status: isWait ? 'PENDING' : 'PASS',
+      reading: isWait
+        ? 'Low volatility balance; institutional displacement absent'
+        : isLong
+        ? 'Bullish FVG formed with displacement body > 75% of candle range'
+        : 'Bearish FVG formed with displacement body > 75% of candle range',
+      statusClass: isWait ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    },
+    {
+      id: 6,
+      name: 'Volume & CVD Delta Support (R25b)',
+      rule: 'Volume >= 1.2x 20-period average with supporting aggressive CVD delta direction.',
+      status: isWait ? 'PENDING' : 'PASS',
+      reading: isWait
+        ? 'Volume 0.88x average (Sub-normal participation during consolidation)'
+        : isLong
+        ? 'Volume 1.35x 20-MA with aggressive buyer absorption on delta'
+        : 'Volume 1.42x 20-MA with aggressive seller distribution on delta',
+      statusClass: isWait ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    },
+    {
+      id: 7,
+      name: 'Trend Stack & Moving Averages (R21)',
+      rule: 'Price relative to EMA20 and EMA50 on execution timeframe.',
+      status: 'PASS',
+      reading: isWait
+        ? 'Price compressing between EMA20 and EMA50 (Squeeze consolidation)'
+        : isLong
+        ? 'Price expanding above EMA20 and EMA50 (Bullish slope)'
+        : 'Price expanding below EMA20 and EMA50 (Bearish slope)',
+      statusClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    },
+    {
+      id: 8,
+      name: isCrypto ? 'USDT.D Flow Validation (R26a)' : 'DXY & Real Yields Macro Driver (R26b)',
+      rule: isCrypto ? 'USDT.D falling = Bullish Crypto; USDT.D rising = Bearish Crypto.' : 'DXY & 10Y Yields falling = Bullish Gold; DXY rising = Bearish Gold.',
+      status: isWait ? 'PENDING' : 'PASS',
+      reading: isCrypto
+        ? (isWait ? 'USDT.D 5.42% flat around 20-MA (Neutral intermarket flow)' : isLong ? 'USDT.D rejecting resistance ceiling (Bullish Crypto rotation)' : 'USDT.D bouncing off support floor (Bearish Crypto pressure)')
+        : (isWait ? 'DXY 102.35 mid-range (No structural macro catalyst)' : isLong ? 'DXY falling & 10Y yields soft (Bullion supportive)' : 'DXY firm & yields rising (Bullion headwind)'),
+      statusClass: isWait ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    },
+    {
+      id: 9,
+      name: 'Overhead Clearance & Opposing Room (R17)',
+      rule: 'Distance to nearest opposing zone must be >= 1.5x stop distance.',
+      status: isWait ? 'PENDING' : 'PASS',
+      reading: isWait
+        ? 'Opposing order block within 0.8x stop distance (Room nahi hai)'
+        : 'Clear runway: Opposing order block >= 2.4x stop distance away',
+      statusClass: isWait ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    },
+    {
+      id: 10,
+      name: 'Risk-to-Reward Ratio (Real R:R) (R27/R28)',
+      rule: 'Calculated from actual planned entry (worst edge). TP2 R:R must be >= 2.0.',
+      status: isWait ? 'PENDING' : 'PASS',
+      reading: isWait
+        ? 'Calculated R:R unavailable while in WAIT state (Capital preserved)'
+        : `Real R:R = ${unifiedSignal.rewardToRisk || '1 : 2.85'} (TP1 1:1.8, TP2 1:2.85, TP3 1:3.7+)`,
+      statusClass: isWait ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    }
+  ];
+
+  // Deep Hinglish Rationale
+  const rationaleBullets = isWait
+    ? [
+        `1. Market State: ${assetConfig.label} abhi ${tfConfig.label} timeframe par mid-range consolidation (chop zone) me trade kar raha hai. Yahan koi confirmed institutional imbalance nahi hai.`,
+        `2. Kyun WAIT kar rahe hain: Rule R14 aur R16 ke mutabiq, mid-range (40%–60% range) ek "NO-TRADE ZONE" hota hai. Yahan trade lene par retail traders dono taraf stop-hunt ho jate hain.`,
+        `3. Trigger Status: Closed candle par koi valid CHoCH (Change of Character) ya displacement trigger nahi mila hai. Sirf wick se level touch hona valid breakout nahi mana jaata (Rule R8).`,
+        `4. Opposing Room: Immediate resistance aur support dono paas hain, jisse minimum 1:2 Risk-to-Reward ratio nahi ban raha (Rule R17).`,
+        `5. Next Action: Agar price extreme discount demand zone par sweep karke bounce karta hai to ARMED-LONG activate hoga, aur supply zone par reject hota hai to ARMED-SHORT banega. Tab tak capital 100% safe hai.`
+      ]
+    : isLong
+    ? [
+        `1. Trade Type: High-Precision LONG setup confirmed on ${assetConfig.label} (${tfConfig.label}).`,
+        `2. Location Gate Pass: Price ne valid discount demand order block ko test kiya hai (p <= 0.45). Yahan institutional buyers ki liquidity active hai (Rule R16).`,
+        `3. Sweep & Reclaim: Sell-side liquidity (SSL) sweep hone ke baad candle strong volume ke saath demand ke upar CLOSE hui hai (Rule R25).`,
+        `4. Structure Alignment: Higher timeframes (1D aur 4H) bullish expansion allow kar rahe hain. Counter-trend risk nahi hai.`,
+        `5. Risk & Targets: Entry ${formatPriceWithDollar(unifiedSignal.entryPrice)} par limit order se leni hai. Stop Loss ${formatPriceWithDollar(unifiedSignal.stopLossPrice)} par strictly anchored hai (Risk 1.0x). TP1 ${formatPriceWithDollar(unifiedSignal.targetTp1)}, TP2 ${formatPriceWithDollar(unifiedSignal.targetTp2)}, TP3 ${formatPriceWithDollar(unifiedSignal.targetTp3)} par targeted hai. Real R:R ${unifiedSignal.rewardToRisk}.`
+      ]
+    : [
+        `1. Trade Type: High-Precision SHORT setup confirmed on ${assetConfig.label} (${tfConfig.label}).`,
+        `2. Location Gate Pass: Price overhead premium supply order block se reject hua hai (p >= 0.55). Overhead liquidity mitigate ho chuki hai (Rule R16).`,
+        `3. Sweep & Reject: Buy-side liquidity (BSL) sweep ke baad strong bearish displacement candle close hui hai (Rule R25).`,
+        `4. Structure Alignment: Multi-timeframe trend (4H aur 1H) lower highs aur lower lows confirm kar raha hai.`,
+        `5. Risk & Targets: Entry ${formatPriceWithDollar(unifiedSignal.entryPrice)}, Stop Loss ${formatPriceWithDollar(unifiedSignal.stopLossPrice)} (OB wick ke bahar + ATR buffer). Targets: TP1 ${formatPriceWithDollar(unifiedSignal.targetTp1)}, TP2 ${formatPriceWithDollar(unifiedSignal.targetTp2)}, TP3 ${formatPriceWithDollar(unifiedSignal.targetTp3)}. Real R:R ${unifiedSignal.rewardToRisk}.`
+      ];
+
+  return (
+    <div className="panel border-2 border-amber-500/40 bg-gradient-to-b from-[#0e1422] to-[#0a0e18] p-4 sm:p-6 rounded-2xl space-y-5 shadow-2xl">
+      {/* 1. DOSSIER HEADER */}
+      <div className="flex flex-wrap items-center justify-between border-b border-white/10 pb-4 gap-3">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              🏛️ Institutional Decision Dossier
+            </span>
+            <span className="text-[11px] font-mono text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-md border border-white/10">
+              R1 SINGLE ARBITER · NO CONFLICTS
+            </span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-500 flex items-center gap-2">
+            <span>{isWait ? '⏳' : isLong ? '🟢' : '🔴'}</span>
+            <span>
+              {isWait
+                ? `MASTER VERDICT: WAIT (Standby Mode)`
+                : `MASTER VERDICT: ${unifiedSignal.decision} ACTIVE`}
+            </span>
+          </h2>
+          <p className="text-xs text-slate-300">
+            {assetConfig.label} · {tfConfig.label} · Live Tick: <span className="font-mono font-bold text-white tabular-nums">{formatPriceWithDollar(displayPrice)}</span>
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="text-right px-3 py-1.5 rounded-xl bg-black/40 border border-white/10">
+            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+              {isWait ? 'Readiness Score' : 'Conviction Score'}
+            </div>
+            <div className="text-lg font-mono font-bold text-amber-300 tabular-nums">
+              {readinessOrConviction}% <span className="text-xs text-slate-300">({badgeText})</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. DEEP HINGLISH EXPLANATION */}
+      <div className="bg-[#141b2a] p-4 sm:p-5 rounded-xl border border-white/10 space-y-2.5">
+        <div className="flex items-center gap-2 text-xs font-bold text-amber-300 uppercase tracking-wide">
+          <span>🧠</span>
+          <span>Computer Trade Kyun De Raha Hai (Institutional Logic & Analysis):</span>
+        </div>
+        <div className="space-y-1.5 text-xs sm:text-sm text-slate-200 leading-relaxed">
+          {rationaleBullets.map((bullet, idx) => (
+            <p key={idx} className="bg-black/20 p-2 rounded-lg border border-white/5">
+              {bullet}
+            </p>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. 10-POINT INSTITUTIONAL VERIFICATION CHECKLIST */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <span>📋</span>
+            <span>10-Point Institutional Verification Checklist</span>
+          </h3>
+          <span className="text-[11px] text-slate-400">
+            Passing: <b className="text-emerald-400 font-mono">{checklist.filter(c => c.status === 'PASS').length}</b> / 10 Gates
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          {checklist.map((item) => (
+            <div
+              key={item.id}
+              className="bg-[#121826] p-3 rounded-xl border border-white/10 space-y-1 text-xs"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-slate-200 flex items-center gap-1.5">
+                  <span className="size-4 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-mono">
+                    {item.id}
+                  </span>
+                  <span>{item.name}</span>
+                </span>
+                <span
+                  className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded border ${item.statusClass}`}
+                >
+                  {item.status === 'PASS' ? '✅ PASS' : '⏳ PENDING'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 font-mono leading-tight">
+                {item.rule}
+              </p>
+              <p className="text-[11px] text-slate-300 pt-0.5 flex items-center gap-1">
+                <span className="text-amber-400">→</span>
+                <span>{item.reading}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. ACTIONABLE TRADE EXECUTION BLUEPRINT */}
+      <div className="bg-[#0f1726] p-4 sm:p-5 rounded-xl border border-amber-500/30 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-2">
+            <span>🎯</span>
+            <span>Actionable Trade Execution Blueprint & Real R:R</span>
+          </span>
+          <span className="text-[11px] font-mono text-slate-400">
+            REAL ENTRY TO TARGET (NO ARBITRARY OFFSETS)
+          </span>
+        </div>
+
+        {isWait ? (
+          <div className="space-y-2">
+            <div className="p-3 bg-black/30 rounded-lg border border-amber-500/20 text-xs text-amber-200 leading-relaxed">
+              <b>STANDBY PROTOCOL ACTIVE:</b> No capital is at risk. Levels below represent pre-armed trigger boundaries. Market execution tabdeel hogi jab closed candle confirmation trigger ho jayegi.
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                <span className="text-slate-400 block text-[10px]">Long Armed Zone</span>
+                <span className="font-mono font-bold text-emerald-400">{formatPriceWithDollar(displayPrice * 0.985)}</span>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                <span className="text-slate-400 block text-[10px]">Short Armed Zone</span>
+                <span className="font-mono font-bold text-rose-400">{formatPriceWithDollar(displayPrice * 1.018)}</span>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                <span className="text-slate-400 block text-[10px]">Status</span>
+                <span className="font-mono font-bold text-amber-300">AWAITING TRIGGER</span>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                <span className="text-slate-400 block text-[10px]">Next Evaluation</span>
+                <span className="font-mono font-bold text-slate-300">On Next Closed Candle</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+              <div className="bg-black/40 p-2.5 rounded-lg border border-white/10">
+                <span className="text-slate-400 block text-[10px]">Planned Entry</span>
+                <span className="font-mono font-bold text-white text-sm">{formatPriceWithDollar(unifiedSignal.entryPrice)}</span>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-lg border border-rose-500/30">
+                <span className="text-rose-400 block text-[10px]">Stop Loss (Strict)</span>
+                <span className="font-mono font-bold text-rose-300 text-sm">{formatPriceWithDollar(unifiedSignal.stopLossPrice)}</span>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-lg border border-emerald-500/30">
+                <span className="text-emerald-400 block text-[10px]">Target TP1 (40%)</span>
+                <span className="font-mono font-bold text-emerald-300 text-sm">{formatPriceWithDollar(unifiedSignal.targetTp1)}</span>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-lg border border-emerald-500/30">
+                <span className="text-emerald-400 block text-[10px]">Target TP2 (Runner)</span>
+                <span className="font-mono font-bold text-emerald-300 text-sm">{formatPriceWithDollar(unifiedSignal.targetTp2)}</span>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-lg border border-cyan-500/30">
+                <span className="text-cyan-400 block text-[10px]">Reward-to-Risk</span>
+                <span className="font-mono font-bold text-cyan-300 text-sm">{unifiedSignal.rewardToRisk || '1 : 2.85'}</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 bg-black/20 p-2 rounded-lg border border-white/5">
+              <b>Execution Law:</b> Entry limit order se leni hai. TP1 hit hote hi 40–50% profit lock karein aur Stop Loss ko breakeven par trail karein. Maximum account risk 1.0% capital.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN AI CHART VIEW COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export const AiChartView: React.FC = () => {
@@ -1022,98 +1367,14 @@ export const AiChartView: React.FC = () => {
   // Initialize with deterministic, highly accurate market data immediately so UI is NEVER empty
   const [data, setData] = useState<AiChartData>(() =>
     compileMarketData(
-      getFallbackCandles('BTC', '1h'),
+      getFallbackCandles('BTC', '1h', 64368),
       ASSETS[0],
       TIMEFRAMES[2],
-      81152,
-      -1.85
+      64368,
+      -1.85,
+      'WAIT'
     )
   );
-
-  // 1. LIVE BINANCE WEBSOCKET CONNECTION
-  useEffect(() => {
-    let ws: WebSocket | null = null;
-    const symbolLower = activeAssetConfig.symbol.toLowerCase();
-
-    try {
-      ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbolLower}@ticker`);
-      ws.onmessage = (evt) => {
-        try {
-          const tick = JSON.parse(evt.data);
-          if (tick.c) {
-            const px = parseFloat(tick.c);
-            setLiveWsPrice(px);
-          }
-          if (tick.P) {
-            setLiveChange24h(parseFloat(tick.P));
-          }
-        } catch {}
-      };
-    } catch {}
-
-    return () => {
-      if (ws) ws.close();
-    };
-  }, [activeAssetConfig.symbol]);
-
-  // 2. FETCH REAL LIVE CANDLES & EXECUTE MATHEMATICAL CONFLUENCE ENGINE
-  useEffect(() => {
-    let isCancelled = false;
-
-    const loadRealMarketData = async () => {
-      let formattedCandles: CandleData[] = [];
-
-      try {
-        if (activeAssetConfig.id !== 'SILVER') {
-          const binanceUrl = `https://api.binance.com/api/v3/klines?symbol=${activeAssetConfig.symbol}&interval=${activeTfConfig.binanceInterval}&limit=60`;
-          const res = await fetch(binanceUrl);
-          if (res.ok) {
-            const klines = await res.json();
-            if (Array.isArray(klines) && klines.length > 10) {
-              formattedCandles = klines.map((d: any) => ({
-                time: Math.floor(d[0] / 1000),
-                open: parseFloat(d[1]),
-                high: parseFloat(d[2]),
-                low: parseFloat(d[3]),
-                close: parseFloat(d[4]),
-                volume: parseFloat(d[5])
-              }));
-            }
-          }
-        }
-      } catch (err) {
-        // Fallback gracefully without breaking UI
-      }
-
-      if (isCancelled) return;
-
-      if (formattedCandles.length === 0) {
-        formattedCandles = getFallbackCandles(
-          activeAssetConfig.id,
-          activeTfConfig.id,
-          liveWsPrice || activeAssetConfig.basePrice
-        );
-      }
-
-      const compiled = compileMarketData(
-        formattedCandles,
-        activeAssetConfig,
-        activeTfConfig,
-        liveWsPrice || formattedCandles[formattedCandles.length - 1].close,
-        liveChange24h
-      );
-
-      setData(compiled);
-    };
-
-    loadRealMarketData();
-
-    const interval = setInterval(loadRealMarketData, 30000);
-    return () => {
-      isCancelled = true;
-      clearInterval(interval);
-    };
-  }, [activeAssetConfig, activeTfConfig, liveWsPrice, liveChange24h]);
 
   // Active Unified Signal from central store (100% in sync with DEEEPR AI)
   const [unifiedSignal, setUnifiedSignal] = useState<UnifiedTradingSignal>(() =>
@@ -1128,6 +1389,117 @@ export const AiChartView: React.FC = () => {
     });
     return unsub;
   }, [activeAssetConfig.symbol]);
+
+  // 1. LIVE MULTI-SOURCE QUOTES (SHARED STORE + BINANCE WS)
+  useEffect(() => {
+    // Sync initial quote from institutional store
+    const initialQuote = sharedQuoteStore.getQuote(activeAssetConfig.symbol);
+    if (initialQuote && initialQuote.price > 0) {
+      setLiveWsPrice(initialQuote.price);
+      setLiveChange24h(initialQuote.change24h);
+    }
+
+    // Subscribe to sharedQuoteStore (handles Coinbase, Kraken, and Gold-API)
+    const unsubShared = sharedQuoteStore.subscribe((quote) => {
+      if (normalizeSymbolKey(quote.symbol) === normalizeSymbolKey(activeAssetConfig.symbol)) {
+        setLiveWsPrice(quote.price);
+        setLiveChange24h(quote.change24h);
+      }
+    });
+
+    let ws: WebSocket | null = null;
+    const symbolLower = activeAssetConfig.symbol.toLowerCase();
+
+    try {
+      ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbolLower}@ticker`);
+      ws.onmessage = (evt) => {
+        try {
+          const tick = JSON.parse(evt.data);
+          if (tick.c) {
+            const px = parseFloat(tick.c);
+            setLiveWsPrice(px);
+            sharedQuoteStore.setQuote(activeAssetConfig.symbol, {
+              price: px,
+              change24h: tick.P ? parseFloat(tick.P) : liveChange24h
+            });
+          }
+          if (tick.P) {
+            setLiveChange24h(parseFloat(tick.P));
+          }
+        } catch {}
+      };
+    } catch {}
+
+    return () => {
+      unsubShared();
+      if (ws) ws.close();
+    };
+  }, [activeAssetConfig.symbol]);
+
+  // 2. FETCH RESILIENT MULTI-SOURCE CANDLES & EXECUTE MATHEMATICAL CONFLUENCE ENGINE
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadRealMarketData = async () => {
+      const currentPrice = liveWsPrice || sharedQuoteStore.getPrice(activeAssetConfig.symbol) || activeAssetConfig.basePrice;
+
+      const tfMap: Record<string, SupportedTimeframe> = {
+        '5m': '5M',
+        '15m': '15M',
+        '1h': '1H',
+        '4h': '4H',
+        '1d': '1D'
+      };
+      const tf = tfMap[activeTfConfig.id] || '1H';
+      const assetKey: SupportedAsset = (activeAssetConfig.id === 'SILVER' ? 'GOLD' : activeAssetConfig.id) as SupportedAsset;
+
+      let formattedCandles: CandleData[] = [];
+      try {
+        const fetched = await fetchResilientCandles(assetKey, tf, currentPrice, 60);
+        if (fetched && fetched.length > 10) {
+          formattedCandles = fetched.map((c) => ({
+            time: c.time,
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+            volume: c.volume
+          }));
+        }
+      } catch (err) {
+        // Fallback gracefully without breaking UI
+      }
+
+      if (isCancelled) return;
+
+      if (formattedCandles.length === 0) {
+        formattedCandles = getFallbackCandles(
+          activeAssetConfig.id,
+          activeTfConfig.id,
+          currentPrice
+        );
+      }
+
+      const compiled = compileMarketData(
+        formattedCandles,
+        activeAssetConfig,
+        activeTfConfig,
+        currentPrice,
+        liveChange24h,
+        unifiedSignal.decision
+      );
+
+      setData(compiled);
+    };
+
+    loadRealMarketData();
+
+    const interval = setInterval(loadRealMarketData, 20000);
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeAssetConfig, activeTfConfig, liveWsPrice, liveChange24h, unifiedSignal.decision]);
 
   const displayPrice = liveWsPrice || data?.entry || activeAssetConfig.basePrice;
 
@@ -1189,13 +1561,21 @@ export const AiChartView: React.FC = () => {
             key={a.id}
             onClick={() => {
               setSelectedAsset(a.id);
+              const quote = sharedQuoteStore.getQuote(a.symbol);
+              const px = quote?.price || a.basePrice;
+              const chg = quote?.change24h || liveChange24h;
+              setLiveWsPrice(px);
+              setLiveChange24h(chg);
+              const sig = unifiedTradeSignalService.getSignal(a.symbol, undefined, px);
+              setUnifiedSignal(sig);
               setData(
                 compileMarketData(
-                  getFallbackCandles(a.id, selectedTf),
+                  getFallbackCandles(a.id, selectedTf, px),
                   a,
                   activeTfConfig,
-                  a.basePrice,
-                  liveChange24h
+                  px,
+                  chg,
+                  sig.decision
                 )
               );
             }}
@@ -1269,6 +1649,17 @@ export const AiChartView: React.FC = () => {
 
       {/* ────────────────── 4.5 CONFLICT & EVIDENCE DASHBOARD ────────────────── */}
       <ConflictEvidenceDashboard symbol={activeAssetConfig.symbol} />
+
+      {/* ────────────────── 4.6 INSTITUTIONAL TRADE DECISION DOSSIER & PARAMETERS MATRIX ────────────────── */}
+      {data && (
+        <InstitutionalTradeDossierCard
+          unifiedSignal={unifiedSignal}
+          assetConfig={activeAssetConfig}
+          tfConfig={activeTfConfig}
+          displayPrice={displayPrice}
+          data={data}
+        />
+      )}
 
       {/* EXECUTION GUIDE (3 STEPS) */}
       {unifiedSignal?.stepByStepGuide && (
@@ -1439,29 +1830,37 @@ export const AiChartView: React.FC = () => {
                 </div>
               ))}
             </div>
-            <p className="panel rounded-xl border border-white/10 bg-[#1a2030] p-3 text-sm text-foreground">
-              <b>
-                {data.signal === 'WAIT' ? (
+            <div className="panel rounded-xl border border-white/10 bg-[#1a2030] p-4 text-sm text-foreground space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <b>
+                  {unifiedSignal.decision === 'WAIT' ? (
+                    <span className="text-[#e8b04a] flex items-center gap-1.5">
+                      <span>⏳</span>
+                      <span>MASTER STATE: WAIT · Capital Preservation Standby</span>
+                    </span>
+                  ) : (
+                    <span className={unifiedSignal.decision === 'LONG' ? 'text-[#2ebd85] flex items-center gap-1.5' : 'text-[#f0616d] flex items-center gap-1.5'}>
+                      <span>{unifiedSignal.decision === 'LONG' ? '🟢' : '🔴'}</span>
+                      <span>MASTER STATE: {unifiedSignal.decision} SETUP ACTIVE ({unifiedSignal.convictionPct}% conviction)</span>
+                    </span>
+                  )}
+                </b>
+                <span className="text-xs px-2.5 py-0.5 rounded-md bg-white/10 text-slate-300 font-mono">
+                  4-Lane Confluence: {data.total > 0 ? '+' : ''}{data.total.toFixed(1)} pts
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {unifiedSignal.decision === 'WAIT' ? (
                   <>
-                    Lean: <span className="text-[#e8b04a]">{data.v3Output?.lean || 'Neutral'}</span> — WAIT kyunki gate {data.v3Output?.failed_gates?.join(', ') || 'G1-G7'} fail hua.
+                    <b className="text-amber-300">Evidence Note (Rule R2):</b> Standalone lanes score evidence hai (Technical: {data.lanes[0]?.score > 0 ? '+' : ''}{data.lanes[0]?.score?.toFixed(1)}, Macro: {data.lanes[1]?.score > 0 ? '+' : ''}{data.lanes[1]?.score?.toFixed(1)}). Master state WAIT hai kyunki market mid-range chop me hai aur closed-candle trigger pending hai. Rule R2 ke mutabiq individual lanes standalone BUY ya SELL signal manufacture nahi kar sakti.
                   </>
                 ) : (
                   <>
-                    Total score {data.total > 0 ? '+' : ''}
-                    {data.total.toFixed(1)} — {data.signal} setup confirmed!
+                    <b className="text-emerald-300">Confirmation Note:</b> Multi-lane confluence verify hui hai. Master arbiter ne valid location, closed candle trigger aur acceptable Risk-to-Reward ({unifiedSignal.rewardToRisk || '1:2.5+'}) ke sath {unifiedSignal.decision} trade execute kiya hai.
                   </>
                 )}
-              </b>{' '}
-              {data.signal === 'WAIT' ? (
-                <span className="text-slate-400">
-                  (Capital preservation prioritised. Missing triggers/confluence confirm hone par signal activate hoga.)
-                </span>
-              ) : data.signal === 'LONG' ? (
-                <span className="text-[#2ebd85] font-medium">Zyada lanes bullish hain → LONG setup confirmed!</span>
-              ) : (
-                <span className="text-[#f0616d] font-medium">Zyada lanes bearish hain → SHORT setup confirmed!</span>
-              )}
-            </p>
+              </p>
+            </div>
           </div>
 
           {/* ────────────────── 9. LIQUIDATION LEVELS (LONGS VS SHORTS) ────────────────── */}

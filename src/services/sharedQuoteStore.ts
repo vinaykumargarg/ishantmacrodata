@@ -266,7 +266,7 @@ class SharedQuoteStore {
               });
             }
           }
-        } catch {}
+        } catch { }
       }
 
       // B. Fetch Coinbase Spot for Crypto (BTC, ETH, SOL)
@@ -300,7 +300,7 @@ class SharedQuoteStore {
               });
             }
           }
-        } catch {}
+        } catch { }
       }
     };
 

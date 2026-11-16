@@ -313,3 +313,4 @@ export function generateInstitutionalSyntheticCandles(
 
   return candles;
 }
+

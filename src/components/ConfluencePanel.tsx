@@ -14,6 +14,7 @@ export interface ConfluenceTriggerSummary {
 }
 
 export interface ConfluenceData {
+  asset?: string;
   decision: 'LONG' | 'SHORT' | 'WAIT' | 'NO TRADE';
   longScore: number;
   shortScore: number;
