@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import TradingViewWidget from './TradingViewWidget';
+import { sharedQuoteStore } from '../services/sharedQuoteStore';
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* TYPES & INTERFACES                                                        */
@@ -1116,8 +1117,20 @@ export const GoldTradingAiView: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Live resilient spot price from sharedQuoteStore
+  const [liveGoldPrice, setLiveGoldPrice] = useState<number>(() => sharedQuoteStore.getPrice('XAUUSD') || 3863.00);
+
+  useEffect(() => {
+    const unsub = sharedQuoteStore.subscribe((quotes) => {
+      const q = quotes['XAUUSD'];
+      if (q?.price) setLiveGoldPrice(q.price);
+    });
+    return () => { unsub(); };
+  }, []);
+
   // Spot prices
-  const goldPrice = scenarioPreset === 'BEARISH_BREAKDOWN' ? 4088.40 : scenarioPreset === 'NEWS_LOCKOUT' ? 4118.00 : 4125.80;
+  const baseGold = liveGoldPrice;
+  const goldPrice = scenarioPreset === 'BEARISH_BREAKDOWN' ? baseGold - 28.5 : scenarioPreset === 'NEWS_LOCKOUT' ? baseGold - 4.5 : baseGold;
   const goldChange = scenarioPreset === 'BEARISH_BREAKDOWN' ? '-1.12%' : scenarioPreset === 'NEWS_LOCKOUT' ? '+0.15%' : '+0.82%';
   const dxyPrice = scenarioPreset === 'BEARISH_BREAKDOWN' ? 104.20 : scenarioPreset === 'NEWS_LOCKOUT' ? 102.65 : 102.42;
   const dxyChange = scenarioPreset === 'BEARISH_BREAKDOWN' ? '+0.65%' : scenarioPreset === 'NEWS_LOCKOUT' ? '+0.04%' : '-0.31%';
@@ -1169,6 +1182,7 @@ export const GoldTradingAiView: React.FC = () => {
   // Trading Plan parameters according to tradingMode and scenario
   const tradePlan = useMemo(() => {
     const decision = paramCounts.overallDecision;
+    const p = Math.round(goldPrice * 10) / 10;
 
     if (decision === 'WAIT') {
       return {
@@ -1179,7 +1193,7 @@ export const GoldTradingAiView: React.FC = () => {
         entryConfirmation:
           scenarioPreset === 'NEWS_LOCKOUT'
             ? 'Wait minimum 15 minutes after US CPI release. Let 15M candle close and observe if high-spread whipsaws stabilize.'
-            : 'Wait for decisive 1H Break of Structure outside $4,102 – $4,120 value area with volume confirmation.',
+            : `Wait for decisive 1H Break of Structure outside $${(p - 12).toFixed(1)} – $${(p + 12).toFixed(1)} value area with volume confirmation.`,
         stopLoss: 0,
         stopPips: 0,
         target1: 0,
@@ -1196,22 +1210,28 @@ export const GoldTradingAiView: React.FC = () => {
     }
 
     if (decision === 'SHORT') {
+      const sEntryLow = Math.round((p + 6.0) * 10) / 10;
+      const sEntryHigh = Math.round((p + 12.0) * 10) / 10;
+      const sStop = Math.round((sEntryHigh + 10.0) * 10) / 10;
+      const sTp1 = Math.round((p - 18.0) * 10) / 10;
+      const sTp2 = Math.round((p - 38.0) * 10) / 10;
+      const sTp3 = Math.round((p - 65.0) * 10) / 10;
       return {
         modeLabel: `${tradingMode} Mode — Bearish Breakdown`,
         decision: 'SHORT' as DecisionSignal,
         bias: 'Macro Trend Distribution / Short Setup',
-        entryZone: '$4,105.00 – $4,112.00 (Premium Retest)',
+        entryZone: `$${sEntryLow.toFixed(2)} – $${sEntryHigh.toFixed(2)} (Premium Retest)`,
         entryConfirmation: '15M Bearish Fair Value Gap (FVG) retest with seller delta expansion and rejection below VWAP.',
-        stopLoss: 4122.50,
+        stopLoss: sStop,
         stopPips: 24.5,
-        target1: 4078.00,
-        target2: 4055.00,
-        target3: 4020.00,
+        target1: sTp1,
+        target2: sTp2,
+        target3: sTp3,
         rr1: '1:1.9',
         rr2: '1:3.1',
         rr3: '1:4.8',
         holdingPeriod: '3 – 8 Hours (Intraday Extension)',
-        invalidation: 'Any 15-minute close above $4,122.50 invalidates the supply orderblock.',
+        invalidation: `Any 15-minute close above $${sStop.toFixed(2)} invalidates the supply orderblock.`,
         cancellation: 'If DXY plunges below 103.20 or Fed emergency dovish remarks emerge.',
         confidence: 84
       };
@@ -1219,67 +1239,85 @@ export const GoldTradingAiView: React.FC = () => {
 
     // LONG SCENARIO
     if (tradingMode === 'INTRADAY') {
+      const lEntryLow = Math.round((p - 6.0) * 10) / 10;
+      const lEntryHigh = Math.round((p - 2.0) * 10) / 10;
+      const lStop = Math.round((lEntryLow - 10.0) * 10) / 10;
+      const lTp1 = Math.round((p + 16.0) * 10) / 10;
+      const lTp2 = Math.round((p + 32.0) * 10) / 10;
+      const lTp3 = Math.round((p + 50.0) * 10) / 10;
       return {
         modeLabel: 'Mode A — Intraday (1H / 15M / 5M)',
         decision: 'LONG' as DecisionSignal,
         bias: 'Bullish Continuation',
-        entryZone: '$4,118.00 – $4,122.50',
+        entryZone: `$${lEntryLow.toFixed(2)} – $${lEntryHigh.toFixed(2)}`,
         entryConfirmation: '15M Bullish Fair Value Gap (FVG) retest with volume expansion & rejection wick below London Open VWAP.',
-        stopLoss: 4109.50,
+        stopLoss: lStop,
         stopPips: 32.5,
-        target1: 4136.00,
-        target2: 4148.50,
-        target3: 4162.00,
+        target1: lTp1,
+        target2: lTp2,
+        target3: lTp3,
         rr1: '1:1.6',
         rr2: '1:2.8',
         rr3: '1:4.0',
         holdingPeriod: '2 – 6 Hours (Exit before NY Close)',
-        invalidation: 'Any 15-minute close below $4,109.50 invalidates the bullish orderblock.',
+        invalidation: `Any 15-minute close below $${lStop.toFixed(2)} invalidates the bullish orderblock.`,
         cancellation: 'If DXY breaks above 102.85 resistance before London close or if US CPI surprise exceeds +0.3%.',
         confidence: 86
       };
     } else if (tradingMode === 'EXTENDED') {
+      const lEntryLow = Math.round((p - 12.0) * 10) / 10;
+      const lEntryHigh = Math.round((p - 6.0) * 10) / 10;
+      const lStop = Math.round((lEntryLow - 15.0) * 10) / 10;
+      const lTp1 = Math.round((p + 24.0) * 10) / 10;
+      const lTp2 = Math.round((p + 48.0) * 10) / 10;
+      const lTp3 = Math.round((p + 75.0) * 10) / 10;
       return {
         modeLabel: 'Mode B — Extended Intraday (4H / 1H / 15M)',
         decision: 'LONG' as DecisionSignal,
         bias: 'High-Probability Bullish Expansion',
-        entryZone: '$4,112.00 – $4,116.00',
-        entryConfirmation: 'Sweep of Asian Session Low followed by 1H Market Structure Shift (MSS) with displacement above $4,120.',
-        stopLoss: 4098.00,
+        entryZone: `$${lEntryLow.toFixed(2)} – $${lEntryHigh.toFixed(2)}`,
+        entryConfirmation: `Sweep of Asian Session Low followed by 1H Market Structure Shift (MSS) with displacement above $${(p + 5).toFixed(2)}.`,
+        stopLoss: lStop,
         stopPips: 48.0,
-        target1: 4145.00,
-        target2: 4165.00,
-        target3: 4192.00,
+        target1: lTp1,
+        target2: lTp2,
+        target3: lTp3,
         rr1: '1:1.8',
         rr2: '1:3.0',
         rr3: '1:4.5',
         holdingPeriod: '6 – 16 Hours (Across London / NY Session)',
-        invalidation: 'Breakdown of 4H demand zone below $4,098.00.',
+        invalidation: `Breakdown of 4H demand zone below $${lStop.toFixed(2)}.`,
         cancellation: 'Emergency FOMC hawkish rhetoric or Treasury yields spiking above 4.18%.',
         confidence: 82
       };
     } else {
+      const lEntryLow = Math.round((p - 25.0) * 10) / 10;
+      const lEntryHigh = Math.round((p - 10.0) * 10) / 10;
+      const lStop = Math.round((lEntryLow - 30.0) * 10) / 10;
+      const lTp1 = Math.round((p + 55.0) * 10) / 10;
+      const lTp2 = Math.round((p + 110.0) * 10) / 10;
+      const lTp3 = Math.round((p + 175.0) * 10) / 10;
       return {
         modeLabel: 'Mode C — Swing Trading (Daily / 4H / 1H)',
         decision: 'LONG' as DecisionSignal,
         bias: 'Structural Macro Bull',
-        entryZone: '$4,085.00 – $4,105.00',
+        entryZone: `$${lEntryLow.toFixed(2)} – $${lEntryHigh.toFixed(2)}`,
         entryConfirmation: 'Daily Bullish Engulfing or 4H Break of Structure (BOS) holding above 50-period EMA with negative DXY divergence.',
-        stopLoss: 4048.00,
+        stopLoss: lStop,
         stopPips: 98.0,
-        target1: 4185.00,
-        target2: 4240.00,
-        target3: 4310.00,
+        target1: lTp1,
+        target2: lTp2,
+        target3: lTp3,
         rr1: '1:2.1',
         rr2: '1:3.5',
         rr3: '1:5.2',
         holdingPeriod: '3 – 10 Days (Overnight & Multi-Session)',
-        invalidation: 'Weekly close below $4,048.00 (structural invalidation).',
+        invalidation: `Weekly close below $${lStop.toFixed(2)} (structural invalidation).`,
         cancellation: 'Substantial de-escalation in central bank gold purchases coupled with sustained DXY rally above 104.50.',
         confidence: 89
       };
     }
-  }, [tradingMode, paramCounts.overallDecision, scenarioPreset]);
+  }, [tradingMode, paramCounts.overallDecision, scenarioPreset, goldPrice]);
 
   // 7-Factor Weighted Confluence Pillars
   const confluencePillars: ConfluencePillar[] = [

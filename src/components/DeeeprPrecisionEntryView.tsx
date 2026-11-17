@@ -18,6 +18,7 @@ import {
 import { telegramAlertService } from '../services/telegramAlertService';
 import { masterVerdictStore, MasterVerdictObject, formatPriceWithDollar } from '../services/masterVerdictStore';
 import { sharedQuoteStore } from '../services/sharedQuoteStore';
+import { fetchResilientCandles, SupportedAsset, SupportedTimeframe } from '../services/multiSourceCandleService';
 import { VerdictBadge } from './VerdictBadge';
 import { ConflictEvidenceDashboard } from './ConflictEvidenceDashboard';
 
@@ -27,11 +28,11 @@ interface DeeeprPrecisionEntryViewProps {
 }
 
 const SUPPORTED_ASSETS = [
-  { key: 'BTCUSDT', label: 'BTC/USDT', name: 'Bitcoin', icon: '₿', defaultPrice: 84500, targetBadge: '2,500–3,000 pts' },
-  { key: 'ETHUSDT', label: 'ETH/USDT', name: 'Ethereum', icon: 'Ξ', defaultPrice: 2450, targetBadge: '80–120 pts' },
-  { key: 'XAUUSD', label: 'XAU/USD', name: 'Gold Spot', icon: '🥇', defaultPrice: 4150, targetBadge: '50–80 pts' },
-  { key: 'XAGUSD', label: 'XAG/USD', name: 'Silver Spot', icon: '🥈', defaultPrice: 34.5, targetBadge: '1.2–2.5 pts' },
-  { key: 'SOLUSDT', label: 'SOL/USDT', name: 'Solana', icon: '◎', defaultPrice: 104, targetBadge: '5–12 pts' },
+  { key: 'BTCUSDT', label: 'BTC/USDT', name: 'Bitcoin', icon: '₿', defaultPrice: 64368, targetBadge: '2,500–3,000 pts' },
+  { key: 'ETHUSDT', label: 'ETH/USDT', name: 'Ethereum', icon: 'Ξ', defaultPrice: 1817.5, targetBadge: '80–120 pts' },
+  { key: 'XAUUSD', label: 'XAU/USD', name: 'Gold Spot', icon: '🥇', defaultPrice: 3863, targetBadge: '50–80 pts' },
+  { key: 'XAGUSD', label: 'XAG/USD', name: 'Silver Spot', icon: '🥈', defaultPrice: 47.8, targetBadge: '1.2–2.5 pts' },
+  { key: 'SOLUSDT', label: 'SOL/USDT', name: 'Solana', icon: '◎', defaultPrice: 70.7, targetBadge: '5–12 pts' },
   { key: 'WTI', label: 'Crude Oil', name: 'WTI Oil', icon: '🛢️', defaultPrice: 76.5, targetBadge: '1.5–3.0 pts' }
 ];
 
@@ -90,54 +91,70 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
     setLivePrice(initialPrice);
     setWsStatus('CONNECTING');
 
-    const isBinanceSupported = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XAUUSD'].includes(selectedSymbol);
-    const binanceSymbol = selectedSymbol === 'XAUUSD' ? 'PAXGUSDT' : selectedSymbol;
+    const loadCandles = async () => {
+      try {
+        const tfMap: Record<string, SupportedTimeframe> = {
+          '1m': '1M',
+          '5m': '5M',
+          '15m': '15M',
+          '30m': '30M',
+          '1h': '1H',
+          '4h': '4H',
+          '1d': '1D'
+        };
+        const tf = tfMap[chartTimeframe] || '15M';
+        const curPrice = sharedQuoteStore.getPrice(selectedSymbol) || initialPrice;
+        const assetKey: SupportedAsset = (selectedSymbol === 'XAUUSD' || selectedSymbol.includes('GOLD'))
+          ? 'GOLD'
+          : selectedSymbol.includes('ETH')
+          ? 'ETH'
+          : selectedSymbol.includes('SOL')
+          ? 'SOL'
+          : (selectedSymbol.includes('XAG') || selectedSymbol.includes('SLV'))
+          ? 'SILVER'
+          : 'BTC';
 
-    if (isBinanceSupported) {
-      // Fetch up to 250 historical candles for current selected timeframe
-      fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${chartTimeframe}&limit=250`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (isMounted && Array.isArray(data)) {
-            const formatted = data.map((d: any) => ({
-              time: Math.floor(d[0] / 1000) as any,
-              open: parseFloat(d[1]),
-              high: parseFloat(d[2]),
-              low: parseFloat(d[3]),
-              close: parseFloat(d[4]),
-              volume: parseFloat(d[5])
-            }));
-            setCandles(formatted);
-            candlesRef.current = formatted;
-            if (formatted.length > 0) {
-              setLivePrice(lastClose);
-              masterVerdictStore.evaluateMasterVerdict(selectedSymbol, formatted, lastClose);
+        const raw = await fetchResilientCandles(assetKey, tf, curPrice, 100);
+        if (isMounted && raw && raw.length > 5) {
+          const formatted = raw.map((d) => ({
+            time: d.time as any,
+            open: d.open,
+            high: d.high,
+            low: d.low,
+            close: d.close,
+            volume: d.volume
+          }));
+          setCandles(formatted);
+          candlesRef.current = formatted;
+          const lastClose = formatted[formatted.length - 1].close;
+          setLivePrice(lastClose);
+          masterVerdictStore.evaluateMasterVerdict(selectedSymbol, formatted, lastClose);
 
-              // Calculate real-time USDT dominance inverse metric
-              if (selectedSymbol === 'BTCUSDT') {
-                const btcRatio = (84500 - lastClose) / 84500;
-                const calculatedUsdtD = +(6.57 + btcRatio * 0.8).toFixed(2);
-                setUsdtDominance(calculatedUsdtD);
-                const trend = lastClose > formatted[0].close ? 'FALLING' : 'RISING';
-                setUsdtTrend(trend);
-                if (trend === 'FALLING' && lastClose > formatted[0].close) {
-                  setRelationshipVerdict('BULLISH CONFIRMATION');
-                } else if (trend === 'RISING' && lastClose < formatted[0].close) {
-                  setRelationshipVerdict('BEARISH CONFIRMATION');
-                } else {
-                  setRelationshipVerdict('DIVERGENCE');
-                }
-              }
+          if (selectedSymbol === 'BTCUSDT') {
+            const btcP = sharedQuoteStore.getPrice('BTCUSDT');
+            const btcRatio = (btcP - lastClose) / btcP;
+            const calculatedUsdtD = +(5.42 + btcRatio * 0.8).toFixed(2);
+            setUsdtDominance(calculatedUsdtD);
+            const trend = lastClose > formatted[0].close ? 'FALLING' : 'RISING';
+            setUsdtTrend(trend);
+            if (trend === 'FALLING' && lastClose > formatted[0].close) {
+              setRelationshipVerdict('BULLISH CONFIRMATION');
+            } else if (trend === 'RISING' && lastClose < formatted[0].close) {
+              setRelationshipVerdict('BEARISH CONFIRMATION');
+            } else {
+              setRelationshipVerdict('DIVERGENCE');
             }
-            setWsStatus('LIVE');
           }
-        })
-        .catch((e) => {
-          console.warn('Candle fetch error', e);
-          // Fallback realistic candles
-          generateSyntheticCandles(initialPrice);
-        });
+          setWsStatus('LIVE');
+        }
+      } catch (err) {
+        console.warn('Candle fetch error', err);
+        generateSyntheticCandles(initialPrice);
+      }
+    };
+    loadCandles();
 
+    if (binanceSymbol) {
       // Binance Live Ticker WebSocket Stream
       if (wsRef.current) wsRef.current.close();
       try {
@@ -182,8 +199,6 @@ export const DeeeprPrecisionEntryView: React.FC<DeeeprPrecisionEntryViewProps> =
         setWsStatus('OFFLINE');
       }
     } else {
-      // Commodities synthetic candles
-      generateSyntheticCandles(initialPrice);
       setWsStatus('LIVE');
     }
 

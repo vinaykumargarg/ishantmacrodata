@@ -11,7 +11,7 @@
 
 import { CandleDataPoint } from './institutionalSMCAnalysisEngine';
 
-export type SupportedAsset = 'GOLD' | 'BTC' | 'ETH' | 'SOL';
+export type SupportedAsset = 'GOLD' | 'BTC' | 'ETH' | 'SOL' | 'SILVER' | 'WTI';
 export type SupportedTimeframe = '1M' | '5M' | '15M' | '30M' | '1H' | '4H' | '1D' | '1W';
 
 const TF_SECONDS: Record<SupportedTimeframe, number> = {
@@ -162,7 +162,7 @@ async function fetchKrakenCandles(
   limit: number
 ): Promise<CandleDataPoint[]> {
   const interval = KRAKEN_INTERVAL_MINUTES[timeframe] || 15;
-  const pair = asset === 'GOLD' ? 'PAXGUSD' : asset === 'BTC' ? 'XBTUSD' : `${asset}USD`;
+  const pair = asset === 'GOLD' ? 'PAXGUSD' : asset === 'BTC' ? 'XBTUSD' : asset === 'SILVER' ? 'XAGUSD' : `${asset}USD`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 3500);
 
@@ -205,7 +205,7 @@ async function fetchBinanceCandlesWithTimeout(
   timeframe: SupportedTimeframe,
   limit: number
 ): Promise<CandleDataPoint[]> {
-  const sym = asset === 'GOLD' ? 'PAXGUSDT' : `${asset}USDT`;
+  const sym = asset === 'GOLD' ? 'PAXGUSDT' : asset === 'SILVER' ? 'SLVUSDT' : `${asset}USDT`;
   const interval = timeframe.toLowerCase();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 2500);
@@ -264,6 +264,10 @@ export function generateInstitutionalSyntheticCandles(
     baseAtr = timeframe === '1M' ? 1.5 : timeframe === '5M' ? 4.2 : timeframe === '15M' ? 9.5 : timeframe === '1H' ? 24.0 : timeframe === '4H' ? 55.0 : 110.0;
   } else if (asset === 'SOL') {
     baseAtr = timeframe === '1M' ? 0.15 : timeframe === '5M' ? 0.35 : timeframe === '15M' ? 0.75 : timeframe === '1H' ? 1.6 : timeframe === '4H' ? 3.8 : 7.2;
+  } else if (asset === 'SILVER') {
+    baseAtr = timeframe === '1M' ? 0.08 : timeframe === '5M' ? 0.18 : timeframe === '15M' ? 0.35 : timeframe === '1H' ? 0.75 : timeframe === '4H' ? 1.5 : 2.8;
+  } else if (asset === 'WTI') {
+    baseAtr = timeframe === '1M' ? 0.12 : timeframe === '5M' ? 0.25 : timeframe === '15M' ? 0.45 : timeframe === '1H' ? 0.95 : timeframe === '4H' ? 1.8 : 3.5;
   }
 
   // Pre-seed pseudo random pattern walking backward from targetCurrentPrice

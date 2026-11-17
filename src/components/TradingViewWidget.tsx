@@ -17,6 +17,42 @@ function normalizeSymbol(sym: string): string {
   const clean = sym.trim();
   const upper = clean.toUpperCase();
 
+  // Gold Spot (TVC:GOLD is free, universally embeddable without OANDA iframe restrictions)
+  if (
+    upper === 'OANDA:XAUUSD' ||
+    upper === 'XAUUSD' ||
+    upper === 'GOLD' ||
+    upper === 'FOREXCOM:XAUUSD' ||
+    upper === 'FX:XAUUSD'
+  ) {
+    return 'TVC:GOLD';
+  }
+
+  // Silver Spot
+  if (
+    upper === 'OANDA:XAGUSD' ||
+    upper === 'XAGUSD' ||
+    upper === 'SILVER' ||
+    upper === 'FX:XAGUSD'
+  ) {
+    return 'TVC:SILVER';
+  }
+
+  // Bitcoin Spot
+  if (upper === 'BTC' || upper === 'BTCUSD' || upper === 'BTCUSDT' || upper === 'BINANCE:BTCUSDT') {
+    return 'BINANCE:BTCUSDT';
+  }
+
+  // Ethereum Spot
+  if (upper === 'ETH' || upper === 'ETHUSD' || upper === 'ETHUSDT' || upper === 'BINANCE:ETHUSDT') {
+    return 'BINANCE:ETHUSDT';
+  }
+
+  // Solana Spot
+  if (upper === 'SOL' || upper === 'SOLUSD' || upper === 'SOLUSDT' || upper === 'BINANCE:SOLUSDT') {
+    return 'BINANCE:SOLUSDT';
+  }
+
   // WTI Crude Oil
   if (
     upper === 'CL' ||

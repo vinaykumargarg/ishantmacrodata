@@ -48,6 +48,7 @@ import {
   calculateRegimeScore
 } from '../services/goldIntelligenceEngine';
 import { voiceService } from '../services/voiceSynthesisService';
+import { sharedQuoteStore } from '../services/sharedQuoteStore';
 
 type TabView =
   | 'DASHBOARD'
@@ -126,15 +127,32 @@ export const GoldAiMarketIntelligenceView: React.FC<Props> = ({ initialTab, onNa
     return () => clearInterval(interval);
   }, []);
 
-  // Dynamic Prices based on scenario
+  // Live resilient quote from sharedQuoteStore
+  const [liveGoldQuote, setLiveGoldQuote] = useState(() => sharedQuoteStore.getQuote('XAUUSD'));
+
+  useEffect(() => {
+    const unsub = sharedQuoteStore.subscribe((quotes) => {
+      if (quotes['XAUUSD']) setLiveGoldQuote(quotes['XAUUSD']);
+    });
+    return () => { unsub(); };
+  }, []);
+
+  // Dynamic Prices based on scenario & live feed
   const prices = useMemo<GoldMarketPriceData>(() => {
+    const currentSpot = liveGoldQuote?.price || DEFAULT_GOLD_PRICES.spotXauUsd;
+    const currentChg = liveGoldQuote?.change24h || DEFAULT_GOLD_PRICES.spotChange;
+    const currentChgPct = liveGoldQuote?.change24hPct || DEFAULT_GOLD_PRICES.spotChangePct;
+
     if (scenarioPreset === 'BEARISH_BREAKDOWN') {
+      const dropSpot = currentSpot - 32.5;
       return {
         ...DEFAULT_GOLD_PRICES,
-        spotXauUsd: 4068.20,
+        spotXauUsd: dropSpot,
         spotChange: -42.80,
         spotChangePct: -1.04,
-        comexFuturesFront: 4074.50,
+        dailyHigh: currentSpot + 5,
+        dailyLow: dropSpot - 10,
+        comexFuturesFront: dropSpot + 12,
         mcxGoldInrPer10g: 87150,
         mcxGoldChangePct: -0.92,
         goldDxyCorrelation: -0.91
@@ -142,21 +160,33 @@ export const GoldAiMarketIntelligenceView: React.FC<Props> = ({ initialTab, onNa
     } else if (scenarioPreset === 'NEWS_LOCKOUT') {
       return {
         ...DEFAULT_GOLD_PRICES,
-        spotXauUsd: 4118.40,
+        spotXauUsd: currentSpot,
         spotChange: +3.20,
         spotChangePct: +0.08,
+        dailyHigh: liveGoldQuote?.high24h || currentSpot + 18,
+        dailyLow: liveGoldQuote?.low24h || currentSpot - 12,
         bidAskSpread: 0.65 // Spreads widen before CPI
       };
     } else if (scenarioPreset === 'RANGE_CHOP') {
       return {
         ...DEFAULT_GOLD_PRICES,
-        spotXauUsd: 4112.00,
+        spotXauUsd: currentSpot,
         spotChange: -1.80,
-        spotChangePct: -0.04
+        spotChangePct: -0.04,
+        dailyHigh: liveGoldQuote?.high24h || currentSpot + 14,
+        dailyLow: liveGoldQuote?.low24h || currentSpot - 14
       };
     }
-    return DEFAULT_GOLD_PRICES;
-  }, [scenarioPreset]);
+    return {
+      ...DEFAULT_GOLD_PRICES,
+      spotXauUsd: currentSpot,
+      spotChange: currentChg,
+      spotChangePct: currentChgPct,
+      dailyHigh: liveGoldQuote?.high24h || currentSpot + 22,
+      dailyLow: liveGoldQuote?.low24h || currentSpot - 18,
+      comexFuturesFront: currentSpot + 15.5
+    };
+  }, [scenarioPreset, liveGoldQuote]);
 
   // Dynamic USD Data
   const dxy = useMemo<UsDollarData>(() => {

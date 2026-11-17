@@ -8,6 +8,7 @@ import TradingViewWidget from './components/TradingViewWidget';
 import EconCalendar from './components/EconCalendar';
 import { TerminalSkeleton } from './components/ui/TerminalSkeleton';
 import { X } from 'lucide-react';
+import { sharedQuoteStore } from './services/sharedQuoteStore';
 
 const StockAiView = React.lazy(() => import('./components/StockAiView'));
 const AiChartView = React.lazy(() => import('./components/AiChartView'));
@@ -132,20 +133,20 @@ const BASE_TICKERS: MarketTicker[] = [
   { symbol: 'SENSEX', name: 'BSE SENSEX', price: '81,720', change: '-0.45%', isPositive: false, category: 'Equities' },
   { symbol: 'INDIA VIX', name: 'India Volatility Index', price: '15.20', change: '-6.43%', isPositive: false, category: 'Equities' },
   { symbol: 'VIX', name: 'CBOE Volatility Index', price: '16.65', change: '-1.54%', isPositive: false, category: 'Equities' },
-  { symbol: 'XAU/USD', name: 'Gold Spot', price: '4,033.1', change: '+0.28%', isPositive: true, category: 'Commodities' },
-  { symbol: 'XAG/USD', name: 'Silver Spot', price: '52.72', change: '+0.32%', isPositive: true, category: 'Commodities' },
-  { symbol: 'BTC/USD', name: 'Bitcoin', price: '81,073', change: '+0.66%', isPositive: true, category: 'Crypto' },
-  { symbol: 'ETH/USD', name: 'Ethereum', price: '2,343.6', change: '+0.49%', isPositive: true, category: 'Crypto' },
-  { symbol: 'SOL/USD', name: 'Solana', price: '101.74', change: '+0.55%', isPositive: true, category: 'Crypto' },
+  { symbol: 'XAU/USD', name: 'Gold Spot', price: '3,863.0', change: '+0.28%', isPositive: true, category: 'Commodities' },
+  { symbol: 'XAG/USD', name: 'Silver Spot', price: '47.80', change: '+0.32%', isPositive: true, category: 'Commodities' },
+  { symbol: 'BTC/USD', name: 'Bitcoin', price: '64,368', change: '-0.45%', isPositive: false, category: 'Crypto' },
+  { symbol: 'ETH/USD', name: 'Ethereum', price: '1,817.5', change: '-0.52%', isPositive: false, category: 'Crypto' },
+  { symbol: 'SOL/USD', name: 'Solana', price: '70.70', change: '-0.60%', isPositive: false, category: 'Crypto' },
   { symbol: 'S&P 500', name: 'S&P 500', price: '5,782', change: '+0.42%', isPositive: true, category: 'Equities' },
   { symbol: 'NASDAQ', name: 'Nasdaq 100', price: '20,410', change: '+0.58%', isPositive: true, category: 'Equities' },
-  { symbol: 'DXY', name: 'US Dollar', price: '102.45', change: '-0.28%', isPositive: false, category: 'Forex' },
-  { symbol: 'CRUDE OIL', name: 'Crude WTI', price: '71.45', change: '+0.62%', isPositive: true, category: 'Commodities' },
+  { symbol: 'DXY', name: 'US Dollar', price: '102.35', change: '-0.28%', isPositive: false, category: 'Forex' },
+  { symbol: 'CRUDE OIL', name: 'Crude WTI', price: '76.50', change: '+0.62%', isPositive: true, category: 'Commodities' },
   { symbol: 'US10Y', name: 'US 10-Yr Yield', price: '4.08%', change: '-0.04%', isPositive: false, category: 'Forex' },
   { symbol: 'USDT.D', name: 'Tether Dominance', price: '5.42%', change: '-0.31%', isPositive: false, category: 'Crypto' },
   { symbol: 'XRP/USD', name: 'XRP', price: '1.39', change: '+1.45%', isPositive: true, category: 'Crypto' },
-  { symbol: 'BNB/USD', name: 'BNB', price: '761.51', change: '+1.35%', isPositive: true, category: 'Crypto' },
-  { symbol: 'DOGE/USD', name: 'Dogecoin', price: '0.3870', change: '+2.25%', isPositive: true, category: 'Crypto' }
+  { symbol: 'BNB/USD', name: 'BNB', price: '585.50', change: '+1.35%', isPositive: true, category: 'Crypto' },
+  { symbol: 'DOGE/USD', name: 'Dogecoin', price: '0.1980', change: '+2.25%', isPositive: true, category: 'Crypto' }
 ];
 
 /* ────────────────────────── FEATURE TITLES FOR LOCK GATES ────────────────────────── */
@@ -413,8 +414,52 @@ function TerminalApp() {
     };
   }, [isResizingSidebar, sidebarWidth]);
 
-  // Setup real-time WebSocket for live crypto prices
+  // Setup real-time multi-source quote updates for live prices (Shared store + Binance fallback)
   useEffect(() => {
+    // 1. Subscribe to sharedQuoteStore (Coinbase, Kraken, Gold-API, Binance ticker)
+    const unsubShared = sharedQuoteStore.subscribe((quote) => {
+      setIsLiveWs(true);
+      const symbolMap: Record<string, string> = {
+        BTCUSDT: 'BTC/USD',
+        ETHUSDT: 'ETH/USD',
+        SOLUSDT: 'SOL/USD',
+        XAUUSD: 'XAU/USD',
+        PAXGUSDT: 'XAU/USD',
+        SLVUSDT: 'XAG/USD',
+        XAGUSD: 'XAG/USD',
+        USDTD: 'USDT.D',
+        DXY: 'DXY',
+        WTI: 'CRUDE OIL'
+      };
+      const targetSym = symbolMap[quote.symbol];
+      if (targetSym && quote.price > 0) {
+        const rawPrice = quote.price;
+        const changePct = quote.change24h;
+        const formattedPrice = rawPrice > 2000
+          ? `$${rawPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+          : rawPrice > 100
+          ? `$${rawPrice.toFixed(2)}`
+          : targetSym === 'USDT.D' || targetSym === 'US10Y'
+          ? `${rawPrice.toFixed(2)}%`
+          : `$${rawPrice.toFixed(2)}`;
+        const formattedChange = `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`;
+
+        setLiveTickers((prev) =>
+          prev.map((t) =>
+            t.symbol === targetSym
+              ? {
+                  ...t,
+                  price: formattedPrice,
+                  change: formattedChange,
+                  isPositive: changePct >= 0
+                }
+              : t
+          )
+        );
+      }
+    });
+
+    // 2. Secondary direct Binance WebSocket
     let ws: WebSocket;
     try {
       ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker/ethusdt@ticker/solusdt@ticker/xrpusdt@ticker/bnbusdt@ticker/dogeusdt@ticker');
@@ -452,12 +497,12 @@ function TerminalApp() {
           }
         } catch (e) {}
       };
-      ws.onerror = () => setIsLiveWs(false);
-      ws.onclose = () => setIsLiveWs(false);
-    } catch (e) {
-      setIsLiveWs(false);
-    }
+      ws.onerror = () => {};
+      ws.onclose = () => {};
+    } catch (e) {}
+
     return () => {
+      unsubShared();
       if (ws) ws.close();
     };
   }, []);
@@ -1093,7 +1138,7 @@ function CryptoBrainView() {
             BULLISH REGIME
           </span>
           <p className="text-xs text-muted-foreground font-mono">
-            BTC $82,374 · +1.08% 24h · Hashrate ATH (884 EH/s)
+            BTC ${sharedQuoteStore.getPrice('BTCUSDT').toLocaleString()} · Live Institutional Flow Active
           </p>
         </div>
         <div className="grid gap-3 pt-2 text-xs sm:grid-cols-3 border-t border-border">
@@ -1195,6 +1240,10 @@ function CryptoBrainView() {
 /* 6. BITCOIN MARKET ENGINE                                                   */
 /* ────────────────────────────────────────────────────────────────────────── */
 function BtcEngineView() {
+  const quote = sharedQuoteStore.getQuote('BTCUSDT');
+  const priceStr = `$${quote.price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const changeStr = `${quote.change24h >= 0 ? '+' : ''}${quote.change24h.toFixed(2)}%`;
+
   return (
     <div className="space-y-6">
       <div className="border-b border-border pb-4">
@@ -1212,10 +1261,10 @@ function BtcEngineView() {
       {/* Metrics Row */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 font-mono">
         {[
-          { label: 'BTC Price', val: '$82,374' },
-          { label: '24h Change', val: '+1.08%' },
-          { label: 'Market Cap', val: '$1.62T' },
-          { label: '24h Volume', val: '$44.8B' },
+          { label: 'BTC Price', val: priceStr },
+          { label: '24h Change', val: changeStr },
+          { label: 'Market Cap', val: '$1.28T' },
+          { label: '24h Volume', val: '$38.4B' },
           { label: '7d / 30d Trend', val: '+4.2% / +14.8%' },
           { label: 'ATH Distance', val: '-18.4%' },
           { label: 'BTC Dominance', val: '56.4%' },

@@ -34,6 +34,8 @@ import {
 } from '../services/intermarketConfluenceEngine';
 import { ComputedSyncBadge } from './ComputedSyncBadge';
 import { masterVerdictStore, formatPrice, formatPriceWithDollar } from '../services/masterVerdictStore';
+import { sharedQuoteStore } from '../services/sharedQuoteStore';
+import { fetchResilientCandles, SupportedAsset, SupportedTimeframe } from '../services/multiSourceCandleService';
 
 export type AssetTradingPlan = UnifiedTradingSignal;
 
@@ -80,7 +82,7 @@ export interface UserActiveTradeSession {
 export const DeeeprAiChartView: React.FC = () => {
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTCUSDT');
   const [timeframe, setTimeframe] = useState<string>('15m');
-  const [livePrice, setLivePrice] = useState<number>(84550);
+  const [livePrice, setLivePrice] = useState<number>(() => sharedQuoteStore.getPrice('BTCUSDT'));
   const [priceFlash, setPriceFlash] = useState<'up' | 'down' | null>(null);
   const [priceChange24h, setPriceChange24h] = useState<string>('-0.85%');
   const [wsStatus, setWsStatus] = useState<'LIVE' | 'CONNECTING'>('CONNECTING');
@@ -205,9 +207,9 @@ export const DeeeprAiChartView: React.FC = () => {
 
   // ─── FULL 15M INTERMARKET RADAR TELEMETRY & SIGNALS (USDT.D & DXY vs BTC, GOLD, ETH) ───
   const intermarketRadar = useMemo<FullIntermarketRadarState>(() => {
-    const btcP = selectedSymbol === 'BTCUSDT' ? livePrice : 84500;
-    const goldP = selectedSymbol === 'PAXGUSDT' ? livePrice : 4150;
-    const ethP = selectedSymbol === 'ETHUSDT' ? livePrice : 2450;
+    const btcP = selectedSymbol === 'BTCUSDT' ? livePrice : sharedQuoteStore.getPrice('BTCUSDT');
+    const goldP = (selectedSymbol === 'PAXGUSDT' || selectedSymbol === 'XAUUSD') ? livePrice : sharedQuoteStore.getPrice('XAUUSD');
+    const ethP = selectedSymbol === 'ETHUSDT' ? livePrice : sharedQuoteStore.getPrice('ETHUSDT');
     return getFullIntermarketRadarSnapshot(
       btcP,
       goldP,
@@ -593,7 +595,7 @@ export const DeeeprAiChartView: React.FC = () => {
 
       // 6. HIGH LEVERAGE LIQUIDATION RESTING POOLS
       if (toggles.liquidationMap) {
-        const curP = livePriceRef.current || currentPlan.entryPrice || 84500;
+        const curP = livePriceRef.current || currentPlan.entryPrice || sharedQuoteStore.getPrice(selectedSymbol);
         const shortLiqPrice = Math.round(curP * 1.018);
         const longLiqPrice = Math.round(curP * 0.982);
 
@@ -1566,61 +1568,86 @@ export const DeeeprAiChartView: React.FC = () => {
     let isCancelled = false;
     const fetchCandles = async () => {
       try {
-        // Fetch historical candles (with USDT.D and DXY mathematical inverse feeds)
+        const tfMap: Record<string, SupportedTimeframe> = {
+          '1m': '1M',
+          '5m': '5M',
+          '15m': '15M',
+          '30m': '30M',
+          '1h': '1H',
+          '4h': '4H',
+          '1d': '1D'
+        };
+        const tf = tfMap[timeframe] || '15M';
         const isUsdtD = selectedSymbol === 'USDTD';
         const isDxy = selectedSymbol === 'DXY';
-        const fetchSym = isUsdtD ? 'BTCUSDT' : isDxy ? 'PAXGUSDT' : selectedSymbol;
-        const res = await fetch(
-          `https://api.binance.com/api/v3/klines?symbol=${fetchSym}&interval=${timeframe}&limit=1000`
-        );
-        if (!res.ok) throw new Error('Failed to fetch candles');
-        const data = await res.json();
+        const curTargetPrice = sharedQuoteStore.getPrice(selectedSymbol);
+
+        let formattedCandles: CandleData[] = [];
+        let formattedVolumes: any[] = [];
+
+        if (isUsdtD) {
+          const btcPrice = sharedQuoteStore.getPrice('BTCUSDT');
+          const btcCandles = await fetchResilientCandles('BTC', tf, btcPrice, 100);
+          formattedCandles = btcCandles.map((d) => ({
+            time: d.time as any,
+            open: +(5.42 + ((btcPrice - d.open) / btcPrice) * 0.6).toFixed(3),
+            high: +(5.42 + ((btcPrice - d.low) / btcPrice) * 0.6).toFixed(3),
+            low: +(5.42 + ((btcPrice - d.high) / btcPrice) * 0.6).toFixed(3),
+            close: +(5.42 + ((btcPrice - d.close) / btcPrice) * 0.6).toFixed(3),
+            volume: d.volume
+          }));
+          formattedVolumes = btcCandles.map((d) => ({
+            time: d.time as any,
+            value: d.volume,
+            color: 'rgba(234, 179, 8, 0.45)'
+          }));
+        } else if (isDxy) {
+          const goldPrice = sharedQuoteStore.getPrice('XAUUSD');
+          const goldCandles = await fetchResilientCandles('GOLD', tf, goldPrice, 100);
+          formattedCandles = goldCandles.map((d) => ({
+            time: d.time as any,
+            open: +(102.35 + ((goldPrice - d.open) / goldPrice) * 1.5).toFixed(3),
+            high: +(102.35 + ((goldPrice - d.low) / goldPrice) * 1.5).toFixed(3),
+            low: +(102.35 + ((goldPrice - d.high) / goldPrice) * 1.5).toFixed(3),
+            close: +(102.35 + ((goldPrice - d.close) / goldPrice) * 1.5).toFixed(3),
+            volume: d.volume
+          }));
+          formattedVolumes = goldCandles.map((d) => ({
+            time: d.time as any,
+            value: d.volume,
+            color: 'rgba(56, 189, 248, 0.45)'
+          }));
+        } else {
+          const assetKey: SupportedAsset = (selectedSymbol.includes('PAXG') || selectedSymbol.includes('XAU'))
+            ? 'GOLD'
+            : selectedSymbol.includes('ETH')
+            ? 'ETH'
+            : selectedSymbol.includes('SOL')
+            ? 'SOL'
+            : selectedSymbol.includes('SLV')
+            ? 'SILVER'
+            : 'BTC';
+
+          const resilient = await fetchResilientCandles(assetKey, tf, curTargetPrice, 100);
+          if (resilient && resilient.length > 5) {
+            formattedCandles = resilient.map((d) => ({
+              time: d.time as any,
+              open: d.open,
+              high: d.high,
+              low: d.low,
+              close: d.close,
+              volume: d.volume
+            }));
+            formattedVolumes = resilient.map((d) => ({
+              time: d.time as any,
+              value: d.volume,
+              color: d.close >= d.open ? 'rgba(16, 185, 129, 0.45)' : 'rgba(244, 63, 94, 0.45)'
+            }));
+          }
+        }
+
         if (isCancelled) return;
-
-        const formattedCandles: CandleData[] = data.map((d: any) => {
-          if (isUsdtD) {
-            const btcOpen = parseFloat(d[1]);
-            const btcHigh = parseFloat(d[2]);
-            const btcLow = parseFloat(d[3]);
-            const btcClose = parseFloat(d[4]);
-            return {
-              time: Math.floor(d[0] / 1000) as any,
-              open: +(5.34 + ((84500 - btcOpen) / 84500) * 0.6).toFixed(3),
-              high: +(5.34 + ((84500 - btcLow) / 84500) * 0.6).toFixed(3),
-              low: +(5.34 + ((84500 - btcHigh) / 84500) * 0.6).toFixed(3),
-              close: +(5.34 + ((84500 - btcClose) / 84500) * 0.6).toFixed(3),
-              volume: parseFloat(d[5])
-            };
-          }
-          if (isDxy) {
-            const goldOpen = parseFloat(d[1]);
-            const goldHigh = parseFloat(d[2]);
-            const goldLow = parseFloat(d[3]);
-            const goldClose = parseFloat(d[4]);
-            return {
-              time: Math.floor(d[0] / 1000) as any,
-              open: +(102.35 + ((4150 - goldOpen) / 4150) * 1.5).toFixed(3),
-              high: +(102.35 + ((4150 - goldLow) / 4150) * 1.5).toFixed(3),
-              low: +(102.35 + ((4150 - goldHigh) / 4150) * 1.5).toFixed(3),
-              close: +(102.35 + ((4150 - goldClose) / 4150) * 1.5).toFixed(3),
-              volume: parseFloat(d[5])
-            };
-          }
-          return {
-            time: Math.floor(d[0] / 1000) as any,
-            open: parseFloat(d[1]),
-            high: parseFloat(d[2]),
-            low: parseFloat(d[3]),
-            close: parseFloat(d[4]),
-            volume: parseFloat(d[5])
-          };
-        });
-
-        const formattedVolumes = data.map((d: any) => ({
-          time: Math.floor(d[0] / 1000) as any,
-          value: parseFloat(d[5]),
-          color: parseFloat(d[4]) >= parseFloat(d[1]) ? 'rgba(16, 185, 129, 0.45)' : 'rgba(244, 63, 94, 0.45)'
-        }));
+        if (formattedCandles.length === 0) throw new Error('Candles empty');
 
         candleSeries.setData(formattedCandles);
         volumeSeries.setData(formattedVolumes);
@@ -1677,7 +1704,7 @@ export const DeeeprAiChartView: React.FC = () => {
         console.warn('Using realistic fallback data for chart:', err);
         const now = Math.floor(Date.now() / 1000);
         const tfSec = 900;
-        const baseP = selectedSymbol.includes('PAXG') || selectedSymbol.includes('XAU') ? 4160.17 : 84550;
+        const baseP = sharedQuoteStore.getPrice(selectedSymbol);
         const fakeCandles: CandleData[] = [];
         const fakeVols: any[] = [];
 
@@ -1758,8 +1785,34 @@ export const DeeeprAiChartView: React.FC = () => {
     }
   }, [plan, analysis, smcToggles, precisionOutput, renderPriceLines, renderMarkers]);
 
-  // ─── 2. REAL-TIME 0-MS WEBSOCKET TICKER ───
+  // ─── 2. REAL-TIME MULTI-SOURCE & WEBSOCKET TICKER ───
   useEffect(() => {
+    // A. Subscribe to sharedQuoteStore (zero failure from Coinbase, Kraken, Gold-API)
+    const unsubShared = sharedQuoteStore.subscribe((quote) => {
+      const matchKey = selectedSymbol === 'USDTD' ? 'USDTD' : selectedSymbol === 'DXY' ? 'DXY' : selectedSymbol;
+      if (normalizeSymbolKey(quote.symbol) === normalizeSymbolKey(matchKey) && quote.price > 0) {
+        setWsStatus('LIVE');
+        const price = quote.price;
+        setLivePrice((prev) => {
+          if (price > prev) setPriceFlash('up');
+          else if (price < prev) setPriceFlash('down');
+          setTimeout(() => setPriceFlash(null), 300);
+          return price;
+        });
+        setPriceChange24h(`${quote.change24h >= 0 ? '+' : ''}${quote.change24h.toFixed(2)}%`);
+
+        if (candleSeriesRef.current && candlesRef.current.length > 0) {
+          const last = { ...candlesRef.current[candlesRef.current.length - 1] };
+          last.close = price;
+          if (price > last.high) last.high = price;
+          if (price < last.low) last.low = price;
+          candleSeriesRef.current.update(last as any);
+        }
+
+        checkTradeLevelsRef.current?.(price);
+      }
+    });
+
     let ws: WebSocket | null = null;
     let fallbackTimer: any = null;
 
@@ -1780,9 +1833,11 @@ export const DeeeprAiChartView: React.FC = () => {
           const change = parseFloat(data.P);
           let price = rawPrice;
           if (isUsdtD) {
-            price = +(5.34 + ((84500 - rawPrice) / 84500) * 0.6).toFixed(3);
+            const btcP = sharedQuoteStore.getPrice('BTCUSDT');
+            price = +(5.42 + ((btcP - rawPrice) / btcP) * 0.6).toFixed(3);
           } else if (isDxy) {
-            price = +(102.35 + ((4150 - rawPrice) / 4150) * 1.5).toFixed(3);
+            const goldP = sharedQuoteStore.getPrice('XAUUSD');
+            price = +(102.35 + ((goldP - rawPrice) / goldP) * 1.5).toFixed(3);
           }
           if (!isNaN(price)) {
             setLivePrice((prev) => {
@@ -1807,28 +1862,23 @@ export const DeeeprAiChartView: React.FC = () => {
         } catch {}
       };
 
-      ws.onerror = () => setWsStatus('CONNECTING');
-      ws.onclose = () => setWsStatus('CONNECTING');
+      ws.onerror = () => {};
+      ws.onclose = () => {};
     } catch {
       setWsStatus('CONNECTING');
     }
 
     fallbackTimer = setInterval(() => {
-      // ONLY run fallback timer if WebSocket is NOT live!
-      setLivePrice((prev) => {
-        // If WebSocket is live, do not inject synthetic jitter
-        if (wsStatus === 'LIVE') return prev;
-        const delta = (Math.random() - 0.495) * (prev * 0.0003);
-        const updated = +(prev + delta).toFixed(2);
-        if (updated > prev) setPriceFlash('up');
-        else if (updated < prev) setPriceFlash('down');
-        setTimeout(() => setPriceFlash(null), 300);
-        checkTradeLevelsRef.current?.(updated);
-        return updated;
-      });
-    }, 2000);
+      // Periodic fallback sync with sharedQuoteStore
+      const freshPrice = sharedQuoteStore.getPrice(selectedSymbol);
+      if (freshPrice > 0) {
+        setLivePrice(freshPrice);
+        checkTradeLevelsRef.current?.(freshPrice);
+      }
+    }, 4000);
 
     return () => {
+      unsubShared();
       if (ws) ws.close();
       if (fallbackTimer) clearInterval(fallbackTimer);
     };

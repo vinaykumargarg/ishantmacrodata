@@ -52,6 +52,7 @@ import { VerdictBadge } from './VerdictBadge';
 import { ConflictEvidenceDashboard } from './ConflictEvidenceDashboard';
 import { masterVerdictStore } from '../services/masterVerdictStore';
 import { sharedQuoteStore } from '../services/sharedQuoteStore';
+import { fetchResilientCandles, SupportedAsset, SupportedTimeframe } from '../services/multiSourceCandleService';
 
 interface DeeeprDecisionEngineViewProps {
   onNavigate?: (tab: string) => void;
@@ -59,12 +60,12 @@ interface DeeeprDecisionEngineViewProps {
 }
 
 const SUPPORTED_ASSETS = [
-  { key: 'BTCUSDT', label: 'BTC/USDT', name: 'Bitcoin', icon: '₿', defaultPrice: 84500 },
-  { key: 'ETHUSDT', label: 'ETH/USDT', name: 'Ethereum', icon: 'Ξ', defaultPrice: 2450 },
-  { key: 'SOLUSDT', label: 'SOL/USDT', name: 'Solana', icon: '◎', defaultPrice: 104 },
-  { key: 'XAUUSD', label: 'GOLD (XAU)', name: 'Gold Spot (COMEX)', icon: '🥇', defaultPrice: 4150 },
-  { key: 'SLVUSDT', label: 'SILVER (XAG)', name: 'Silver Spot (COMEX)', icon: '🥈', defaultPrice: 50.8 },
-  { key: 'USDTD', label: 'USDT.D', name: 'USDT Dominance (%)', icon: '🌊', defaultPrice: 6.57 },
+  { key: 'BTCUSDT', label: 'BTC/USDT', name: 'Bitcoin', icon: '₿', defaultPrice: 64368 },
+  { key: 'ETHUSDT', label: 'ETH/USDT', name: 'Ethereum', icon: 'Ξ', defaultPrice: 1817.5 },
+  { key: 'SOLUSDT', label: 'SOL/USDT', name: 'Solana', icon: '◎', defaultPrice: 70.7 },
+  { key: 'XAUUSD', label: 'GOLD (XAU)', name: 'Gold Spot (COMEX)', icon: '🥇', defaultPrice: 3863 },
+  { key: 'SLVUSDT', label: 'SILVER (XAG)', name: 'Silver Spot (COMEX)', icon: '🥈', defaultPrice: 47.8 },
+  { key: 'USDTD', label: 'USDT.D', name: 'USDT Dominance (%)', icon: '🌊', defaultPrice: 5.42 },
   { key: 'DXY', label: 'DXY', name: 'US Dollar Index', icon: '💵', defaultPrice: 102.35 },
   { key: 'WTI', label: 'Crude Oil', name: 'WTI Light Sweet', icon: '🛢️', defaultPrice: 76.5 }
 ];
@@ -75,8 +76,10 @@ export const DeeeprDecisionEngineView: React.FC<DeeeprDecisionEngineViewProps> =
 }) => {
   const [selectedSymbol, setSelectedSymbol] = useState<string>(defaultSymbol);
   const [livePrice, setLivePrice] = useState<number>(() => {
+    const fresh = sharedQuoteStore.getPrice(defaultSymbol);
+    if (fresh > 0) return fresh;
     const asset = SUPPORTED_ASSETS.find((a) => a.key === defaultSymbol);
-    return asset ? asset.defaultPrice : 84500;
+    return asset ? asset.defaultPrice : 64368;
   });
   const [priceFlash, setPriceFlash] = useState<'up' | 'down' | null>(null);
   const [chartTimeframe, setChartTimeframe] = useState<string>('15m');
@@ -281,31 +284,47 @@ export const DeeeprDecisionEngineView: React.FC<DeeeprDecisionEngineViewProps> =
         console.warn('DXY WS error', err);
       }
     }
-    // 3. CRYPTO & GOLD SPOT BINANCE ASSETS
-    else if (['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XAUUSD'].includes(selectedSymbol)) {
+    // 3. CRYPTO & GOLD & SILVER ASSETS
+    else if (['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XAUUSD', 'SLVUSDT'].includes(selectedSymbol)) {
       setWsStatus('CONNECTING');
-      const binanceSymbol = selectedSymbol === 'XAUUSD' ? 'PAXGUSDT' : selectedSymbol;
+      const binanceSymbol = selectedSymbol === 'XAUUSD' ? 'PAXGUSDT' : selectedSymbol === 'SLVUSDT' ? 'SLVUSDT' : selectedSymbol;
       const fetchCandles = async () => {
         try {
-          const res = await fetch(
-            `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${chartTimeframe}&limit=1000`
-          );
-          if (res.ok) {
-            const data = await res.json();
-            if (isMounted && Array.isArray(data)) {
-              const formatted = data.map((d: any) => ({
-                time: Math.floor(d[0] / 1000) as any,
-                open: parseFloat(d[1]),
-                high: parseFloat(d[2]),
-                low: parseFloat(d[3]),
-                close: parseFloat(d[4]),
-                volume: parseFloat(d[5])
-              }));
-              setCandles(formatted);
-              candlesRef.current = formatted;
-              if (formatted.length > 0) {
-                setLivePrice(formatted[formatted.length - 1].close);
-              }
+          const tfMap: Record<string, SupportedTimeframe> = {
+            '1m': '1M',
+            '5m': '5M',
+            '15m': '15M',
+            '30m': '30M',
+            '1h': '1H',
+            '4h': '4H',
+            '1d': '1D'
+          };
+          const tf = tfMap[chartTimeframe] || '15M';
+          const assetKey: SupportedAsset = selectedSymbol === 'XAUUSD'
+            ? 'GOLD'
+            : selectedSymbol === 'ETHUSDT'
+            ? 'ETH'
+            : selectedSymbol === 'SOLUSDT'
+            ? 'SOL'
+            : selectedSymbol === 'SLVUSDT'
+            ? 'SILVER'
+            : 'BTC';
+
+          const curP = sharedQuoteStore.getPrice(selectedSymbol);
+          const resilient = await fetchResilientCandles(assetKey, tf, curP, 100);
+          if (isMounted && resilient && resilient.length > 5) {
+            const formatted = resilient.map((d) => ({
+              time: d.time as any,
+              open: d.open,
+              high: d.high,
+              low: d.low,
+              close: d.close,
+              volume: d.volume
+            }));
+            setCandles(formatted);
+            candlesRef.current = formatted;
+            if (formatted.length > 0) {
+              setLivePrice(formatted[formatted.length - 1].close);
             }
           }
         } catch (e) {
@@ -1074,9 +1093,9 @@ export const DeeeprDecisionEngineView: React.FC<DeeeprDecisionEngineViewProps> =
 
   // 2.5 15M Intermarket Confluence State (USDT.D & DXY vs BTC, Gold, ETH)
   const intermarketRadar = useMemo<FullIntermarketRadarState>(() => {
-    const btcP = selectedSymbol === 'BTCUSDT' ? livePrice : 84500;
-    const goldP = selectedSymbol === 'XAUUSD' ? livePrice : 4150;
-    const ethP = selectedSymbol === 'ETHUSDT' ? livePrice : 2450;
+    const btcP = selectedSymbol === 'BTCUSDT' ? livePrice : sharedQuoteStore.getPrice('BTCUSDT');
+    const goldP = selectedSymbol === 'XAUUSD' ? livePrice : sharedQuoteStore.getPrice('XAUUSD');
+    const ethP = selectedSymbol === 'ETHUSDT' ? livePrice : sharedQuoteStore.getPrice('ETHUSDT');
     return getFullIntermarketRadarSnapshot(
       btcP,
       goldP,

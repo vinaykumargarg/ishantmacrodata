@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { sharedQuoteStore } from '../services/sharedQuoteStore';
 
 interface IshantMacroPortalViewProps {
   onLaunchTerminal: (tabId?: string) => void;
@@ -20,6 +21,14 @@ export const IshantMacroPortalView: React.FC<IshantMacroPortalViewProps> = ({
   const [displayText, setDisplayText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeSignalTab, setActiveSignalTab] = useState<'gold' | 'btc'>('gold');
+  const [quotes, setQuotes] = useState(() => sharedQuoteStore.getAllQuotes());
+
+  useEffect(() => {
+    const unsub = sharedQuoteStore.subscribe((newQuotes) => {
+      setQuotes(newQuotes);
+    });
+    return () => unsub();
+  }, []);
 
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -160,19 +169,37 @@ export const IshantMacroPortalView: React.FC<IshantMacroPortalViewProps> = ({
           </div>
 
           <div className="overflow-x-auto no-scrollbar py-2 flex items-center gap-3">
-            {[
-              { sym: 'BTC', px: '$81,126', chg: '-0.47%', up: false },
-              { sym: 'ETH', px: '$2,535', chg: '+3.45%', up: true },
-              { sym: 'SOL', px: '$112.99', chg: '+2.88%', up: true },
-              { sym: 'GOLD', px: '$4,125.4', chg: '+0.77%', up: true },
-              { sym: 'SILVER', px: '$64.39', chg: '+1.46%', up: true },
-              { sym: 'BNB', px: '$761.5', chg: '+1.35%', up: true },
-              { sym: 'WTI', px: '$99.66', chg: '-2.40%', up: false },
-              { sym: 'S&P 500', px: '5,782', chg: '+0.42%', up: true },
-              { sym: 'NIFTY 50', px: '25,014', chg: '+0.35%', up: true },
-              { sym: 'DXY', px: '102.45', chg: '-0.28%', up: false },
-              { sym: 'US10Y', px: '4.972%', chg: '+0.44%', up: true }
-            ].map((t, idx) => (
+            {(() => {
+              const btc = quotes['BTCUSDT']?.price || 64368;
+              const btcChg = quotes['BTCUSDT']?.change24hPct || -0.47;
+              const eth = quotes['ETHUSDT']?.price || 1817.5;
+              const ethChg = quotes['ETHUSDT']?.change24hPct || +3.45;
+              const sol = quotes['SOLUSDT']?.price || 70.70;
+              const solChg = quotes['SOLUSDT']?.change24hPct || +2.88;
+              const gold = quotes['XAUUSD']?.price || 3863.0;
+              const goldChg = quotes['XAUUSD']?.change24hPct || -0.14;
+              const silver = quotes['SILVER']?.price || 47.80;
+              const silverChg = quotes['SILVER']?.change24hPct || +1.46;
+              const bnb = 590.2;
+              const wti = quotes['WTI']?.price || 76.50;
+              const wtiChg = quotes['WTI']?.change24hPct || -2.40;
+              const dxy = quotes['DXY']?.price || 102.45;
+              const dxyChg = quotes['DXY']?.change24hPct || -0.28;
+
+              return [
+                { sym: 'BTC', px: `$${Math.round(btc).toLocaleString()}`, chg: `${btcChg >= 0 ? '+' : ''}${btcChg.toFixed(2)}%`, up: btcChg >= 0 },
+                { sym: 'ETH', px: `$${Math.round(eth).toLocaleString()}`, chg: `${ethChg >= 0 ? '+' : ''}${ethChg.toFixed(2)}%`, up: ethChg >= 0 },
+                { sym: 'SOL', px: `$${sol.toFixed(2)}`, chg: `${solChg >= 0 ? '+' : ''}${solChg.toFixed(2)}%`, up: solChg >= 0 },
+                { sym: 'GOLD', px: `$${gold.toFixed(1)}`, chg: `${goldChg >= 0 ? '+' : ''}${goldChg.toFixed(2)}%`, up: goldChg >= 0 },
+                { sym: 'SILVER', px: `$${silver.toFixed(2)}`, chg: `${silverChg >= 0 ? '+' : ''}${silverChg.toFixed(2)}%`, up: silverChg >= 0 },
+                { sym: 'BNB', px: `$${bnb.toFixed(1)}`, chg: '+1.35%', up: true },
+                { sym: 'WTI', px: `$${wti.toFixed(2)}`, chg: `${wtiChg >= 0 ? '+' : ''}${wtiChg.toFixed(2)}%`, up: wtiChg >= 0 },
+                { sym: 'S&P 500', px: '5,782', chg: '+0.42%', up: true },
+                { sym: 'NIFTY 50', px: '25,014', chg: '+0.35%', up: true },
+                { sym: 'DXY', px: dxy.toFixed(2), chg: `${dxyChg >= 0 ? '+' : ''}${dxyChg.toFixed(2)}%`, up: dxyChg >= 0 },
+                { sym: 'US10Y', px: '4.28%', chg: '-0.34%', up: false }
+              ];
+            })().map((t, idx) => (
               <div
                 key={idx}
                 onClick={() => onLaunchTerminal('global-score')}
@@ -412,61 +439,84 @@ export const IshantMacroPortalView: React.FC<IshantMacroPortalViewProps> = ({
                 </span>
               </div>
 
-              <div>
-                <div className="text-2xl sm:text-3xl font-black font-mono text-white tabular-nums">
-                  {activeSignalTab === 'gold' ? '4,125.4' : '81,126.0'}{' '}
-                  <span className="text-sm font-bold text-emerald-400">
-                    {activeSignalTab === 'gold' ? '▲ +0.77%' : '▲ +2.84%'}
-                  </span>
-                </div>
-                <span className="text-xs text-slate-400 font-semibold block mt-0.5">
-                  {activeSignalTab === 'gold'
-                    ? 'Macro-Trend Continuation · D1 pullback entry'
-                    : '4H Liquidity Sweep · 2,000 / 2,500 / 3,000 Pts Targets'}
-                </span>
-              </div>
+              {(() => {
+                const goldPx = quotes['XAUUSD']?.price || 3863.0;
+                const goldChg = quotes['XAUUSD']?.change24hPct || -0.14;
+                const btcPx = quotes['BTCUSDT']?.price || 64368;
+                const btcChg = quotes['BTCUSDT']?.change24hPct || -0.47;
 
-              {/* Data Rows */}
-              <div className="space-y-2 text-xs font-mono pt-1">
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Confidence</span>
-                  <strong className="text-emerald-400">{activeSignalTab === 'gold' ? '68%' : '86%'}</strong>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Entry zone</span>
-                  <strong className="text-white">{activeSignalTab === 'gold' ? '$4,110 – $4,128' : '$81,037 – $82,460'}</strong>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Stop loss</span>
-                  <strong className="text-rose-400">{activeSignalTab === 'gold' ? '$4,082 (-$28)' : '$80,506 (-680 pts)'}</strong>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Target 1 · TP1</span>
-                  <strong className="text-emerald-400">{activeSignalTab === 'gold' ? '$4,180 (+$55)' : '$83,186 (+2,000 pts)'}</strong>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Target 2 · TP2</span>
-                  <strong className="text-emerald-400">{activeSignalTab === 'gold' ? '$4,240 (+$115)' : '$83,686 (+2,500 pts)'}</strong>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-800/60">
-                  <span className="text-slate-400">Target 3 · TP3</span>
-                  <strong className="text-emerald-400">{activeSignalTab === 'gold' ? '$4,320 (+$195)' : '$84,186 (+3,000 pts)'}</strong>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-slate-400">1% risk sizing</span>
-                  <strong className="text-cyan-300">{activeSignalTab === 'gold' ? '13.6 oz' : '1.47 BTC'}</strong>
-                </div>
-              </div>
+                const isGold = activeSignalTab === 'gold';
+                const px = isGold ? goldPx.toFixed(1) : Math.round(btcPx).toLocaleString();
+                const chg = isGold ? `${goldChg >= 0 ? '+' : ''}${goldChg.toFixed(2)}%` : `${btcChg >= 0 ? '+' : ''}${btcChg.toFixed(2)}%`;
+                const isUp = isGold ? goldChg >= 0 : btcChg >= 0;
 
-              {/* Why & Invalidation Box */}
-              <div className="p-3 rounded-xl bg-[#060a16] border border-slate-800 text-[11px] text-slate-300 leading-relaxed">
-                <span className="font-extrabold text-amber-300">Why: </span>
-                {activeSignalTab === 'gold'
-                  ? 'Hormuz war premium + ~95t/month central-bank demand vs a 2.55% real yield. '
-                  : '4H structural order block sweep with CVD divergence. +2k, +2.5k, +3k pt expansion roadmap. '}
-                <span className="font-extrabold text-rose-300">Invalidation: </span>
-                {activeSignalTab === 'gold' ? 'Daily close below $4,082.' : '4H close below $80,506.'}
-              </div>
+                const entry = isGold ? `$${(goldPx - 8).toFixed(1)} – $${(goldPx - 2).toFixed(1)}` : `$${Math.round(btcPx - 450).toLocaleString()} – $${Math.round(btcPx - 100).toLocaleString()}`;
+                const sl = isGold ? `$${(goldPx - 15).toFixed(1)} (-$15)` : `$${Math.round(btcPx - 950).toLocaleString()} (-950 pts)`;
+                const tp1 = isGold ? `$${(goldPx + 20).toFixed(1)} (+$20)` : `$${Math.round(btcPx + 1200).toLocaleString()} (+1,200 pts)`;
+                const tp2 = isGold ? `$${(goldPx + 42).toFixed(1)} (+$42)` : `$${Math.round(btcPx + 2500).toLocaleString()} (+2,500 pts)`;
+                const tp3 = isGold ? `$${(goldPx + 70).toFixed(1)} (+$70)` : `$${Math.round(btcPx + 3200).toLocaleString()} (+3,200 pts)`;
+                const invalidation = isGold ? `Daily close below $${(goldPx - 15).toFixed(1)}.` : `4H close below $${Math.round(btcPx - 950).toLocaleString()}.`;
+
+                return (
+                  <>
+                    <div>
+                      <div className="text-2xl sm:text-3xl font-black font-mono text-white tabular-nums">
+                        {px}{' '}
+                        <span className={`text-sm font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {isUp ? '▲' : '▼'} {chg}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400 font-semibold block mt-0.5">
+                        {isGold
+                          ? 'Macro-Trend Continuation · 4H pullback entry'
+                          : '4H Liquidity Sweep · Intraday & Swing Targets'}
+                      </span>
+                    </div>
+
+                    {/* Data Rows */}
+                    <div className="space-y-2 text-xs font-mono pt-1">
+                      <div className="flex justify-between py-1 border-b border-slate-800/60">
+                        <span className="text-slate-400">Confidence</span>
+                        <strong className="text-emerald-400">{isGold ? '78%' : '84%'}</strong>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-slate-800/60">
+                        <span className="text-slate-400">Entry zone</span>
+                        <strong className="text-white">{entry}</strong>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-slate-800/60">
+                        <span className="text-slate-400">Stop loss</span>
+                        <strong className="text-rose-400">{sl}</strong>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-slate-800/60">
+                        <span className="text-slate-400">Target 1 · TP1</span>
+                        <strong className="text-emerald-400">{tp1}</strong>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-slate-800/60">
+                        <span className="text-slate-400">Target 2 · TP2</span>
+                        <strong className="text-emerald-400">{tp2}</strong>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-slate-800/60">
+                        <span className="text-slate-400">Target 3 · TP3</span>
+                        <strong className="text-emerald-400">{tp3}</strong>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-slate-400">1% risk sizing</span>
+                        <strong className="text-cyan-300">{isGold ? '14.2 oz' : '1.45 BTC'}</strong>
+                      </div>
+                    </div>
+
+                    {/* Why & Invalidation Box */}
+                    <div className="p-3 rounded-xl bg-[#060a16] border border-slate-800 text-[11px] text-slate-300 leading-relaxed">
+                      <span className="font-extrabold text-amber-300">Why: </span>
+                      {isGold
+                        ? 'Central-bank physical hoarding + falling 10Y TIPS real yields with DXY resistance rejection. '
+                        : '4H structural order block sweep with positive CVD delta divergence. '}
+                      <span className="font-extrabold text-rose-300">Invalidation: </span>
+                      {invalidation}
+                    </div>
+                  </>
+                );
+              })()}
 
               <button
                 onClick={() => onLaunchTerminal(activeSignalTab === 'gold' ? 'gold-signal-panel' : 'deeepr-ai')}
