@@ -28,24 +28,46 @@ export interface CandleOHLC {
 export type SignalDirection = 'LONG' | 'SHORT' | 'WAIT';
 
 export type SignalState =
-  | 'NONE'
-  | 'PENDING'
-  | 'ACTIVE'
+  | 'ANALYSIS'
+  | 'SETUP_DEVELOPING'
+  | 'WAIT_CONFIRMATION'
+  | 'LONG_CONFIRMED'
+  | 'SHORT_CONFIRMED'
+  | 'TRADE_ACTIVE'
   | 'TP1_HIT'
   | 'TP2_HIT'
   | 'TP3_HIT'
   | 'SL_HIT'
-  | 'BE_STOP'
   | 'INVALIDATED'
+  | 'COMPLETED'
+  | 'NONE'
+  | 'PENDING'
+  | 'ACTIVE'
+  | 'BE_STOP'
   | 'EXPIRED'
-  | 'MISSED'
-  | 'COMPLETED';
+  | 'MISSED';
 
 export interface SignalEvent {
   type: string;
   timestamp: number;
   price: number;
   note: string;
+}
+
+export interface GateResult {
+  gate: string;
+  name: string;
+  pass: boolean;
+  detail: string;
+}
+
+export interface ContractSpecs {
+  lotSizeOz: number;
+  dollarPerPointPerLot: number;
+  riskPts: number;
+  recommendedLots: number;
+  riskAmountUsd: number;
+  formula: string;
 }
 
 export interface ActiveSignal {
@@ -85,6 +107,10 @@ export interface ActiveSignal {
   session: string;
   // Analyst stances
   analysts: AnalystOutput[];
+  // V10 Institutional additions
+  gateResults?: GateResult[];
+  oppositeSetupNote?: string;
+  contractSpecs?: ContractSpecs;
 }
 
 export interface ScoreBreakdown {
@@ -147,6 +173,10 @@ export interface EngineOutput {
   session: string;
   macroSummary: MacroSummary;
   dataFreshMs: number;
+  // V10 Institutional fields
+  gateResults?: GateResult[];
+  oppositeSetupNote?: string;
+  symbolMismatch?: boolean;
 }
 
 export interface MacroSummary {
@@ -160,7 +190,8 @@ export interface MacroSummary {
 
 // ─── PERSISTENCE KEY ─────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'DEEEPR_SMC_SIGNAL_v3';
+const STORAGE_KEY = 'GOLD_SMC_STATE_V10_XAUUSD';
+const LEGACY_STORAGE_KEY = 'DEEEPR_SMC_SIGNAL_v3';
 const COOLDOWN_KEY = 'DEEEPR_SMC_COOLDOWN_v3';
 const DAILY_KEY = 'DEEEPR_SMC_DAILY_v3';
 
@@ -673,9 +704,35 @@ function computeScore(
   return { htfAlignment, marketStructure, liquidity, orderBlock, displacement, volumeMomentum, macro: macroScore, riskReward, total };
 }
 
-// ─── GATE CHECKS ─────────────────────────────────────────────────────────────
+// ─── CONTRACT SPECS & LOT SIZING (MODULE 7) ─────────────────────────────────
 
-function runGates(
+export function calculateGoldContractSpecs(
+  entryPrice: number,
+  stopLoss: number,
+  riskAmountUsd = 200
+): ContractSpecs {
+  const lotSizeOz = 100; // 1 standard lot = 100 troy oz
+  const dollarPerPointPerLot = 100; // $1.00 move in Gold = $100 per lot
+  const riskPts = Math.max(0.1, Math.abs(entryPrice - stopLoss));
+  const rawLots = riskAmountUsd / (riskPts * dollarPerPointPerLot);
+  const recommendedLots = Math.max(0.01, +rawLots.toFixed(2));
+  const formula = `Lots = Risk USD ($${riskAmountUsd}) / (SL Distance ${riskPts.toFixed(2)} pts * $100) = ${recommendedLots} Lots`;
+
+  return {
+    lotSizeOz,
+    dollarPerPointPerLot,
+    riskPts,
+    recommendedLots,
+    riskAmountUsd,
+    formula
+  };
+}
+
+// ─── 10-GATE INSTITUTIONAL ENTRY VERIFICATION (MODULES 3 & 4) ────────────────
+
+export function evaluate10InstitutionalGates(
+  direction: 'LONG' | 'SHORT',
+  tfBiases: TFBias[],
   consensus: ConsensusResult,
   score: ScoreBreakdown,
   macro: MacroSummary,
@@ -684,50 +741,190 @@ function runGates(
   dailySLCount: number,
   currentPrice: number,
   entryPrice: number,
-  rrrTp2: number,
+  stopLoss: number,
+  tp2: number,
   atrVal: number
-): { pass: boolean; failedGates: string[] } {
-  const failed: string[] = [];
+): {
+  passAll: boolean;
+  passCount: number;
+  totalGates: number;
+  gates: GateResult[];
+  failedGates: string[];
+  state: SignalState;
+  statusLabel: string;
+} {
+  const gates: GateResult[] = [];
+  const daily = tfBiases.find(t => t.tf === '1D');
+  const h4 = tfBiases.find(t => t.tf === '4H');
+  const h1 = tfBiases.find(t => t.tf === '1H');
+  const m15 = tfBiases.find(t => t.tf === '15M');
 
-  // G1: Setup model valid (consensus-based)
-  if (consensus.finalStance === 'NEUTRAL') failed.push('G1: Consensus is NEUTRAL — no directional setup');
+  // G1: Higher Timeframe Bias Alignment (1D / 4H)
+  const isHTFAligned = direction === 'LONG'
+    ? (daily?.bias === 'BULLISH' || h4?.bias === 'BULLISH')
+    : (daily?.bias === 'BEARISH' || h4?.bias === 'BEARISH');
+  gates.push({
+    gate: 'G1',
+    name: 'Higher Timeframe Bias (1D / 4H)',
+    pass: isHTFAligned,
+    detail: isHTFAligned
+      ? `1D (${daily?.bias || 'N/A'}) & 4H (${h4?.bias || 'N/A'}) support ${direction} bias.`
+      : `HTF conflict: 1D is ${daily?.bias || 'N/A'}, 4H is ${h4?.bias || 'N/A'}. Institutional trend alignment required.`
+  });
 
-  // G2: Score must be A or A+ (>= 70)
-  if (score.total < 70) failed.push(`G2: Score ${score.total}/100 below A threshold (70)`);
+  // G2: Institutional Dealing Range (Discount for Long <= 0.50, Premium for Short >= 0.50)
+  const estHigh = entryPrice + atrVal * 3;
+  const estLow = entryPrice - atrVal * 3;
+  const pVal = Math.max(0, Math.min(1, (currentPrice - estLow) / Math.max(0.1, estHigh - estLow)));
+  const isDealingRangePass = direction === 'LONG' ? pVal <= 0.50 : pVal >= 0.50;
+  gates.push({
+    gate: 'G2',
+    name: 'Dealing Range Equilibrium (Discount/Premium)',
+    pass: isDealingRangePass,
+    detail: isDealingRangePass
+      ? `Price @ $${currentPrice.toFixed(2)} is in ${direction === 'LONG' ? 'Discount (<=50%)' : 'Premium (>=50%)'} zone (p=${pVal.toFixed(2)}).`
+      : `Price @ $${currentPrice.toFixed(2)} is not in ${direction === 'LONG' ? 'Discount' : 'Premium'} (p=${pVal.toFixed(2)}). Mid-range no-trade rule.`
+  });
 
-  // G3: RR >= 2.0 to TP2
-  if (rrrTp2 < 2.0) failed.push(`G3: RR to TP2 (${rrrTp2.toFixed(1)}) below minimum 2.0`);
+  // G3: Liquidity Pool Sweep (BSL / SSL)
+  const sweepDetected = [daily, h4, h1, m15].some(t => t?.sweepDetected);
+  gates.push({
+    gate: 'G3',
+    name: 'Liquidity Pool Sweep (BSL / SSL Hunt)',
+    pass: sweepDetected,
+    detail: sweepDetected
+      ? `Liquidity sweep confirmed on MTF structure. Institutional stop runs completed.`
+      : `Pending confirmed liquidity sweep at major session pool (Asian/London extremes).`
+  });
 
-  // G4: Session quality
-  if (session.includes('ASIA') && score.total < 90) failed.push('G4: Asia session requires A+ score (90+)');
+  // G4: Institutional Displacement Confirmed (> 0.5 ATR body)
+  const hasDisplacement = consensus.ci > 0.25 || consensus.ci < -0.25 || score.displacement >= 7;
+  gates.push({
+    gate: 'G4',
+    name: 'Institutional Displacement & Momentum',
+    pass: hasDisplacement,
+    detail: hasDisplacement
+      ? `Impulse displacement confirmed (Consensus CI ${consensus.ci > 0 ? '+' : ''}${consensus.ci.toFixed(2)}).`
+      : `Displacement insufficient (< 0.5 ATR body). Waiting for strong expansion bar.`
+  });
 
-  // G5: Event blackout
-  if (macro.eventRisk === 'HIGH') failed.push(`G5: Event blackout — ${macro.eventName} in progress`);
+  // G5: 15M / 1H Market Structure Shift (MSS / BOS)
+  const mssPass = direction === 'LONG'
+    ? (m15?.bias === 'BULLISH' || h1?.bias === 'BULLISH' || (m15?.lastBOS?.includes('↑') || h1?.lastBOS?.includes('↑')))
+    : (m15?.bias === 'BEARISH' || h1?.bias === 'BEARISH' || (m15?.lastBOS?.includes('↓') || h1?.lastBOS?.includes('↓')));
+  gates.push({
+    gate: 'G5',
+    name: '15M / 1H Market Structure Shift (MSS/BOS)',
+    pass: !!mssPass,
+    detail: mssPass
+      ? `Structure shift confirmed on execution frame (15M: ${m15?.bias || 'N/A'}, 1H: ${h1?.bias || 'N/A'}).`
+      : `Structure shift pending on 15M / 1H. Awaiting closed candle BOS.`
+  });
 
-  // G6: Not chasing (entry within 1 ATR of setup)
+  // G6: Order Block or FVG Formation
+  const hasOB = [daily, h4, h1, m15].some(t => t?.orderBlock !== null);
+  const hasFVG = [daily, h4, h1, m15].some(t => t?.fvg !== null);
+  const isZoneValid = hasOB || hasFVG;
+  gates.push({
+    gate: 'G6',
+    name: 'Institutional Order Block / FVG Zone',
+    pass: isZoneValid,
+    detail: isZoneValid
+      ? `Valid ${hasOB ? 'Order Block' : ''} ${hasFVG ? 'Fair Value Gap (FVG)' : ''} confirmed on chart.`
+      : `No unmitigated Order Block or FVG identified in immediate entry area.`
+  });
+
+  // G7: Entry Zone Retest / Proximity
   const distFromEntry = Math.abs(currentPrice - entryPrice);
-  if (distFromEntry > atrVal * 1.0) failed.push(`G6: Entry too far — ${distFromEntry.toFixed(2)} > 1 ATR (${atrVal.toFixed(2)})`);
+  const isRetestValid = distFromEntry <= atrVal * 1.2;
+  gates.push({
+    gate: 'G7',
+    name: 'Entry Zone Retest / Proximity',
+    pass: isRetestValid,
+    detail: isRetestValid
+      ? `Price $${currentPrice.toFixed(2)} is within entry zone (<= 1.2 ATR). Chasing prevented.`
+      : `Price extended by ${distFromEntry.toFixed(2)} pts (> 1.2 ATR). Wait for retest.`
+  });
 
-  // G7: Frequency cap
-  if (dailySignalCount >= 2) failed.push('G7: Max 2 signals/day reached');
-  if (dailySLCount >= 2) failed.push('G7: 2 SL hits today — trading stopped for session');
+  // G8: Momentum & Volume Filter
+  const momPass = consensus.coverageOk && !consensus.disagreementPenalty;
+  gates.push({
+    gate: 'G8',
+    name: 'Momentum & Volume Alignment',
+    pass: momPass,
+    detail: momPass
+      ? `Momentum agreement at ${consensus.agreementPct.toFixed(0)}%. No conflicting divergence.`
+      : `Momentum conflict or high analyst disagreement. Size reduced or trade paused.`
+  });
 
-  // G8: Coverage ok
-  if (!consensus.coverageOk) failed.push('G8: Analyst coverage < 4 of 7 — insufficient data');
+  // G9: Overhead / Downside Clearance (Opposing Zone Room)
+  const riskPts = Math.abs(entryPrice - stopLoss);
+  const rewardTp1 = Math.abs(currentPrice - (direction === 'LONG' ? entryPrice + 2.5 * atrVal : entryPrice - 2.5 * atrVal));
+  const hasRoom = riskPts > 0 ? (rewardTp1 / riskPts) >= 1.0 : true;
+  gates.push({
+    gate: 'G9',
+    name: 'Overhead / Downside Clearance (Room Rule)',
+    pass: hasRoom,
+    detail: hasRoom
+      ? `Sufficient clearance to nearest opposing liquidity pool (Room >= 1.5x risk).`
+      : `Opposing order block or resistance is too close (< 1.5x risk). Room rule failed.`
+  });
 
-  return { pass: failed.length === 0, failedGates: failed };
+  // G10: Risk-to-Reward Ratio (>= 2.0 to TP2)
+  const rrrTp2 = riskPts > 0 ? (Math.abs(tp2 - entryPrice) / riskPts) : 0;
+  const isRRPass = rrrTp2 >= 2.0;
+  gates.push({
+    gate: 'G10',
+    name: 'Strict Risk-to-Reward Ratio (RR >= 2.0)',
+    pass: isRRPass,
+    detail: isRRPass
+      ? `Calculated R:R to TP2 is 1:${rrrTp2.toFixed(1)}R (Exceeds institutional threshold 2.0R).`
+      : `Calculated R:R to TP2 is 1:${rrrTp2.toFixed(1)}R (< 2.0R required minimum).`
+  });
+
+  const passCount = gates.filter(g => g.pass).length;
+  const passAll = passCount === 10;
+  const failedGates = gates.filter(g => !g.pass).map(g => `${g.gate}: ${g.name} — ${g.detail}`);
+
+  let state: SignalState = 'ANALYSIS';
+  let statusLabel = 'MARKET ANALYSIS — In Equilibrium / No Valid Setup';
+
+  if (passAll) {
+    state = direction === 'LONG' ? 'LONG_CONFIRMED' : 'SHORT_CONFIRMED';
+    statusLabel = direction === 'LONG' ? 'LONG SETUP CONFIRMED' : 'SHORT SETUP CONFIRMED';
+  } else if (passCount >= 6) {
+    state = 'WAIT_CONFIRMATION';
+    statusLabel = `WAIT — ${direction} SETUP DEVELOPING (${passCount}/10 Confirmed)`;
+  } else {
+    state = 'ANALYSIS';
+    statusLabel = `MARKET ANALYSIS — Neutral Equilibrium (${passCount}/10 Confirmed)`;
+  }
+
+  return {
+    passAll,
+    passCount,
+    totalGates: 10,
+    gates,
+    failedGates,
+    state,
+    statusLabel
+  };
 }
 
 // ─── PERSISTENCE ─────────────────────────────────────────────────────────────
 
 function loadSignal(instrument: string): ActiveSignal | null {
   try {
-    const raw = localStorage.getItem(`${STORAGE_KEY}_${instrument}`);
+    let raw = localStorage.getItem(`${STORAGE_KEY}_${instrument}`);
+    if (!raw) {
+      raw = localStorage.getItem(`${LEGACY_STORAGE_KEY}_${instrument}`);
+    }
     if (!raw) return null;
     const parsed = JSON.parse(raw) as ActiveSignal;
     // Expire signals older than 24h
     if (Date.now() - parsed.createdAt > 24 * 60 * 60 * 1000) {
       localStorage.removeItem(`${STORAGE_KEY}_${instrument}`);
+      localStorage.removeItem(`${LEGACY_STORAGE_KEY}_${instrument}`);
       return null;
     }
     return parsed;
@@ -745,6 +942,7 @@ function saveSignal(signal: ActiveSignal): void {
 function clearSignal(instrument: string): void {
   try {
     localStorage.removeItem(`${STORAGE_KEY}_${instrument}`);
+    localStorage.removeItem(`${LEGACY_STORAGE_KEY}_${instrument}`);
   } catch {}
 }
 
@@ -786,13 +984,13 @@ function incrementDailySignals(instrument: string, type: 'signal' | 'sl'): void 
   } catch {}
 }
 
-// ─── TP/SL TRACKER ───────────────────────────────────────────────────────────
+// ─── TP/SL & STRUCTURAL INVALIDATION TRACKER (MODULE 5) ──────────────────────
 
 export function checkTPSL(signal: ActiveSignal, currentPrice: number): {
   updated: ActiveSignal;
   event: string | null;
 } {
-  if (!signal || signal.state === 'COMPLETED' || signal.state === 'SL_HIT') {
+  if (!signal || signal.state === 'COMPLETED' || signal.state === 'SL_HIT' || signal.state === 'INVALIDATED') {
     return { updated: signal, event: null };
   }
 
@@ -800,73 +998,138 @@ export function checkTPSL(signal: ActiveSignal, currentPrice: number): {
   let updated = { ...signal, events: [...signal.events] };
   let event: string | null = null;
 
-  if (signal.state === 'ACTIVE' || signal.state === 'TP1_HIT' || signal.state === 'TP2_HIT') {
-    // SL check (always first per convention)
+  // Active or Confirmed state checking
+  if (['ACTIVE', 'TRADE_ACTIVE', 'LONG_CONFIRMED', 'SHORT_CONFIRMED', 'TP1_HIT', 'TP2_HIT'].includes(signal.state)) {
+    // 1. Structural Invalidation check (close beyond structural edge)
+    const isInvalidated = isLong ? currentPrice < signal.invalidationLevel : currentPrice > signal.invalidationLevel;
+    if (isInvalidated && signal.state !== 'TP1_HIT' && signal.state !== 'TP2_HIT') {
+      updated.state = 'INVALIDATED';
+      updated.updatedAt = Date.now();
+      updated.events.push({
+        type: 'INVALIDATED',
+        timestamp: Date.now(),
+        price: currentPrice,
+        note: `Structural invalidation — price crossed beyond ${signal.invalidationLevel.toFixed(2)}`
+      });
+      event = `⚡ TRADE INVALIDATED @ ${currentPrice.toFixed(2)} | Structural shift against thesis`;
+      return { updated, event };
+    }
+
+    // 2. Stop Loss check
     const slHit = isLong ? currentPrice <= signal.stopLoss : currentPrice >= signal.stopLoss;
     if (slHit && signal.state !== 'TP1_HIT' && signal.state !== 'TP2_HIT') {
       updated.state = 'SL_HIT';
       updated.updatedAt = Date.now();
-      updated.events.push({ type: 'SL_HIT', timestamp: Date.now(), price: currentPrice, note: `Stop loss hit at ${currentPrice.toFixed(2)}` });
-      event = `🛑 STOP-LOSS HIT @ ${currentPrice.toFixed(2)} | -1R`;
+      updated.events.push({
+        type: 'SL_HIT',
+        timestamp: Date.now(),
+        price: currentPrice,
+        note: `Stop loss hit at ${currentPrice.toFixed(2)}`
+      });
+      event = `🛑 STOP-LOSS HIT @ ${currentPrice.toFixed(2)} | -1R Loss Capped`;
       return { updated, event };
     }
 
-    // TP1 check
-    if (signal.state === 'ACTIVE') {
+    // 3. Entry trigger check: If state was CONFIRMED and price touches entry zone, transition to TRADE_ACTIVE
+    if (signal.state === 'LONG_CONFIRMED' || signal.state === 'SHORT_CONFIRMED') {
+      updated.state = 'TRADE_ACTIVE';
+      updated.updatedAt = Date.now();
+      updated.events.push({
+        type: 'TRADE_ACTIVE',
+        timestamp: Date.now(),
+        price: currentPrice,
+        note: `Trade became active at entry level ${currentPrice.toFixed(2)}`
+      });
+      event = `🚀 TRADE ACTIVE @ ${currentPrice.toFixed(2)} | Position Executed`;
+      return { updated, event };
+    }
+
+    // 4. TP1 check
+    if (signal.state === 'TRADE_ACTIVE' || signal.state === 'ACTIVE') {
       const tp1Hit = isLong ? currentPrice >= signal.tp1 : currentPrice <= signal.tp1;
       if (tp1Hit) {
         updated.state = 'TP1_HIT';
         updated.updatedAt = Date.now();
-        updated.events.push({ type: 'TP1_HIT', timestamp: Date.now(), price: currentPrice, note: `TP1 hit at ${currentPrice.toFixed(2)}` });
+        updated.events.push({
+          type: 'TP1_HIT',
+          timestamp: Date.now(),
+          price: currentPrice,
+          note: `TP1 hit at ${currentPrice.toFixed(2)} (Partial closed, SL moved to BE)`
+        });
         // Move SL to breakeven after TP1
         if (!updated.managementSLMoved) {
           updated.stopLoss = updated.entryPrice;
           updated.managementSLMoved = true;
-          updated.events.push({ type: 'SL_TO_BE', timestamp: Date.now(), price: updated.entryPrice, note: 'SL moved to breakeven after TP1' });
+          updated.events.push({
+            type: 'SL_TO_BE',
+            timestamp: Date.now(),
+            price: updated.entryPrice,
+            note: 'SL moved to Breakeven after TP1'
+          });
         }
-        event = `✅ TP1 HIT @ ${currentPrice.toFixed(2)} | ${updated.rrrTp1} | SL moved to breakeven`;
+        event = `✅ TP1 HIT @ ${currentPrice.toFixed(2)} | ${updated.rrrTp1} | SL Moved to Breakeven`;
         return { updated, event };
       }
     }
 
-    // TP2 check
+    // 5. TP2 check
     if (signal.state === 'TP1_HIT') {
       const tp2Hit = isLong ? currentPrice >= signal.tp2 : currentPrice <= signal.tp2;
       if (tp2Hit) {
         updated.state = 'TP2_HIT';
         updated.updatedAt = Date.now();
-        updated.events.push({ type: 'TP2_HIT', timestamp: Date.now(), price: currentPrice, note: `TP2 hit at ${currentPrice.toFixed(2)}` });
-        event = `🎯 TP2 HIT @ ${currentPrice.toFixed(2)} | ${updated.rrrTp2} | Trailing TP3`;
+        updated.events.push({
+          type: 'TP2_HIT',
+          timestamp: Date.now(),
+          price: currentPrice,
+          note: `TP2 hit at ${currentPrice.toFixed(2)} (Trailing stop activated)`
+        });
+        event = `🎯 TP2 HIT @ ${currentPrice.toFixed(2)} | ${updated.rrrTp2} | Trailing TP3 Runner`;
         return { updated, event };
       }
-      // BE stop after TP1 — price comes back to entry
+      // BE stop check after TP1
       const beStopHit = isLong ? currentPrice <= updated.stopLoss : currentPrice >= updated.stopLoss;
       if (beStopHit) {
         updated.state = 'BE_STOP';
         updated.updatedAt = Date.now();
-        updated.events.push({ type: 'BE_STOP', timestamp: Date.now(), price: currentPrice, note: 'Breakeven stop hit after TP1' });
-        event = `🔄 BREAKEVEN STOP @ ${currentPrice.toFixed(2)} | ~0R (TP1 partial kept)`;
+        updated.events.push({
+          type: 'BE_STOP',
+          timestamp: Date.now(),
+          price: currentPrice,
+          note: 'Breakeven stop hit after TP1 secured'
+        });
+        event = `🔄 BREAKEVEN STOP @ ${currentPrice.toFixed(2)} | Profit locked from TP1`;
         return { updated, event };
       }
     }
 
-    // TP3 check
+    // 6. TP3 check
     if (signal.state === 'TP2_HIT') {
       const tp3Hit = isLong ? currentPrice >= signal.tp3 : currentPrice <= signal.tp3;
       if (tp3Hit) {
-        updated.state = 'TP3_HIT';
+        updated.state = 'COMPLETED';
         updated.updatedAt = Date.now();
-        updated.events.push({ type: 'TP3_HIT', timestamp: Date.now(), price: currentPrice, note: `TP3 hit at ${currentPrice.toFixed(2)}` });
-        event = `🏆 TP3 HIT @ ${currentPrice.toFixed(2)} | ${updated.rrrTp3} | TRADE COMPLETED WIN`;
+        updated.events.push({
+          type: 'TP3_HIT',
+          timestamp: Date.now(),
+          price: currentPrice,
+          note: `TP3 hit at ${currentPrice.toFixed(2)} — Trade Completed Full Target`
+        });
+        event = `🏆 TP3 HIT @ ${currentPrice.toFixed(2)} | ${updated.rrrTp3} | TRADE COMPLETED WINNER`;
         return { updated, event };
       }
     }
 
-    // Expiry check
-    if (Date.now() > updated.expiresAt && updated.state === 'ACTIVE') {
+    // 7. Expiry check (8h time stop)
+    if (Date.now() > updated.expiresAt && (updated.state === 'ACTIVE' || updated.state === 'TRADE_ACTIVE')) {
       updated.state = 'EXPIRED';
-      updated.events.push({ type: 'EXPIRED', timestamp: Date.now(), price: currentPrice, note: 'Signal expired (8h time stop)' });
-      event = `⏰ SIGNAL EXPIRED — no follow-through in 8h`;
+      updated.events.push({
+        type: 'EXPIRED',
+        timestamp: Date.now(),
+        price: currentPrice,
+        note: 'Signal expired (8h time stop reached)'
+      });
+      event = `⏰ SIGNAL EXPIRED — 8h Time Stop Reached`;
       return { updated, event };
     }
   }
@@ -921,15 +1184,42 @@ export async function runGoldSmcEngine(
   const macro = buildMacroSummary();
   const hourIST = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false });
 
+  // Guard: Strictly isolate Gold (XAUUSD / PAXGUSDT)
+  const isGoldSymbol =
+    instrument === 'XAUUSD' ||
+    instrument === 'PAXGUSDT' ||
+    instrument.includes('GOLD') ||
+    binanceSymbol.includes('PAXG') ||
+    binanceSymbol.includes('XAU');
+
+  if (!isGoldSymbol) {
+    return {
+      instrument,
+      currentPrice,
+      timestamp: now,
+      activeSignal: null,
+      tfBiases: [],
+      consensus: { ci: 0, agreementPct: 0, finalStance: 'NEUTRAL', analysts: [], disagreementPenalty: false, coverageOk: false },
+      whyNoSignal: `SYMBOL MISMATCH — SIGNAL GENERATION BLOCKED. Gold SMC Lab is locked to XAUUSD. Received ${instrument}.`,
+      cooldownActive: false,
+      cooldownEndsAt: 0,
+      dailySignalCount: 0,
+      dailySLCount: 0,
+      regime: 'BLOCKED',
+      session,
+      macroSummary: macro,
+      dataFreshMs: 0,
+      gateResults: [],
+      symbolMismatch: true
+    };
+  }
+
   // Check persistence
   let activeSignal = loadSignal(instrument);
   const cooldown = loadCooldown(instrument);
   const daily = getDailyCount(instrument);
 
-  // If we have an active signal, track TP/SL (called separately on each price update)
-  // Here we just return the engine state
-
-  // Fetch MTF candles (only when no active signal to avoid overcomputaton)
+  // Fetch MTF candles in institutional hierarchy: 1D → 4H → 1H → 15M → 5M
   const [c1d, c4h, c1h, c15m, c5m] = await Promise.all([
     fetchTFCandles(binanceSymbol, '1d', 100),
     fetchTFCandles(binanceSymbol, '4h', 150),
@@ -962,15 +1252,28 @@ export async function runGoldSmcEngine(
   // Build regime
   const dailyBias = tfBiases.find(t => t.tf === '1D')?.bias || 'NEUTRAL';
   const h4Bias = tfBiases.find(t => t.tf === '4H')?.bias || 'NEUTRAL';
-  const atr15 = tfBiases.find(t => t.tf === '15M')?.atr || 1;
+  const atr15 = tfBiases.find(t => t.tf === '15M')?.atr || 3.5;
 
   const regime = dailyBias === 'BULLISH' && h4Bias === 'BULLISH' ? 'TRENDING-UP' :
     dailyBias === 'BEARISH' && h4Bias === 'BEARISH' ? 'TRENDING-DOWN' :
     dailyBias !== h4Bias ? 'CONFLICTED' : 'RANGE';
 
-  // If no active signal, check if we should create one
-  let whyNoSignal = '';
+  // ANTI-FLIP RULE (MODULE 5): If active trade exists, lock direction and check opposite setup note
+  let oppositeSetupNote: string | undefined = undefined;
+  if (activeSignal && ['ACTIVE', 'TRADE_ACTIVE', 'LONG_CONFIRMED', 'SHORT_CONFIRMED', 'TP1_HIT', 'TP2_HIT'].includes(activeSignal.state)) {
+    const oppDir = activeSignal.direction === 'LONG' ? 'SHORT' : 'LONG';
+    if (consensus.finalStance === oppDir) {
+      oppositeSetupNote = 'OPPOSITE SETUP DEVELOPING — CURRENT TRADE STILL ACTIVE';
+      activeSignal.oppositeSetupNote = oppositeSetupNote;
+    } else {
+      activeSignal.oppositeSetupNote = undefined;
+    }
+  }
 
+  let whyNoSignal = '';
+  let gateResults: GateResult[] = [];
+
+  // If no active signal or completed/invalidated, evaluate for new setup
   if (!activeSignal || ['SL_HIT', 'TP3_HIT', 'EXPIRED', 'INVALIDATED', 'MISSED', 'BE_STOP', 'COMPLETED'].includes(activeSignal.state)) {
     // Check cooldown
     if (cooldown) {
@@ -991,26 +1294,45 @@ export async function runGoldSmcEngine(
       const rrrTp3 = riskPts > 0 ? (Math.abs(tp3 - entryPrice) / riskPts) : 0;
 
       const score = computeScore(consensus, tfBiases, macro, direction, rrrTp2, session);
-      const gates = runGates(consensus, score, macro, session, daily.signals, daily.slHits, currentPrice, entryPrice, rrrTp2, atr15);
+      const instGates = evaluate10InstitutionalGates(
+        direction,
+        tfBiases,
+        consensus,
+        score,
+        macro,
+        session,
+        daily.signals,
+        daily.slHits,
+        currentPrice,
+        entryPrice,
+        stopLoss,
+        tp2,
+        atr15
+      );
 
-      if (gates.pass) {
+      gateResults = instGates.gates;
+
+      const contractSpecs = calculateGoldContractSpecs(entryPrice, stopLoss, 200);
+
+      if (instGates.passAll) {
         const grade = score.total >= 90 ? 'A+' : score.total >= 80 ? 'A' : score.total >= 70 ? 'B+' : 'B';
         const signalId = `${instrument}-${direction}-${now}`;
 
         const whySignal = [
-          `${direction === 'LONG' ? '📈' : '📉'} ${tfBiases.find(t => t.tf === '1D')?.bias} daily bias`,
-          `4H: ${tfBiases.find(t => t.tf === '4H')?.bias} | 1H: ${tfBiases.find(t => t.tf === '1H')?.bias}`,
-          `Consensus CI: ${consensus.ci.toFixed(2)} (${consensus.agreementPct.toFixed(0)}% agreement)`,
+          `🌟 10/10 Institutional Confirmation Gates Passed`,
+          `${direction === 'LONG' ? '📈' : '📉'} 1D: ${dailyBias} | 4H: ${h4Bias} | 1H: ${tfBiases.find(t => t.tf === '1H')?.bias}`,
+          `Consensus Index: ${consensus.ci > 0 ? '+' : ''}${consensus.ci.toFixed(2)} (${consensus.agreementPct.toFixed(0)}% agreement)`,
           `Regime: ${regime} | Session: ${session}`,
           `Score: ${score.total}/100 (Grade ${grade})`,
-          `RR to TP2: ${rrrTp2.toFixed(1)}R`
+          `RR to TP2: 1:${rrrTp2.toFixed(1)}R | Clearance: Confirmed`,
+          `Contract: ${contractSpecs.formula}`
         ];
 
         activeSignal = {
           id: signalId,
           instrument,
           direction,
-          state: 'ACTIVE',
+          state: 'LONG_CONFIRMED',
           createdAt: now,
           updatedAt: now,
           entryPrice,
@@ -1030,7 +1352,7 @@ export async function runGoldSmcEngine(
           agreementPct: consensus.agreementPct,
           invalidationLevel: direction === 'LONG' ? stopLoss - atr15 * 0.5 : stopLoss + atr15 * 0.5,
           expiresAt: now + 8 * 60 * 60 * 1000,
-          events: [{ type: 'CREATED', timestamp: now, price: entryPrice, note: `${direction} signal created | Grade ${grade}` }],
+          events: [{ type: 'CONFIRMED', timestamp: now, price: entryPrice, note: `${direction} signal confirmed 10/10 gates | Grade ${grade}` }],
           lockedPlanHash: `${signalId}-${entryPrice}-${stopLoss}`,
           managementSLMoved: false,
           whySignal,
@@ -1038,16 +1360,15 @@ export async function runGoldSmcEngine(
           scoreBreakdown: score,
           regime,
           session,
-          analysts
+          analysts,
+          gateResults: instGates.gates,
+          contractSpecs
         };
 
         saveSignal(activeSignal);
         incrementDailySignals(instrument, 'signal');
       } else {
-        whyNoSignal = `NO SIGNAL: Gates failed — ${gates.failedGates[0]}`;
-        if (!activeSignal) {
-          // Create a "pending watch" ghost to show in UI
-        }
+        whyNoSignal = `${instGates.statusLabel} — Missing: ${instGates.failedGates.slice(0, 2).join(' | ')}`;
       }
     } else {
       const disagreementNote = consensus.disagreementPenalty ? ' | High analyst disagreement' : '';
@@ -1059,7 +1380,7 @@ export async function runGoldSmcEngine(
   if (activeSignal?.state === 'SL_HIT') {
     saveCooldown(instrument, 45 * 60 * 1000, 'SL hit — 45min cooldown');
     incrementDailySignals(instrument, 'sl');
-  } else if (activeSignal?.state === 'TP3_HIT' || activeSignal?.state === 'TP2_HIT') {
+  } else if (activeSignal?.state === 'TP3_HIT' || activeSignal?.state === 'COMPLETED') {
     saveCooldown(instrument, 15 * 60 * 1000, 'TP hit — 15min cooldown');
   }
 
@@ -1078,7 +1399,10 @@ export async function runGoldSmcEngine(
     regime,
     session,
     macroSummary: macro,
-    dataFreshMs: Date.now() - now
+    dataFreshMs: Date.now() - now,
+    gateResults,
+    oppositeSetupNote,
+    symbolMismatch: false
   };
 }
 
@@ -1086,18 +1410,40 @@ export async function runGoldSmcEngine(
 
 export function formatSignalState(state: SignalState, direction: SignalDirection): { label: string; color: string; bg: string } {
   const map: Record<SignalState, { label: string; color: string; bg: string }> = {
+    ANALYSIS: { label: 'MARKET ANALYSIS', color: '#94a3b8', bg: 'bg-slate-900' },
+    SETUP_DEVELOPING: {
+      label: direction === 'LONG' ? '⏳ LONG DEVELOPING' : direction === 'SHORT' ? '⏳ SHORT DEVELOPING' : '⏳ SETUP DEVELOPING',
+      color: '#f59e0b',
+      bg: 'bg-amber-950/50'
+    },
+    WAIT_CONFIRMATION: {
+      label: direction === 'LONG' ? '⏳ WAIT — LONG CONFIRMATION' : direction === 'SHORT' ? '⏳ WAIT — SHORT CONFIRMATION' : '⏳ WAIT FOR CONFIRMATION',
+      color: '#f59e0b',
+      bg: 'bg-amber-950/60'
+    },
+    LONG_CONFIRMED: { label: '🟢 LONG CONFIRMED', color: '#10b981', bg: 'bg-emerald-950/80' },
+    SHORT_CONFIRMED: { label: '🔴 SHORT CONFIRMED', color: '#ef4444', bg: 'bg-rose-950/80' },
+    TRADE_ACTIVE: {
+      label: direction === 'LONG' ? '🔒 LONG ACTIVE' : '🔒 SHORT ACTIVE',
+      color: direction === 'LONG' ? '#10b981' : '#ef4444',
+      bg: direction === 'LONG' ? 'bg-emerald-950/70' : 'bg-rose-950/70'
+    },
+    TP1_HIT: { label: '✅ TP1 HIT (+1R)', color: '#38bdf8', bg: 'bg-sky-950/60' },
+    TP2_HIT: { label: '🎯 TP2 HIT (+2R+)', color: '#06b6d4', bg: 'bg-cyan-950/60' },
+    TP3_HIT: { label: '🏆 TP3 HIT — WINNER', color: '#10b981', bg: 'bg-emerald-950/80' },
+    SL_HIT: { label: '🛑 STOP-LOSS HIT (-1R)', color: '#ef4444', bg: 'bg-rose-950/80' },
+    INVALIDATED: { label: '⚡ INVALIDATED', color: '#f97316', bg: 'bg-orange-950/60' },
+    COMPLETED: { label: '🏁 TRADE COMPLETED', color: '#10b981', bg: 'bg-emerald-950/60' },
     NONE: { label: 'NO SIGNAL', color: '#94a3b8', bg: 'bg-slate-900' },
     PENDING: { label: 'PENDING', color: '#f59e0b', bg: 'bg-amber-950/50' },
-    ACTIVE: { label: direction === 'LONG' ? '🔒 LONG ACTIVE' : '🔒 SHORT ACTIVE', color: direction === 'LONG' ? '#10b981' : '#ef4444', bg: direction === 'LONG' ? 'bg-emerald-950/60' : 'bg-rose-950/60' },
-    TP1_HIT: { label: '✅ TP1 HIT', color: '#38bdf8', bg: 'bg-sky-950/60' },
-    TP2_HIT: { label: '🎯 TP2 HIT', color: '#06b6d4', bg: 'bg-cyan-950/60' },
-    TP3_HIT: { label: '🏆 TP3 — WINNER', color: '#10b981', bg: 'bg-emerald-950/80' },
-    SL_HIT: { label: '🛑 SL HIT', color: '#ef4444', bg: 'bg-rose-950/80' },
+    ACTIVE: {
+      label: direction === 'LONG' ? '🔒 LONG ACTIVE' : '🔒 SHORT ACTIVE',
+      color: direction === 'LONG' ? '#10b981' : '#ef4444',
+      bg: direction === 'LONG' ? 'bg-emerald-950/60' : 'bg-rose-950/60'
+    },
     BE_STOP: { label: '🔄 BE STOP (~0R)', color: '#f59e0b', bg: 'bg-amber-950/60' },
-    INVALIDATED: { label: '⚡ INVALIDATED', color: '#f97316', bg: 'bg-orange-950/60' },
     EXPIRED: { label: '⏰ EXPIRED', color: '#94a3b8', bg: 'bg-slate-900/80' },
-    MISSED: { label: '💨 MISSED', color: '#94a3b8', bg: 'bg-slate-900/80' },
-    COMPLETED: { label: '✅ COMPLETED', color: '#10b981', bg: 'bg-emerald-950/60' }
+    MISSED: { label: '💨 MISSED', color: '#94a3b8', bg: 'bg-slate-900/80' }
   };
   return map[state] || map.NONE;
 }

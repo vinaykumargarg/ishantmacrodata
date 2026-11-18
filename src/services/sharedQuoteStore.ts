@@ -396,19 +396,30 @@ class SharedQuoteStore {
   }
 
   private notify(quote: AssetQuote) {
+    // Augmented proxy quote: works as both single quote (quote.price, quote.symbol)
+    // AND as dictionary quotes['XAUUSD'] for components expecting all quotes map.
+    const proxyQuote = new Proxy(quote, {
+      get: (target, prop) => {
+        if (typeof prop === 'string' && (prop in this.quotes || prop === 'XAUUSD' || prop === 'BTCUSDT' || prop === 'ETHUSDT' || prop === 'SOLUSDT' || prop === 'PAXGUSDT' || prop === 'SILVER' || prop === 'WTI' || prop === 'DXY' || prop === 'USDTD')) {
+          return this.quotes[prop] !== undefined ? this.quotes[prop] : (target as any)[prop];
+        }
+        return (target as any)[prop];
+      }
+    });
+
     for (const listener of this.listeners) {
       try {
-        listener(quote);
+        (listener as any)(proxyQuote, this.quotes);
       } catch {
         // ignore callback error
       }
     }
   }
 
-  public subscribe(callback: (quote: AssetQuote) => void): () => void {
-    this.listeners.add(callback);
+  public subscribe(callback: (quote: AssetQuote, allQuotes?: Record<string, AssetQuote>) => void): () => void {
+    this.listeners.add(callback as any);
     return () => {
-      this.listeners.delete(callback);
+      this.listeners.delete(callback as any);
     };
   }
 }
