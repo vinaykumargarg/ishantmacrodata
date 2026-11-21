@@ -190,7 +190,7 @@ export interface MacroSummary {
 
 // ─── PERSISTENCE KEY ─────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'GOLD_SMC_STATE_V10_XAUUSD';
+const STORAGE_KEY = 'SMC_STATE_V10_MULTI';
 const LEGACY_STORAGE_KEY = 'DEEEPR_SMC_SIGNAL_v3';
 const COOLDOWN_KEY = 'DEEEPR_SMC_COOLDOWN_v3';
 const DAILY_KEY = 'DEEEPR_SMC_DAILY_v3';
@@ -1184,15 +1184,19 @@ export async function runGoldSmcEngine(
   const macro = buildMacroSummary();
   const hourIST = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false });
 
-  // Guard: Strictly isolate Gold (XAUUSD / PAXGUSDT)
-  const isGoldSymbol =
-    instrument === 'XAUUSD' ||
-    instrument === 'PAXGUSDT' ||
+  // Multi-asset support: XAUUSD, BTCUSDT, ETHUSDT, SOLUSDT all pass through
+  const supportedInstruments = ['XAUUSD', 'PAXGUSDT', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+  const isSupported =
+    supportedInstruments.includes(instrument) ||
+    supportedInstruments.includes(binanceSymbol) ||
     instrument.includes('GOLD') ||
     binanceSymbol.includes('PAXG') ||
-    binanceSymbol.includes('XAU');
+    binanceSymbol.includes('XAU') ||
+    binanceSymbol.includes('BTC') ||
+    binanceSymbol.includes('ETH') ||
+    binanceSymbol.includes('SOL');
 
-  if (!isGoldSymbol) {
+  if (!isSupported) {
     return {
       instrument,
       currentPrice,
@@ -1200,7 +1204,7 @@ export async function runGoldSmcEngine(
       activeSignal: null,
       tfBiases: [],
       consensus: { ci: 0, agreementPct: 0, finalStance: 'NEUTRAL', analysts: [], disagreementPenalty: false, coverageOk: false },
-      whyNoSignal: `SYMBOL MISMATCH — SIGNAL GENERATION BLOCKED. Gold SMC Lab is locked to XAUUSD. Received ${instrument}.`,
+      whyNoSignal: `UNSUPPORTED INSTRUMENT — Only XAUUSD, BTCUSDT, ETHUSDT, SOLUSDT are supported. Received ${instrument}.`,
       cooldownActive: false,
       cooldownEndsAt: 0,
       dailySignalCount: 0,

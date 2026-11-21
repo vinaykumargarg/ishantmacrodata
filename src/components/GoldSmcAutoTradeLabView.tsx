@@ -250,7 +250,7 @@ export default function GoldSmcAutoTradeLabView() {
     if (isEngineRunning) return;
     setIsEngineRunning(true);
     try {
-      const quotePrice = currentQuote.price || 3863;
+      const quotePrice = currentQuote.price || (activeAsset === 'GOLD' ? 3863 : activeAsset === 'BTC' ? 107000 : activeAsset === 'ETH' ? 3900 : 260);
       const quotesDict: Record<string, number> = {
         BTCUSDT: allQuotes['BTCUSDT']?.price || 0,
         ETHUSDT: allQuotes['ETHUSDT']?.price || 0,
@@ -355,7 +355,7 @@ export default function GoldSmcAutoTradeLabView() {
   const institutionalEvaluation: InstitutionalEvaluationResult = useMemo(() => {
     return evaluateInstitutionalParameters(
       activeConfig.instrument,
-      currentQuote.price || 3863,
+      currentQuote.price || (activeAsset === 'GOLD' ? 3863 : activeAsset === 'BTC' ? 107000 : activeAsset === 'ETH' ? 3900 : 260),
       tradePlan,
       candlesRef.current,
       allQuotes['DXY']?.price || 102.35,
@@ -457,7 +457,7 @@ export default function GoldSmcAutoTradeLabView() {
     setIsLoadingCandles(true);
 
     try {
-      const livePrice = currentQuote.price || 3863;
+      const livePrice = currentQuote.price || (activeAsset === 'GOLD' ? 3863 : activeAsset === 'BTC' ? 107000 : activeAsset === 'ETH' ? 3900 : 260);
       const candles = await fetchResilientCandles(activeAsset, timeframe, livePrice, 120);
 
       const formattedVolumes = candles.map((c: CandleDataPoint) => ({
@@ -491,7 +491,7 @@ export default function GoldSmcAutoTradeLabView() {
       const fallbackCandles = generateInstitutionalSyntheticCandles(
         activeAsset,
         timeframe,
-        currentQuote.price || 3863,
+        currentQuote.price || (activeAsset === 'GOLD' ? 3863 : activeAsset === 'BTC' ? 107000 : activeAsset === 'ETH' ? 3900 : 260),
         120
       );
       candlesRef.current = fallbackCandles;
@@ -826,14 +826,39 @@ export default function GoldSmcAutoTradeLabView() {
         </div>
       </div>
 
-      {/* ── 2. SUB-NAVIGATION BAR (Gold Institutional Command Suite) ── */}
+      {/* ── 2. SUB-NAVIGATION BAR (Multi-Asset Institutional Command Suite) ── */}
       <div className="rounded-xl border border-[#162032] bg-[#070b14] px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Active Mode: Dedicated Gold Spot AI */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black bg-gradient-to-r from-[#d97706] to-[#b45309] text-white border border-[#f59e0b]/50 shadow-md shadow-amber-500/20">
-            <span>🪙 XAUUSD SPOT AI</span>
-            <span className="text-[10px] text-amber-200 font-mono font-normal">(INSTITUTIONAL DESK)</span>
-          </div>
+          {/* Multi-Asset Selector: GOLD / BTC / ETH / SOL */}
+          {(['GOLD', 'BTC', 'ETH', 'SOL'] as SupportedAsset[]).map((key) => {
+            const cfg = ASSET_CONFIGS[key];
+            const isActive = activeAsset === key;
+            const q = key === activeAsset ? currentQuote : (allQuotes[cfg.quoteKey] || allQuotes[cfg.binanceSymbol]);
+            const qPrice = q?.price || 0;
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  soundEffects.playBlip();
+                  setActiveAsset(key);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition-all cursor-pointer ${
+                  isActive
+                    ? `bg-gradient-to-r from-[${cfg.color}] to-[${cfg.color}cc] text-white border border-[${cfg.color}]/50 shadow-md`
+                    : 'text-[#94a3b8] bg-[#0b1322] border border-[#1e293b] hover:border-slate-600 hover:text-white'
+                }`}
+                style={isActive ? { background: `linear-gradient(135deg, ${cfg.color}, ${cfg.color}cc)`, borderColor: `${cfg.color}80` } : {}}
+              >
+                <span>{cfg.icon}</span>
+                <span className="text-xs">{cfg.instrument}</span>
+                {qPrice > 0 && (
+                  <span className={`text-[10px] font-mono ${isActive ? 'text-white/80' : 'text-slate-500'}`}>
+                    ${qPrice < 1000 ? qPrice.toFixed(2) : qPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </span>
+                )}
+              </button>
+            );
+          })}
 
           <span className="text-[#334155] mx-1">|</span>
 
@@ -937,188 +962,120 @@ export default function GoldSmcAutoTradeLabView() {
         </div>
       </div>
 
-      {/* Symbol Mismatch Safety Guard Banner */}
-      {engineOutput?.symbolMismatch && (
-        <div className="rounded-xl border border-rose-500/60 bg-rose-950/60 p-3 text-rose-200 text-xs font-mono flex items-center justify-between shadow-lg">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span><strong>SYMBOL MISMATCH — SIGNAL GENERATION BLOCKED:</strong> Feed symbol must match XAUUSD / PAXGUSDT for Gold SMC Lab.</span>
-          </div>
-          <button
-            onClick={() => setActiveAsset('GOLD')}
-            className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer text-xs"
-          >
-            Switch to XAUUSD
-          </button>
-        </div>
-      )}
-
-      {/* ── 3. TOP 4 GOLD INSTITUTIONAL TELEMETRY CARDS (XAUUSD, DXY, TIPS REAL YIELD, SETUP STATE) ── */}
+      {/* ── 3. TOP 4 MULTI-ASSET TELEMETRY CARDS (Live Price, 24h Change, TF Biases, Liquidation Levels) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono">
-        {/* Card 1: XAUUSD Live Spot */}
-        <div className="rounded-xl border border-[#f59e0b]/60 bg-gradient-to-br from-[#121c32] to-[#070b14] p-3 shadow-lg flex items-center justify-between ring-1 ring-[#f59e0b]/30">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0b1322] border border-[#1e293b] text-2xl shrink-0">
-              🪙
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-white tracking-tight">
-                  XAUUSD (GOLD SPOT)
-                </span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-950 text-amber-300 border border-amber-500/40">
-                  SPOT
-                </span>
-              </div>
-              <span className="text-lg font-black font-sans block leading-tight text-white tabular-nums">
-                ${currentQuote.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-              <span className={`text-[10px] font-bold block tabular-nums ${currentQuote.change24h < 0 ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
-                {currentQuote.change24h < 0 ? '▼' : '▲'} {currentQuote.change24hPts >= 0 ? `+${currentQuote.change24hPts.toFixed(2)}` : currentQuote.change24hPts.toFixed(2)} ({currentQuote.change24h >= 0 ? `+${currentQuote.change24h.toFixed(2)}` : currentQuote.change24h.toFixed(2)}%)
-              </span>
-            </div>
-          </div>
-          <div className="text-[10px] space-y-0.5 border-l border-[#1e293b] pl-2.5 leading-tight font-mono">
-            <div>
-              <span className="text-[#94a3b8]">1D: </span>
-              <strong className={tradePlan.dailyBias === 'BEARISH' ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
-                {tradePlan.dailyBias}
-              </strong>
-            </div>
-            <div>
-              <span className="text-[#94a3b8]">4H: </span>
-              <strong className={tradePlan.h4Bias === 'BEARISH' ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
-                {tradePlan.h4Bias}
-              </strong>
-            </div>
-            <div>
-              <span className="text-[#94a3b8]">1H: </span>
-              <strong className={tradePlan.h1Bias === 'BEARISH' ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
-                {tradePlan.h1Bias}
-              </strong>
-            </div>
-          </div>
-        </div>
+        {(['GOLD', 'BTC', 'ETH', 'SOL'] as SupportedAsset[]).map((key) => {
+          const cfg = ASSET_CONFIGS[key];
+          const isActive = activeAsset === key;
+          const q = key === activeAsset ? currentQuote : (allQuotes[cfg.quoteKey] || allQuotes[cfg.binanceSymbol] || { price: 0, change24h: 0, change24hPts: 0 });
+          const price = q?.price || (key === 'GOLD' ? 3863 : key === 'BTC' ? 107000 : key === 'ETH' ? 3900 : 260);
+          const ch = q?.change24h || 0;
+          const chPts = q?.change24hPts || 0;
 
-        {/* Card 2: DXY (US Dollar Index) */}
-        <div
-          onClick={() => {
-            soundEffects.playBlip();
-            setRightPanelTab('MACRO_INTEL');
-          }}
-          className="rounded-xl border border-[#162032] bg-[#070b14] p-3 shadow-lg flex items-center justify-between hover:border-slate-700 cursor-pointer transition-all"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0b1322] border border-[#1e293b] text-2xl shrink-0">
-              💵
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-white tracking-tight">
-                  DXY INDEX
-                </span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-blue-950 text-blue-300 border border-blue-500/40">
-                  MACRO
-                </span>
-              </div>
-              <span className="text-lg font-black font-sans block leading-tight text-white tabular-nums">
-                {(allQuotes['DXY']?.price || 102.35).toFixed(2)}
-              </span>
-              <span className="text-[10px] font-bold block text-cyan-400">
-                -0.84 Inverse Correlation
-              </span>
-            </div>
-          </div>
-          <div className="text-[10px] space-y-0.5 border-l border-[#1e293b] pl-2.5 leading-tight font-mono text-right">
-            <span className="text-[#94a3b8] block">Gold Impact:</span>
-            <strong className="text-emerald-400 block font-bold">
-              TAILWIND ✓
-            </strong>
-            <span className="text-[9px] text-slate-400 block">DXY &lt; 103 Range</span>
-          </div>
-        </div>
+          // Estimated liquidation levels based on current price (approximate high-leverage zones)
+          const liqLongLevel = +(price * (1 - (key === 'GOLD' ? 0.012 : key === 'BTC' ? 0.035 : key === 'ETH' ? 0.04 : 0.055))).toFixed(cfg.priceDecimals);
+          const liqShortLevel = +(price * (1 + (key === 'GOLD' ? 0.012 : key === 'BTC' ? 0.035 : key === 'ETH' ? 0.04 : 0.055))).toFixed(cfg.priceDecimals);
 
-        {/* Card 3: US 10Y Yield & TIPS Real Yield */}
-        <div
-          onClick={() => {
-            soundEffects.playBlip();
-            setRightPanelTab('MACRO_INTEL');
-          }}
-          className="rounded-xl border border-[#162032] bg-[#070b14] p-3 shadow-lg flex items-center justify-between hover:border-slate-700 cursor-pointer transition-all"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0b1322] border border-[#1e293b] text-2xl shrink-0">
-              📈
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-white tracking-tight">
-                  US 10Y &amp; TIPS
-                </span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-950 text-purple-300 border border-purple-500/40">
-                  REAL YIELD
-                </span>
-              </div>
-              <span className="text-lg font-black font-sans block leading-tight text-white tabular-nums">
-                4.28% <span className="text-xs text-purple-400 font-normal">/ +1.85%</span>
-              </span>
-              <span className="text-[10px] font-bold block text-emerald-400">
-                Falling Real Yields = Bullish
-              </span>
-            </div>
-          </div>
-          <div className="text-[10px] space-y-0.5 border-l border-[#1e293b] pl-2.5 leading-tight font-mono text-right">
-            <span className="text-[#94a3b8] block">Opportunity Cost:</span>
-            <strong className="text-slate-200 block font-bold">
-              Moderate Low
-            </strong>
-            <span className="text-[9px] text-slate-400 block">Carry Neutral</span>
-          </div>
-        </div>
+          return (
+            <div
+              key={key}
+              onClick={() => {
+                soundEffects.playBlip();
+                setActiveAsset(key);
+              }}
+              className={`rounded-xl border p-3 shadow-lg flex flex-col gap-2 cursor-pointer transition-all ${
+                isActive
+                  ? 'ring-1 bg-gradient-to-br from-[#121c32] to-[#070b14]'
+                  : 'bg-[#070b14] hover:border-slate-700'
+              }`}
+              style={{
+                borderColor: isActive ? `${cfg.color}99` : '#162032',
+                ...(isActive ? { boxShadow: `0 0 15px ${cfg.color}22` } : {})
+              }}
+            >
+              {/* Row 1: Asset info + price */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0b1322] border border-[#1e293b] text-xl shrink-0">
+                    {cfg.icon}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-bold text-white tracking-tight">
+                        {cfg.instrument}
+                      </span>
+                      {isActive && (
+                        <span className="px-1.5 rounded text-[8px] font-black border" style={{ backgroundColor: `${cfg.color}40`, borderColor: `${cfg.color}60`, color: cfg.color }}>
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm font-black font-sans block leading-tight text-white tabular-nums">
+                      ${price < 1000 ? price.toFixed(2) : price.toLocaleString(undefined, { minimumFractionDigits: cfg.priceDecimals, maximumFractionDigits: cfg.priceDecimals })}
+                    </span>
+                    <span className={`text-[10px] font-bold block tabular-nums ${ch < 0 ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
+                      {ch < 0 ? '▼' : '▲'} {chPts >= 0 ? `+${chPts.toFixed(cfg.priceDecimals)}` : chPts.toFixed(cfg.priceDecimals)} ({ch >= 0 ? `+${ch.toFixed(2)}` : ch.toFixed(2)}%)
+                    </span>
+                  </div>
+                </div>
 
-        {/* Card 4: Gold SMC State Machine Verdict & Quality */}
-        <div
-          onClick={() => {
-            soundEffects.playBlip();
-            setRightPanelTab('TRADE_PLAN');
-          }}
-          className="rounded-xl border border-[#162032] bg-[#070b14] p-3 shadow-lg flex items-center justify-between hover:border-slate-700 cursor-pointer transition-all"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0b1322] border border-[#1e293b] text-2xl shrink-0">
-              🛡️
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-white tracking-tight">
-                  SMC DECISION
-                </span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-                  V10 NO-FLIP
-                </span>
+                {/* MTF Biases (shown only for active asset) */}
+                {isActive && (
+                  <div className="text-[10px] space-y-0.5 border-l border-[#1e293b] pl-2.5 leading-tight font-mono">
+                    <div>
+                      <span className="text-[#94a3b8]">1D: </span>
+                      <strong className={tradePlan.dailyBias === 'BEARISH' ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
+                        {tradePlan.dailyBias}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[#94a3b8]">4H: </span>
+                      <strong className={tradePlan.h4Bias === 'BEARISH' ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
+                        {tradePlan.h4Bias}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[#94a3b8]">1H: </span>
+                      <strong className={tradePlan.h1Bias === 'BEARISH' ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
+                        {tradePlan.h1Bias}
+                      </strong>
+                    </div>
+                  </div>
+                )}
               </div>
-              <span className={`text-sm font-black font-sans block leading-tight ${
-                activeSignal?.state === 'TRADE_ACTIVE' ? 'text-emerald-400' :
-                activeSignal?.state === 'LONG_CONFIRMED' ? 'text-emerald-400' :
-                activeSignal?.state === 'SHORT_CONFIRMED' ? 'text-rose-400' :
-                activeSignal?.state === 'TP1_HIT' ? 'text-sky-400' :
-                'text-amber-400'
-              }`}>
-                {activeSignal ? signalStatusDisplay.label : 'WAIT / NO-TRADE'}
-              </span>
-              <span className="text-[10px] text-slate-400 block">
-                Score: <strong className="text-amber-400">{activeSignal?.setupScore || 85}/100</strong> (Grade {tradePlan.setupGrade})
-              </span>
+
+              {/* Row 2: SMC Zones + Liquidation Levels */}
+              <div className="grid grid-cols-2 gap-1.5 text-[9px]">
+                <div className="bg-[#0b1322] rounded px-1.5 py-1 border border-[#1e293b]">
+                  <span className="text-[#ef4444] font-bold block">🔻 Liq Long</span>
+                  <span className="text-white font-black tabular-nums">
+                    ${liqLongLevel < 1000 ? liqLongLevel.toFixed(2) : liqLongLevel.toLocaleString()}
+                  </span>
+                </div>
+                <div className="bg-[#0b1322] rounded px-1.5 py-1 border border-[#1e293b]">
+                  <span className="text-[#22c55e] font-bold block">🔺 Liq Short</span>
+                  <span className="text-white font-black tabular-nums">
+                    ${liqShortLevel < 1000 ? liqShortLevel.toFixed(2) : liqShortLevel.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 3: SMC State (active only) */}
+              {isActive && (
+                <div className="flex items-center justify-between text-[10px] border-t border-[#1e293b] pt-1.5">
+                  <span className="text-slate-400">State:</span>
+                  <span className={`font-black ${
+                    activeSignal?.state === 'TRADE_ACTIVE' || activeSignal?.state === 'LONG_CONFIRMED' ? 'text-emerald-400' :
+                    activeSignal?.state === 'SHORT_CONFIRMED' ? 'text-rose-400' :
+                    'text-amber-400'
+                  }`}>
+                    {activeSignal ? signalStatusDisplay.label : 'WAIT'}
+                  </span>
+                </div>
+              )}
             </div>
-          </div>
-          <div className="text-[10px] space-y-0.5 border-l border-[#1e293b] pl-2.5 leading-tight font-mono text-right">
-            <span className="text-[#94a3b8] block">10-Gate Audit:</span>
-            <strong className="text-emerald-400 block font-bold">
-              {engineOutput?.gateResults?.filter(g => g.pass).length || (tradePlan.direction !== 'WAIT' ? 10 : 8)}/10 PASS
-            </strong>
-            <span className="text-[9px] text-slate-400 block">CI: {(engineOutput?.consensus.ci || 0.42) > 0 ? '+' : ''}{(engineOutput?.consensus.ci || 0.42).toFixed(2)}</span>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* ── 4. MAIN WORKSPACE: TRADINGVIEW CHART (68%) + RIGHT TRADE PLAN PANEL (32%) ── */}
@@ -1439,7 +1396,7 @@ export default function GoldSmcAutoTradeLabView() {
               <div className="flex items-center gap-1.5 shrink-0">
                 <Crown className="w-4 h-4 text-amber-400 fill-current" />
                 <span className="text-xs font-black text-white uppercase font-sans">
-                  XAUUSD GOLD SMC LAB
+                  {activeConfig.instrument} SMC LAB
                 </span>
               </div>
 
